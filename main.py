@@ -1,5 +1,5 @@
 """
-Main entry point for the Project Template pipeline.
+Main entry point for the AEGIS pipeline.
 
 This script allows for manual orchestration of the pipeline stages for debugging
 and development purposes.

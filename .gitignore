@@ -102,9 +102,9 @@ models/*.pkl
 models/*.h5
 models/*.pt
 
-# Vector Database Storage (Local ChromaDB persistence)
-chroma_db/
-*.chroma
+# Agent Customizations
+.agents/
+AGENTS.md
 
 # Logs
 logs/
