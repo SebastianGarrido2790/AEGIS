@@ -39,6 +39,8 @@ htmlcov/
 # DVC local storage & cache (local-first storage per ADR-007)
 .dvc/cache/
 .dvc/tmp/
+data/
+artifacts/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/

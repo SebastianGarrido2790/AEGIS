@@ -1,1 +1,50 @@
-# Stores hyperparameters (ONLY tunable values)
+# AEGIS — System Configuration (Single Source of Truth)
+# All tunable hyperparameters and runtime settings per ADR-005.
+# Invariant: Never commit secrets, API keys, or credentials in this file (INV-1, INV-10).
+
+gateway:
+  model_name: "gpt-4o-mini"
+  fallback_model: "claude-3-5-sonnet-20241022"
+  temperature: 0.0
+  timeout_seconds: 30
+  max_retries: 3
+  cache_ttl_seconds: 3600
+
+tier1_ml:
+  test_size: 0.20
+  random_state: 42
+  causal_estimator: "CausalForestDML"
+  cv_folds: 5
+  exploration_corridor_width: 0.15
+
+tier2_agents:
+  groundedness_threshold: 0.85
+  evidence_coverage_threshold: 0.80
+  max_tool_calls: 5
+  execution_timeout_seconds: 60
+
+governance:
+  audit_storage_backend: "sqlite"
+  audit_db_path: "artifacts/audit_log.db"
+  auto_approval_corridor_pct: 0.05
+  enforce_hitl_on_flag: true
+
+data_contracts:
+  elasticity_suite_path: "data_contracts/elasticity_training_suite.json"
+  regulatory_corpus_suite_path: "data_contracts/regulatory_corpus_suite.json"
+  fixtures_dir: "data_contracts/fixtures"
+  elasticity_valid_fixture: "data_contracts/fixtures/elasticity_valid.csv"
+  elasticity_invalid_leakage_fixture: "data_contracts/fixtures/elasticity_invalid_leakage.csv"
+  elasticity_invalid_range_fixture: "data_contracts/fixtures/elasticity_invalid_range.csv"
+  regulatory_valid_fixture: "data_contracts/fixtures/regulatory_valid.json"
+  regulatory_invalid_missing_meta_fixture: "data_contracts/fixtures/regulatory_invalid_missing_meta.json"
+  regulatory_invalid_empty_fixture: "data_contracts/fixtures/regulatory_invalid_empty.json"
+  regulatory_invalid_duplicate_fixture: "data_contracts/fixtures/regulatory_invalid_duplicate.json"
+
+dvc:
+  remote_name: "local_storage"
+  remote_url: ".dvc/cache"
+  stage_elasticity_ingest: "ingest_elasticity"
+  stage_elasticity_validate: "validate_elasticity_gx"
+  stage_regulatory_ingest: "ingest_regulatory"
+  stage_regulatory_validate: "validate_regulatory_gx"
