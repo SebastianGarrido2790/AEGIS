@@ -2,7 +2,7 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 0 — Planned architecture, not yet implemented.** This document reflects the target design at the close of Phase 0 and will be updated at the close of every subsequent phase to reflect the actual implemented state.
+**Status: Phase 1 Implemented.** Repository scaffold, namespaced package layout, Pydantic configuration schema, Great Expectations data contracts (regulatory and elasticity suites), DVC parallel DAGs, INV-8 module size enforcement, and unified CI workflow are fully implemented and validated.
 
 ---
 
@@ -110,6 +110,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-004: Package layout & build toolchain — Namespaced `src/aegis/` with Hatchling & Python 3.12
 
+**Status:** Validated (Phase 1)
+
 **Context:** Package layout and packaging configuration determine module import paths across the codebase (`from aegis.gateway import ...`) and how dependencies and builds are managed. Generic top-level package names risk collisions with third-party libraries.
 
 **Decision:** Adopt a namespaced package layout rooted at `src/aegis/`, specify `hatchling` as the build backend in `pyproject.toml`, and set the Python requirement to `>=3.12,<3.13` with `3.12` pinned in `.python-version` (P1-D1).
@@ -119,6 +121,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 **Consequences:** All internal code imports are prefixed with `aegis.` (e.g. `aegis.gateway`, `aegis.agents`).
 
 ### ADR-005: Configuration management — Domain-nested `params.yaml` with Pydantic validation
+
+**Status:** Validated (Phase 1)
 
 **Context:** The system requires a single source of truth for all tunable parameters across multi-tier ML, agentic orchestration, and governance components, while maintaining a strict zero-secrets policy and fail-loudly error handling.
 
@@ -130,6 +134,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-006: Data contract architecture — File-based GX Core JSON suites with hand-crafted fixtures
 
+**Status:** Validated (Phase 1)
+
 **Context:** Per INV-3 and ADR-003, data contracts gate both elasticity training data and regulatory corpus ingestion. The contract format, execution mode, and CI verification strategy must be defined without introducing unnecessary external cloud dependencies.
 
 **Decision:** Use open-source GX Core file-based expectation suites serialized as native JSON files in `data_contracts/`, verified during CI using minimal, hand-crafted valid and malformed fixtures in `data_contracts/fixtures/` (P1-D3).
@@ -140,6 +146,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-007: DVC pipeline architecture — Local filesystem remote with fine-grained DAG stages
 
+**Status:** Validated (Phase 1)
+
 **Context:** DVC pipeline orchestration must enforce Great Expectations gates before versioning datasets or artifacts, following the local-first zero-cost development model.
 
 **Decision:** Configure DVC with a local filesystem cache/remote and define fine-grained pipeline stages (`ingest`, `validate_gx`, `version`) in `dvc.yaml`, making Great Expectations validation an explicit node in the DVC DAG (P1-D4).
@@ -149,6 +157,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 **Consequences:** Pipeline reproduction (`dvc repro`) explicitly verifies GX validation stages before producing versioned outputs.
 
 ### ADR-008: CI/CD scaffold & invariant enforcement — Unified GitHub Actions workflow with day-one gates
+
+**Status:** Validated (Phase 1)
 
 **Context:** Continuous integration must enforce project standards, code quality, test coverage, and architectural invariants (notably INV-8 module line ceiling and INV-3 data contracts) from the very first commit.
 
