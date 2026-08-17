@@ -1,0 +1,4 @@
+policy_id,driver_age,veh_age,annual_mileage,exposure,claim_count,claim_amount,premium,treatment_rate_change
+POL-1001,35,3,12000,1.0,0,0.0,850.0,0.05
+POL-1002,52,7,15000,-0.50,1,1200.5,1100.0,-0.02
+POL-1003,24,1,8000,0.50,0,0.0,1450.0,0.08
