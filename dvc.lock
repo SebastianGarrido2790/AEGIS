@@ -1,0 +1,142 @@
+schema: '2.0'
+stages:
+  ingest_elasticity:
+    cmd: uv run python -m aegis.pipelines.cli ingest-elasticity --input-path 
+      data_contracts/fixtures/elasticity_valid.csv --output-path 
+      data/raw/elasticity_raw.csv
+    deps:
+    - path: data_contracts/fixtures/elasticity_valid.csv
+      hash: md5
+      md5: c6d407765a5dcd2db1244990f47bd48c
+      size: 325
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    outs:
+    - path: data/raw/elasticity_raw.csv
+      hash: md5
+      md5: c6d407765a5dcd2db1244990f47bd48c
+      size: 325
+  validate_elasticity_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-elasticity --data-path 
+      data/raw/elasticity_raw.csv --suite-path 
+      data_contracts/elasticity_training_suite.json --report-path 
+      data/validated/elasticity_validation_report.json
+    deps:
+    - path: data/raw/elasticity_raw.csv
+      hash: md5
+      md5: c6d407765a5dcd2db1244990f47bd48c
+      size: 325
+    - path: data_contracts/elasticity_training_suite.json
+      hash: md5
+      md5: 8e73d1ffe4156ba8eb7c07cd045e9a73
+      size: 3562
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    - path: src/aegis/pipelines/data_contracts.py
+      hash: md5
+      md5: e1220c967cea1d5d66281435a356ecaa
+      size: 9005
+    - path: src/aegis/pipelines/expectations.py
+      hash: md5
+      md5: b8d1b196b607c2480115f0fe5172fec8
+      size: 1772
+    outs:
+    - path: data/validated/elasticity_validation_report.json
+      hash: md5
+      md5: 85aecdabe25091f171dc3cbb05480ddd
+      size: 186
+  version_elasticity:
+    cmd: uv run python -m aegis.pipelines.cli version-elasticity --raw-path 
+      data/raw/elasticity_raw.csv --report-path 
+      data/validated/elasticity_validation_report.json --output-path 
+      data/versioned/elasticity_training_data.csv
+    deps:
+    - path: data/raw/elasticity_raw.csv
+      hash: md5
+      md5: c6d407765a5dcd2db1244990f47bd48c
+      size: 325
+    - path: data/validated/elasticity_validation_report.json
+      hash: md5
+      md5: 85aecdabe25091f171dc3cbb05480ddd
+      size: 186
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    outs:
+    - path: data/versioned/elasticity_training_data.csv
+      hash: md5
+      md5: c6d407765a5dcd2db1244990f47bd48c
+      size: 325
+  ingest_regulatory:
+    cmd: uv run python -m aegis.pipelines.cli ingest-regulatory --input-path 
+      data_contracts/fixtures/regulatory_valid.json --output-path 
+      data/raw/regulatory_raw.json
+    deps:
+    - path: data_contracts/fixtures/regulatory_valid.json
+      hash: md5
+      md5: 3a02c0dca847271da71d6b678761f5be
+      size: 1293
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    outs:
+    - path: data/raw/regulatory_raw.json
+      hash: md5
+      md5: 3a02c0dca847271da71d6b678761f5be
+      size: 1293
+  validate_regulatory_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-regulatory --data-path 
+      data/raw/regulatory_raw.json --suite-path 
+      data_contracts/regulatory_corpus_suite.json --report-path 
+      data/validated/regulatory_validation_report.json
+    deps:
+    - path: data/raw/regulatory_raw.json
+      hash: md5
+      md5: 3a02c0dca847271da71d6b678761f5be
+      size: 1293
+    - path: data_contracts/regulatory_corpus_suite.json
+      hash: md5
+      md5: df4b3258e13e52c923b0f910cd0933fe
+      size: 2469
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    - path: src/aegis/pipelines/data_contracts.py
+      hash: md5
+      md5: e1220c967cea1d5d66281435a356ecaa
+      size: 9005
+    outs:
+    - path: data/validated/regulatory_validation_report.json
+      hash: md5
+      md5: 88bd9b7dcaef07e96d0b28b599349160
+      size: 182
+  version_regulatory:
+    cmd: uv run python -m aegis.pipelines.cli version-regulatory --raw-path 
+      data/raw/regulatory_raw.json --report-path 
+      data/validated/regulatory_validation_report.json --output-path 
+      data/versioned/regulatory_corpus.json
+    deps:
+    - path: data/raw/regulatory_raw.json
+      hash: md5
+      md5: 3a02c0dca847271da71d6b678761f5be
+      size: 1293
+    - path: data/validated/regulatory_validation_report.json
+      hash: md5
+      md5: 88bd9b7dcaef07e96d0b28b599349160
+      size: 182
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: d01b1060b919f084364882672a187e1c
+      size: 6586
+    outs:
+    - path: data/versioned/regulatory_corpus.json
+      hash: md5
+      md5: 3a02c0dca847271da71d6b678761f5be
+      size: 1293

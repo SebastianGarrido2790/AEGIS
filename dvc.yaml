@@ -1,0 +1,64 @@
+# DVC Pipeline Architecture for AEGIS (INV-3, ADR-007)
+# Fine-grained parallel 3-stage DAG: ingest -> validate_gx -> version
+
+stages:
+  # ==========================================
+  # 1. Elasticity Training Data Pipeline Path
+  # ==========================================
+  ingest_elasticity:
+    cmd: uv run python -m aegis.pipelines.cli ingest-elasticity --input-path data_contracts/fixtures/elasticity_valid.csv --output-path data/raw/elasticity_raw.csv
+    deps:
+      - data_contracts/fixtures/elasticity_valid.csv
+      - src/aegis/pipelines/cli.py
+    outs:
+      - data/raw/elasticity_raw.csv
+
+  validate_elasticity_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-elasticity --data-path data/raw/elasticity_raw.csv --suite-path data_contracts/elasticity_training_suite.json --report-path data/validated/elasticity_validation_report.json
+    deps:
+      - data/raw/elasticity_raw.csv
+      - data_contracts/elasticity_training_suite.json
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/data_contracts.py
+      - src/aegis/pipelines/expectations.py
+    outs:
+      - data/validated/elasticity_validation_report.json
+
+  version_elasticity:
+    cmd: uv run python -m aegis.pipelines.cli version-elasticity --raw-path data/raw/elasticity_raw.csv --report-path data/validated/elasticity_validation_report.json --output-path data/versioned/elasticity_training_data.csv
+    deps:
+      - data/raw/elasticity_raw.csv
+      - data/validated/elasticity_validation_report.json
+      - src/aegis/pipelines/cli.py
+    outs:
+      - data/versioned/elasticity_training_data.csv
+
+  # ==========================================
+  # 2. Regulatory Corpus Data Pipeline Path
+  # ==========================================
+  ingest_regulatory:
+    cmd: uv run python -m aegis.pipelines.cli ingest-regulatory --input-path data_contracts/fixtures/regulatory_valid.json --output-path data/raw/regulatory_raw.json
+    deps:
+      - data_contracts/fixtures/regulatory_valid.json
+      - src/aegis/pipelines/cli.py
+    outs:
+      - data/raw/regulatory_raw.json
+
+  validate_regulatory_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-regulatory --data-path data/raw/regulatory_raw.json --suite-path data_contracts/regulatory_corpus_suite.json --report-path data/validated/regulatory_validation_report.json
+    deps:
+      - data/raw/regulatory_raw.json
+      - data_contracts/regulatory_corpus_suite.json
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/data_contracts.py
+    outs:
+      - data/validated/regulatory_validation_report.json
+
+  version_regulatory:
+    cmd: uv run python -m aegis.pipelines.cli version-regulatory --raw-path data/raw/regulatory_raw.json --report-path data/validated/regulatory_validation_report.json --output-path data/versioned/regulatory_corpus.json
+    deps:
+      - data/raw/regulatory_raw.json
+      - data/validated/regulatory_validation_report.json
+      - src/aegis/pipelines/cli.py
+    outs:
+      - data/versioned/regulatory_corpus.json

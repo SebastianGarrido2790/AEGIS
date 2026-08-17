@@ -43,7 +43,7 @@ data_contracts:
 
 dvc:
   remote_name: "local_storage"
-  remote_url: ".dvc/cache"
+  remote_url: ".dvc/local_remote"
   stage_elasticity_ingest: "ingest_elasticity"
   stage_elasticity_validate: "validate_elasticity_gx"
   stage_regulatory_ingest: "ingest_regulatory"
