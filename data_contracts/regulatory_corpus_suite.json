@@ -1,0 +1,99 @@
+{
+  "name": "regulatory_corpus_suite",
+  "id": "ff921c8f-7221-4bd0-8844-d3956b8fc0c6",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "chunk_id",
+          "chunk_text",
+          "jurisdiction",
+          "section",
+          "effective_date"
+        ],
+        "exact_match": false
+      },
+      "meta": {},
+      "id": "82cfcf16-1c15-49d8-b01c-e9f0cb41861f",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "chunk_id"
+      },
+      "meta": {},
+      "id": "5843f8e7-40d1-450f-ac3a-bbd00a1ebc80",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "jurisdiction"
+      },
+      "meta": {},
+      "id": "1fae083a-6129-4cd4-b602-837c6f707aad",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "section"
+      },
+      "meta": {},
+      "id": "5f018164-d6d2-4335-9749-e25e120deac2",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "effective_date"
+      },
+      "meta": {},
+      "id": "e9e57e54-cade-4049-b5e5-fea7a43cc182",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "chunk_text"
+      },
+      "meta": {},
+      "id": "4b5f407a-d472-4bde-be51-4547200fcdf8",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "chunk_text",
+        "min_value": 1
+      },
+      "meta": {},
+      "id": "45318da0-01b2-4c40-b40f-2142403d5cf2",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "chunk_id"
+      },
+      "meta": {},
+      "id": "627d3751-ba84-42a6-8fb1-95c57d834106",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "chunk_text"
+      },
+      "meta": {},
+      "id": "7675cc75-3d0e-4983-87e4-38ca08db1f51",
+      "severity": "critical"
+    }
+  ],
+  "meta": {
+    "great_expectations_version": "1.20.0"
+  },
+  "notes": null
+}

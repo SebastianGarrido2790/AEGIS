@@ -1,0 +1,23 @@
+[
+  {
+    "chunk_id": "reg_ca_auto_001",
+    "jurisdiction": "CA",
+    "section": "Sec. 1861.02(a)",
+    "effective_date": "2024-01-01",
+    "chunk_text": "Rates and premiums for automobile insurance policies shall be determined by the application of the following rating factors in decreasing order of importance: (1) The insured's driving safety record. (2) The number of miles he or she drives annually. (3) The number of years of driving experience."
+  },
+  {
+    "chunk_id": "reg_ca_auto_002",
+    "jurisdiction": "CA",
+    "section": "Sec. 1861.02(b)",
+    "effective_date": "2024-01-01",
+    "chunk_text": "The commissioner may adopt regulations establishing additional rating factors that have a substantial relationship to the risk of loss. In no event shall credit score, zip code alone, or prohibited proxies be utilized as primary rating factors."
+  },
+  {
+    "chunk_id": "reg_ca_auto_003",
+    "jurisdiction": "CA",
+    "section": "Sec. 1861.05(a)",
+    "effective_date": "2024-01-01",
+    "chunk_text": "No rate shall be approved or remain in effect which is excessive, inadequate, unfairly discriminatory or otherwise in violation of this chapter. In considering whether a rate is excessive, the commissioner shall consider whether the rate is mathematically justified."
+  }
+]
