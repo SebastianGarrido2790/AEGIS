@@ -11,8 +11,8 @@ stages:
       size: 325
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     outs:
     - path: data/raw/elasticity_raw.csv
       hash: md5
@@ -34,8 +34,8 @@ stages:
       size: 3562
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
       md5: e1220c967cea1d5d66281435a356ecaa
@@ -65,8 +65,8 @@ stages:
       size: 186
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     outs:
     - path: data/versioned/elasticity_training_data.csv
       hash: md5
@@ -83,8 +83,8 @@ stages:
       size: 1293
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     outs:
     - path: data/raw/regulatory_raw.json
       hash: md5
@@ -106,8 +106,8 @@ stages:
       size: 2469
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
       md5: e1220c967cea1d5d66281435a356ecaa
@@ -133,8 +133,8 @@ stages:
       size: 182
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: a56c4d5e69c48a9a0855220211323bf8
-      size: 6586
+      md5: dfddb956b12381c5fa7bcc2827865318
+      size: 7781
     outs:
     - path: data/versioned/regulatory_corpus.json
       hash: md5

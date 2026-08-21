@@ -1,6 +1,5 @@
-# AEGIS — System Configuration (Single Source of Truth)
-# All tunable hyperparameters and runtime settings per ADR-005.
-# Invariant: Never commit secrets, API keys, or credentials in this file (INV-1, INV-10).
+# AEGIS Central Configuration Parameters (ADR-005)
+# Zero committed secrets; all environment-specific secrets are injected at runtime.
 
 gateway:
   model_name: "gpt-4o-mini"
@@ -44,7 +43,3 @@ data_contracts:
 dvc:
   remote_name: "local_storage"
   remote_url: ".dvc/local_remote"
-  stage_elasticity_ingest: "ingest_elasticity"
-  stage_elasticity_validate: "validate_elasticity_gx"
-  stage_regulatory_ingest: "ingest_regulatory"
-  stage_regulatory_validate: "validate_regulatory_gx"

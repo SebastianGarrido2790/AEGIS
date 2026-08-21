@@ -8,12 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class GatewayConfig(BaseModel):
-    """Configuration for Tier 1 LiteLLM Gateway."""
+    """Configuration for Tier 1 LiteLLM Gateway (Phase 3)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    model_name: str = Field(..., description="Primary LLM provider and model name")
-    fallback_model: str = Field(..., description="Secondary fallback LLM provider and model")
+    model_name: str = Field(default="gpt-4o-mini", description="Primary LLM provider and model")
+    fallback_model: str = Field(
+        default="claude-3-5-sonnet-20241022",
+        description="Secondary fallback LLM provider and model",
+    )
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
     timeout_seconds: int = Field(default=30, gt=0)
     max_retries: int = Field(default=3, ge=0)
@@ -21,7 +24,7 @@ class GatewayConfig(BaseModel):
 
 
 class Tier1MLConfig(BaseModel):
-    """Configuration for Tier 1 Deterministic ML and Causal Elasticity models."""
+    """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -33,7 +36,7 @@ class Tier1MLConfig(BaseModel):
 
 
 class Tier2AgentsConfig(BaseModel):
-    """Configuration for Tier 2 LangGraph agentic orchestration."""
+    """Configuration for Tier 2 LangGraph agentic orchestration (Phase 4-5)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -44,7 +47,7 @@ class Tier2AgentsConfig(BaseModel):
 
 
 class GovernanceConfig(BaseModel):
-    """Configuration for Tier 3 Governance, HITL escalation, and fallback."""
+    """Configuration for Tier 3 Governance, HITL escalation, and fallback (Phase 7)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -55,7 +58,7 @@ class GovernanceConfig(BaseModel):
 
 
 class DataContractsConfig(BaseModel):
-    """Configuration for Great Expectations data contracts and fixtures."""
+    """Configuration for Great Expectations data contracts and fixtures (Phase 1)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -72,16 +75,12 @@ class DataContractsConfig(BaseModel):
 
 
 class DVCConfig(BaseModel):
-    """Configuration for DVC pipeline stages and local remote."""
+    """Configuration for DVC local remote storage (ADR-007, R-3)."""
 
     model_config = ConfigDict(extra="forbid")
 
     remote_name: str = Field(default="local_storage")
-    remote_url: str = Field(default=".dvc/cache")
-    stage_elasticity_ingest: str = Field(default="ingest_elasticity")
-    stage_elasticity_validate: str = Field(default="validate_elasticity_gx")
-    stage_regulatory_ingest: str = Field(default="ingest_regulatory")
-    stage_regulatory_validate: str = Field(default="validate_regulatory_gx")
+    remote_url: str = Field(default=".dvc/local_remote")
 
 
 class AEGISConfig(BaseModel):
@@ -89,9 +88,9 @@ class AEGISConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    gateway: GatewayConfig
-    tier1_ml: Tier1MLConfig
-    tier2_agents: Tier2AgentsConfig
-    governance: GovernanceConfig
+    gateway: GatewayConfig = Field(default_factory=GatewayConfig)
+    tier1_ml: Tier1MLConfig = Field(default_factory=Tier1MLConfig)
+    tier2_agents: Tier2AgentsConfig = Field(default_factory=Tier2AgentsConfig)
+    governance: GovernanceConfig = Field(default_factory=GovernanceConfig)
     data_contracts: DataContractsConfig
-    dvc: DVCConfig
+    dvc: DVCConfig = Field(default_factory=DVCConfig)

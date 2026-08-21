@@ -9,8 +9,8 @@
   {
     "chunk_id": "reg_ca_auto_001",
     "jurisdiction": "CA",
-    "section": "Sec. 1861.02(a)",
+    "section": "Sec. 1861.02(b)",
     "effective_date": "2024-01-01",
-    "chunk_text": "Rates and premiums for automobile insurance policies shall be determined by statutory factors."
+    "chunk_text": "Secondary rating factors may include annual mileage and driving safety record."
   }
 ]

@@ -252,3 +252,23 @@ All Phase 1 architectural decisions are now finalized and approved:
 1. `system_design.md` has been updated with ADR-004 through ADR-008 per its stated update discipline — decisions/ documents like this one are the deliberation trail; `system_design.md` is where the outcome becomes load-bearing record.
 2. This document's entries remain marked `RESOLVED` in place, preserving the trade-off reasoning for future reference.
 3. Phase 1 implementation begins on this approved foundation.
+
+---
+
+## Part E — Post-Implementation Review & Remediation Records
+
+Following implementation of Stages 1–6, a cross-file audit against the actual expectation suites, fixtures, schemas, and CLI entrypoints identified four findings resolved before final sign-off:
+
+- **R-1 — Duplicate fixture isolation (Gate 3 remediation):**
+  - *Finding:* `regulatory_invalid_duplicate.json` originally had duplicate `chunk_id` and duplicate `chunk_text`, causing two expectations to fail simultaneously.
+  - *Resolution:* Updated the second entry's `chunk_text` to distinct statutory text while keeping `chunk_id` identical. Updated `test_regulatory_data_contract.py` with strict assertions confirming exclusively 1 failure on `expect_column_values_to_be_unique` on `chunk_id`.
+- **R-2 — Configuration schema forward-specification (Conscious decision):**
+  - *Finding:* `schema.py` and `params.yaml` forward-declared sections for `gateway:`, `tier1_ml:`, `tier2_agents:`, and `governance:`.
+  - *Resolution:* Consciously preserved default-backed configuration structures (`default_factory` on root model, explicit parameter defaults) so downstream modules fail loud if malformed, while clarifying in docstrings that specific model choices and thresholds remain subject to Phase 2–7 ADRs rather than hard locking architecture ahead of time.
+- **R-3 — DVC stage names in configuration:**
+  - *Finding:* `DVCConfig` contained unreferenced stage name literals (`stage_elasticity_ingest`, etc.) that were not synchronized with `dvc.yaml`.
+  - *Resolution:* Removed decorative stage name fields from `DVCConfig` in `schema.py` and `params.yaml`, keeping only `remote_name` and `remote_url`.
+- **R-4 — Pipeline CLI configuration defaults:**
+  - *Finding:* `src/aegis/pipelines/cli.py` hardcoded default path strings, risking drift from `params.yaml`.
+  - *Resolution:* Refactored `cli.py` to source defaults dynamically via `get_config()`, ensuring `params.yaml` remains the single source of truth.
+
