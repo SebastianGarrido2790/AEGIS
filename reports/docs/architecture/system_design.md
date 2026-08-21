@@ -50,19 +50,27 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
                     └──────────────────────────────┘
 ```
 
-## 2. Components (Planned)
+## 2. Components Matrix & Implementation Status
 
-| Component                      | Responsibility                                                                                                              | Key technology                                      |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Serving layer                  | Exposes the recommendation flow to an underwriting/pricing client                                                           | FastAPI, Docker                                     |
-| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity model, contextual bandit                                                                    | scikit-learn, EconML/DoWhy, MLflow, DVC             |
-| Data contracts                 | CI-blocking validation of both data intake paths                                                                            | Great Expectations                                  |
-| LLM Gateway                    | Single enforcement boundary for every provider call: abstraction, fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process)                                |
-| Regulatory RAG index           | Backing store for the Compliance Agent's retrieval and the Gateway's semantic cache                                         | Redis Stack (RedisVL/HNSW)                          |
-| Tier 2 — Agentic orchestration | Pricing Strategy, Regulatory Compliance, Revenue/Loss-Ratio Impact agents on shared state                                   | LangGraph, Pydantic                                 |
-| Tier 3 — Governance            | HITL escalation, deterministic fallback, structured audit log                                                               | Custom, backed by a persistence layer (TBD Phase 7) |
-| Observability                  | Tracing, cost, drift, and evaluation                                                                                        | OTel, LLM-as-judge regression suite                 |
-| CI/CD                          | Reproducibility, coverage, and data-contract gating                                                                         | GitHub Actions                                      |
+| Component                      | Responsibility                                                                                                              | Key technology                                      | Status |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | :---: |
+| **Package Scaffold & Tooling** | Namespaced `aegis` package layout, strict typing, Hatchling build backend, and `uv` lockfile | Python 3.12, Hatchling, `uv` | 🟢 Validated (Phase 1) |
+| **Configuration Engine**       | Domain-nested configuration loading, Pydantic v2 schema validation, zero-secrets enforcement | Pydantic v2, PyYAML, `params.yaml` | 🟢 Validated (Phase 1) |
+| **Data Contracts (INV-3)**     | CI-blocking Great Expectations suites (Elasticity & Regulatory) and custom post-treatment leakage check | GX Core 1.x, Pandas | 🟢 Validated (Phase 1) |
+| **Pipeline DAG (DVC)**         | Fine-grained parallel 3-stage DAGs (`ingest` $\to$ `validate_gx` $\to$ `version`) with local remote | DVC 3.x, local filesystem remote | 🟢 Validated (Phase 1) |
+| **CI/CD Quality Scaffold**     | Automated sequential multi-gate workflow enforcing INV-8 line limits, linting, typing, and GX contracts | GitHub Actions, Ruff, Pyright, Pytest | 🟢 Validated (Phase 1) |
+| **Serving Layer**              | Exposes recommendation flow to an underwriting/pricing client | FastAPI, Docker | ⚪ Planned (Phase 6) |
+| **Tier 1 — Deterministic ML**  | GLM baseline, causal elasticity model (`CausalForestDML`), contextual bandit | scikit-learn, EconML/DoWhy, MLflow | ⚪ Planned (Phase 2-3) |
+| **LLM Gateway**                | Single enforcement boundary for every provider call: fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process) | ⚪ Planned (Phase 4) |
+| **Regulatory RAG Index**       | Backing store for Compliance Agent retrieval and Gateway semantic cache | Redis Stack (RedisVL/HNSW) | ⚪ Planned (Phase 5) |
+| **Tier 2 — Agent Orchestration**| Pricing Strategy, Regulatory Compliance, Revenue/Loss-Ratio Impact agents on shared state | LangGraph, Pydantic | ⚪ Planned (Phase 4-5) |
+| **Tier 3 — Governance**        | HITL escalation, deterministic fallback, structured audit log | Custom, SQLite (dev) / TBD persistence | ⚪ Planned (Phase 7) |
+| **Observability & Eval**       | Tracing, cost, drift detection, and retrieval-quality / LLM-as-judge harnesses | OTel, DeepEval / custom | ⚪ Planned (Phase 8) |
+
+> **Phase 1 Deep-Dive Reports:**
+> - [Phase 1 Architecture Report](phase_1_architecture_report.md) — Technical implementation, component matrix, granular Mermaid diagrams, and design patterns.
+> - [Phase 1 Evaluation Report](../evaluations/phase_1_evaluation_report.md) — System mechanics, GX validation runs, DVC pipeline outputs, and falsification audit.
+> - [Test Suite Report](../evaluations/test_suite_report.md) — Automated test suite structure, coverage matrix (94% coverage), and execution runbooks.
 
 ## 3. Data Flow (Planned)
 
