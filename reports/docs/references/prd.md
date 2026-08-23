@@ -1,4 +1,4 @@
-# Product Requirements Document — AEGIS _(working title)_
+# Product Requirements Document — AEGIS
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026 | Phase 0 — Planning
@@ -108,7 +108,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 - Elasticity model: calibration and treatment-effect confidence interval width, vs. GLM baseline.
 - Bandit: cumulative regret vs. static-price baseline (simulated).
-- Compliance Agent: groundedness score and evidence coverage on the adversarial evaluation suite; LLM-as-judge agreement rate.
+- Compliance Agent: four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision), read jointly per ADR-010 — no single metric gates alone; LLM-as-judge agreement rate.
 - Governance: HITL escalation rate (should reflect genuine ambiguity, not over- or under-triggering).
 - System: end-to-end decision latency; audit-record completeness rate (target: 100%).
 
@@ -130,6 +130,6 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 ## 14. Open Questions / Risks (To Be Revisited After Implementation)
 
 - How sensitive is the causal elasticity estimate to unmeasured confounding in the public dataset, and does the sensitivity analysis hold up under adversarial review?
-- Is the chosen groundedness/evidence-coverage threshold for the Compliance Agent strict enough to catch subtle regulatory misapplications, not just obviously ungrounded citations?
+- Are the four diagnostic-matrix thresholds (Faithfulness, Answer Relevancy, Context Recall, Context Precision) for the Compliance Agent strict enough, individually and jointly, to catch subtle regulatory misapplications — not just obviously ungrounded citations?
 - Does the HITL escalation rate, once measured against the synthetic stream, suggest the bounded corridor is calibrated correctly, or does it need tightening/loosening?
 - Will the HITL escalation rate metric remain meaningful once real (not synthetic) production data is introduced, given the synthetic stream's known generalization limits (Charter §9)?

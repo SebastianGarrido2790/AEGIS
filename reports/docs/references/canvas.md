@@ -1,8 +1,8 @@
 # Machine Learning Canvas
 
-| Product                                                                         | Authors                   | Date            | Version                  |
-| ------------------------------------------------------------------------------- | ------------------------- | --------------- | ------------------------ |
-| AEGIS — Actuarial Elasticity & Governance Intelligence System _(working title)_ | Sebastián Garrido Arévalo | August 12, 2026 | 0.1 (Phase 0 — Planning) |
+| Product                                                       | Authors                   | Date            | Version | Date Updated    | Version Updates     |
+| ------------------------------------------------------------- | ------------------------- | --------------- | ------- | --------------- | ------------------- |
+| AEGIS — Actuarial Elasticity & Governance Intelligence System | Sebastián Garrido Arévalo | August 12, 2026 | 0.1     | August 23, 2026 | Initial PRD release |
 
 ---
 
@@ -63,13 +63,13 @@ The primary feasibility risk is solo-practitioner scope: three agents, two ML su
 
 - **ML metrics:** elasticity model — calibration and treatment-effect confidence intervals (not predictive AUC/RMSE alone, since the target is causal, not correlational); bandit — cumulative regret vs. an oracle static-price baseline.
 - **Business metrics:** projected retention-adjusted revenue delta per segment; loss-ratio stability under proposed rate changes.
-- **Agentic/system metrics:** Compliance Agent groundedness score and evidence coverage; LLM-as-judge agreement rate on Compliance Agent rulings; HITL escalation rate (automation efficiency vs. human review load); end-to-end decision latency.
+- **Agentic/system metrics:** Compliance Agent four-metric diagnostic matrix — Faithfulness, Answer Relevancy, Context Recall, Context Precision, read jointly per ADR-010 — plus LLM-as-judge agreement rate on Compliance Agent rulings; HITL escalation rate (automation efficiency vs. human review load); end-to-end decision latency.
 
 ## 8. Evaluation
 
-**Offline:** backtesting the elasticity model on held-out historical policy cohorts; retrieval-quality evaluation (groundedness, evidence coverage) against a curated set of known-compliant and known-violating rate-change scenarios; an LLM-as-judge regression suite run on every prompt or model version change.
+**Offline:** backtesting the elasticity model on held-out historical policy cohorts; a Stage 1 golden-dataset run of the Compliance Agent against the four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision — no single metric gates alone, per ADR-010) over a curated set of known-compliant and known-violating rate-change scenarios; an LLM-as-judge regression suite run on every prompt or model version change, with any continuous-score judge calibrated against human ratings first.
 
-**Online (simulated):** bandit performance tracked via cumulative regret against the static-price baseline on the synthetic production-analog stream; drift monitoring on incoming segment feature distributions to flag when the elasticity model requires retraining.
+**Online (simulated):** bandit performance tracked via cumulative regret against the static-price baseline on the synthetic production-analog stream; drift monitoring on incoming segment feature distributions to flag when the elasticity model requires retraining; a Stage 3 production-monitoring loop sampling live Compliance Agent traffic on the two fast/cheap metrics (Faithfulness, Hallucination), with sub-threshold traces routed to a human-reviewed harvest queue rather than auto-added to the golden dataset.
 
 ## 9. Modeling
 

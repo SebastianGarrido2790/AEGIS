@@ -1,4 +1,4 @@
-# Technical Roadmap — AEGIS _(working title)_
+# Technical Roadmap — AEGIS
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026 | Phase 0 — Planning
@@ -78,9 +78,9 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
 
 - Ingest and chunk the regulatory corpus (post-GX gate).
 - Embed and index in Redis Stack (RedisVL/HNSW).
-- Build the retrieval-quality evaluation harness (groundedness, evidence coverage) against a curated set of known-compliant and known-violating scenarios.
-  **Deliverables:** indexed regulatory corpus; retrieval evaluation report with baseline groundedness/evidence-coverage scores.
-  **Exit criteria:** the retrieval harness meets the defined groundedness/evidence-coverage threshold (PRD §11) on the curated test set — this gate is treated as the highest-priority exit criterion in the roadmap, given RAG grounding is the system's highest-severity failure mode (Charter §9).
+- Build the retrieval-quality evaluation harness — the four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision, read jointly per ADR-010; no single metric gates alone) — against a curated set of known-compliant and known-violating scenarios.
+  **Deliverables:** indexed regulatory corpus; retrieval evaluation report with baseline scores on all four matrix metrics.
+  **Exit criteria:** the retrieval harness meets the defined four-metric diagnostic-matrix thresholds (PRD §11) on the curated test set — this gate is treated as the highest-priority exit criterion in the roadmap, given RAG grounding is the system's highest-severity failure mode (Charter §9).
   **Dependencies:** Phase 1 (corpus GX gate), Phase 4 (Gateway/Redis Stack).
   **Estimated duration:** 2 weeks.
 
@@ -91,7 +91,7 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
 
 - Define the `AgentState` Pydantic schema.
 - Implement agent nodes in build order: Pricing Strategy → Regulatory Compliance → Revenue/Loss-Ratio Impact.
-- Wire the LangGraph-level circuit breaker (application-level failures) to run alongside the Gateway's provider-level fallback, both active simultaneously.
+- Wire the LangGraph-level circuit breaker (application-level failures) to run alongside the Gateway's provider-level fallback, with both active simultaneously.
 - Structured-output validation at each node boundary.
   **Deliverables:** working orchestrator graph; per-agent unit tests; a full end-to-end trace of the PRD §10 Primary Scenario; a showcase-interface slice (ADR-009) adding the multi-agent trace panel, including at least one preset scenario that triggers escalation.
   **Exit criteria:** the Primary Scenario runs end-to-end on both the auto-approved and escalated branches, each producing a complete audit record; the trace panel visibly distinguishes the two branches.
@@ -114,15 +114,18 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
 
 ## Phase 8 — Evaluation & Observability Hardening
 
-**Goal:** Make the system's own reliability measurable, not assumed — LLM-as-judge regression, drift detection, and full tracing.
+**Goal:** Make the system's own reliability measurable, not assumed — the full three-stage evaluation lifecycle (offline, CI/CD, production), judge calibration, and full tracing.
 **Key tasks:**
 
-- LLM-as-judge regression suite, CI-gated on every prompt/model version change.
+- LLM-as-judge regression suite (Stage 2), CI-gated on every prompt/model version change, blocking on both an absolute threshold and a baseline-relative regression against the last passing `main` run — not an absolute floor alone.
+- Continuous-score judge calibration (Spearman correlation, MAE, bias against human ratings) for any judge feeding an OTel gauge or the Stage 2 gate; rubric rewritten if `|bias| > 1.0`.
+- Golden dataset governance: every case labeled with its closed-enum failure mode(s) and reason for inclusion; quarterly coverage query flags failure modes with fewer than 3 covering cases.
+- Production monitoring (Stage 3): sampled live Compliance Agent traffic on fast/cheap metrics (Faithfulness, Hallucination), rolling-window alerting, automatic routing of sub-threshold traces to a human-reviewed harvest queue — a harvested trace is never auto-promoted into the golden dataset.
 - Drift monitoring on incoming segment feature distributions.
-- OTel spans across both the Gateway and the LangGraph orchestrator.
+- OTel spans across both the Gateway and the LangGraph orchestrator, reused as the production-monitoring backbone rather than a parallel stack.
 - Cost/trace dashboard.
-  **Deliverables:** CI-gated regression suite; drift monitor; observability dashboard.
-  **Exit criteria:** the regression suite blocks CI on a deliberately regressed model/prompt version; the drift monitor correctly flags an injected distribution shift in a test.
+  **Deliverables:** CI-gated regression suite with baseline-relative blocking; calibrated judges; a labeled, coverage-queryable golden dataset; a wired production harvest loop; drift monitor; observability dashboard.
+  **Exit criteria:** the regression suite blocks CI both on a deliberately regressed model/prompt version and on a baseline-relative regression that still clears the absolute floor; a deliberately mis-calibrated judge fails the calibration check; the drift monitor correctly flags an injected distribution shift in a test; a synthetic sub-threshold production trace is correctly routed to the harvest queue and not auto-added to the golden dataset.
   **Dependencies:** Phase 6, 7.
   **Estimated duration:** 2 weeks.
 
