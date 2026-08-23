@@ -1,16 +1,16 @@
 # Showcase UI — Scope Assessment & Decision
 
-**Status: DRAFT — awaiting Sebastián's review and approval.** This is a cross-cutting scope decision, not part of any single roadmap phase — it belongs in `decisions/` per its actual purpose: an assessment of something new we need to decide.
+**Status: APPROVED (Aug 16, 2026).** Recorded as ADR-009 in `system_design.md`. This is a cross-cutting scope decision, not part of any single roadmap phase — it belongs in `decisions/` per its actual purpose: an assessment of something new we decided.
 
-Author: Sebastián Garrido Arévalo (decision), Claude (drafting) | Date: August 16, 2026
+Author: Sebastián Garrido Arévalo | Date: August 16, 2026
 
 ---
 
 ## Context
 
-The PRD already names a secondary audience distinct from the in-universe personas (Elena, Marco, Renata): hiring managers, technical evaluators, and academic reviewers assessing this as portfolio evidence. Everything built so far speaks to that audience through documentation and code quality — there's no artifact that lets someone *see* the system do something without reading an ADR or running a CLI command.
+The PRD already names a secondary audience distinct from the in-universe personas (Elena, Marco, Renata): hiring managers, technical evaluators, and academic reviewers assessing this as portfolio evidence. Everything built so far speaks to that audience through documentation and code quality — there's no artifact that lets someone _see_ the system do something without reading an ADR or running a CLI command.
 
-This is a different question from one already settled. PRD §12 excludes a "full production UI" from scope — that exclusion is about not building a real underwriting console for Marco to use daily. A showcase interface, if built, serves a different purpose entirely: letting a recruiter or evaluator watch the governed multi-agent decision loop actually run, in under two minutes, without cloning the repo. These aren't in tension; they're different artifacts for different audiences, and worth being explicit that approving one doesn't reopen the other.
+This is a different question from one already settled. PRD §12 excludes a "full production UI" from scope, that exclusion is about not building a real underwriting console for Marco to use daily. A showcase interface, if built, serves a different purpose entirely: letting a recruiter or evaluator watch the governed multi-agent decision loop actually run, in under two minutes, without cloning the repo. These aren't in tension; they're different artifacts for different audiences, and worth being explicit that approving one doesn't reopen the other.
 
 ---
 
@@ -22,13 +22,15 @@ This is a different question from one already settled. PRD §12 excludes a "full
 
 **Trade-offs:**
 
-Option A costs nothing further but has a real weakness for exactly the audience being asked about: a non-technical recruiter doing an initial screen is not going to read `system_design.md` before deciding whether to move a candidate forward. The system's actual differentiator — that it's *governed*, not just agentic — is invisible in a code listing. You can't see an escalation trigger fire, or a fallback engage, or an audit record assemble, by reading a schema definition.
+Option A costs nothing further but has a real weakness for exactly the audience being asked about: a non-technical recruiter doing an initial screen is not going to read `system_design.md` before deciding whether to move a candidate forward. The system's actual differentiator — that it's _governed_, not just agentic — is invisible in a code listing. You can't see an escalation trigger fire, or a fallback engage, or an audit record assemble, by reading a schema definition.
 
-Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly *against* being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since Charter §9, for a component that doesn't strengthen the technical story more than a much cheaper option would.
+Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly _against_ being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since Charter §9, for a component that doesn't strengthen the technical story more than a much cheaper option would.
 
 Option B is the one that actually serves the stated goal: making the governance mechanics — the parts that are genuinely differentiated — visible, without pretending to be a production interface or competing for engineering time against Phases 2–9's real work.
 
 **Recommendation:** Option B.
+
+**Resolution (approved by Sebastián, Aug 16, 2026):** Option B.
 
 ---
 
@@ -39,7 +41,9 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 **Trade-off:** Streamlit/Gradio is meaningfully faster to stand up, but both are strongly associated with quick model demos specifically — a technical evaluator who's seen a hundred Streamlit apps this year may read it as "prototype," not "production engineering," even with the right framing. The FastAPI + Jinja2 route costs more build time but is consistent with the precedent already set on a prior project in this same portfolio, and demonstrates the same full-stack discipline (async FastAPI, server-rendered dashboard, no separate frontend framework dependency) rather than reaching for a purpose-built demo library.
 
-**Recommendation:** FastAPI + Jinja2, for consistency with your own established pattern across this portfolio — but flag this one if build time is the binding constraint once Phase 2–9 scope is clearer. Streamlit is a legitimate fallback if the calendar gets tight; it is not a wrong choice, just a slightly weaker signal for this specific audience.
+**Recommendation:** FastAPI + Jinja2, for consistency with the established pattern across this portfolio, but flag this one if build time is the binding constraint once Phase 2–9 scope is clearer. Streamlit is a legitimate fallback if the calendar gets tight; it is not a wrong choice, just a slightly weaker signal for this specific audience.
+
+**Resolution (approved by Sebastián, Aug 16, 2026):** Option B — FastAPI + Jinja2.
 
 ---
 
@@ -51,6 +55,8 @@ Option B is the one that actually serves the stated goal: making the governance 
 **Trade-off:** Option A is simpler to plan for but concentrates all the UI risk at the very end, after nine phases of real engineering work, when time pressure and fatigue are both highest — exactly when a "minimal" scope tends to quietly expand or quietly get cut. Option B produces portfolio-visible progress throughout the build rather than only at the finish line, and mirrors the project's own phase-gated philosophy: each slice is gated on the same "does this actually work" standard as everything else, not bolted on afterward.
 
 **Recommendation:** Option B, incremental. It's also a stronger interview answer than a dedicated UI phase would be: "the interface grew alongside the system, validated at each phase gate" is a better story than "I built a dashboard at the end."
+
+**Resolution (approved by Sebastián, Aug 16, 2026):** Option B — incremental slices at the close of Phases 2, 6, and 7.
 
 ---
 
@@ -64,13 +70,13 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 **Recommendation:** Option C. Specifically include at least one scenario engineered to fail gracefully — the escalation and fallback paths are the actual point of this system, and a demo that only shows success stories undersells exactly what makes it different from a plain pricing model.
 
+**Resolution (approved by Sebastián, Aug 16, 2026):** Option C — curated preset scenarios, including at least one escalation and one fallback case.
+
 ---
 
-## If Approved: Downstream Document Updates
+## Downstream Document Updates — Completed
 
-Not performed yet, pending your sign-off on the four decisions above — flagged here so nothing gets updated silently:
-
-- **`canvas.md` §4 (Solution):** add the showcase interface as a component, explicitly distinguished from the excluded production UI.
-- **`prd.md` §12 (Out of Scope):** clarify that "full production UI" refers to a real underwriting console, not this demo interface — avoid the two being read as contradictory later.
-- **`technical_roadmap.md`:** add the incremental UI slice as a deliverable at the close of Phases 2, 6, and 7, rather than a new standalone phase.
-- **`system_design.md`:** a new ADR (ADR-009) recording this decision once finalized.
+- **`canvas.md` §4 (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
+- **`prd.md` §12 (Out of Scope):** clarified that "full production UI" refers to a real underwriting console, distinct from this demo interface.
+- **`technical_roadmap.md`:** incremental UI slice added as a deliverable and exit-criterion item at the close of Phases 2, 6, and 7.
+- **`system_design.md`:** recorded as ADR-009.

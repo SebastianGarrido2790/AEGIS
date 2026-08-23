@@ -35,8 +35,9 @@ The value is not "a better pricing model." It is a _governed decision system_: e
 - **Tier 2 (agentic, LangGraph):** three cooperating agents — _Pricing Strategy_, _Regulatory Compliance_ (RAG-grounded over a Redis Stack/RedisVL index), and _Revenue/Loss-Ratio Impact_.
 - **Tier 3 (governance):** a HITL escalation gate, a deterministic fallback to the last compliance-approved rate table, and a structured audit log per decision.
 - **Middleware (LLM Gateway):** every agent and RAG call routes through an in-process LiteLLM gateway — no agent holds a raw provider SDK client or API key. The gateway enforces provider fallback/resiliency, pre-flight input guardrails (PII redaction, prompt-injection blocking) ahead of the Compliance Agent's highest-severity failure surface, and emits the token/cost/trace data the evaluation layer (§8) consumes.
+- **Showcase interface (ADR-009):** a minimal, explicitly-labeled glass-box demo built with FastAPI + Jinja2, distinct from and not a substitute for the production UI excluded below. Built incrementally alongside Phases 2, 6, and 7, it exposes a curated set of preset scenarios — including at least one escalation case and one fallback case — so the governance mechanics themselves are directly observable, not just the happy path.
 
-**Integration:** exposed as a FastAPI service consumed by an underwriting/pricing dashboard; agents invoked through a LangGraph orchestrator operating on a Pydantic-validated shared state object, with all provider calls mediated by the LLM Gateway.
+**Integration:** exposed as a FastAPI service consumed by an underwriting/pricing dashboard; agents invoked through a LangGraph orchestrator operating on a Pydantic-validated shared state object, with all provider calls mediated by the LLM Gateway. The showcase interface reuses this same FastAPI serving layer rather than introducing a separate demo-app stack.
 
 **Constraints:** no live production rate deployment — this is a decision-support and recommendation system; a human underwriter always holds final authority to publish a rate.
 
@@ -48,7 +49,7 @@ Technically feasible using established open tooling: EconML/DoWhy for causal est
 
 Data feasibility is strong: public actuarial pricing datasets (e.g., the French Motor Third-Party Liability claims dataset) provide a realistic frequency/severity/exposure base for elasticity modeling, and NAIC model laws and state Unfair Trade Practices Act text are publicly available and suitable for the compliance RAG corpus.
 
-The primary feasibility risk is solo-practitioner scope: three agents, two ML sub-layers, and an evaluation/observability layer represent a large build surface for one contributor. This is mitigated by strict phase gating and a hard `src/` line-count ceiling per module.
+The primary feasibility risk is solo-practitioner scope: three agents, two ML sub-layers, and an evaluation/observability layer represent a large build surface for one contributor. This is mitigated by strict phase gating (Rule 9) and a hard `src/` line-count ceiling per module.
 
 ## 6. Data
 

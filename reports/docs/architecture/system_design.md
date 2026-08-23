@@ -50,27 +50,19 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
                     └──────────────────────────────┘
 ```
 
-## 2. Components Matrix & Implementation Status
+## 2. Components (Planned)
 
-| Component                      | Responsibility                                                                                                              | Key technology                                      | Status |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | :---: |
-| **Package Scaffold & Tooling** | Namespaced `aegis` package layout, strict typing, Hatchling build backend, and `uv` lockfile | Python 3.12, Hatchling, `uv` | 🟢 Validated (Phase 1) |
-| **Configuration Engine**       | Domain-nested configuration loading, Pydantic v2 schema validation, zero-secrets enforcement | Pydantic v2, PyYAML, `params.yaml` | 🟢 Validated (Phase 1) |
-| **Data Contracts (INV-3)**     | CI-blocking Great Expectations suites (Elasticity & Regulatory) and custom post-treatment leakage check | GX Core 1.x, Pandas | 🟢 Validated (Phase 1) |
-| **Pipeline DAG (DVC)**         | Fine-grained parallel 3-stage DAGs (`ingest` $\to$ `validate_gx` $\to$ `version`) with local remote | DVC 3.x, local filesystem remote | 🟢 Validated (Phase 1) |
-| **CI/CD Quality Scaffold**     | Automated sequential multi-gate workflow enforcing INV-8 line limits, linting, typing, and GX contracts | GitHub Actions, Ruff, Pyright, Pytest | 🟢 Validated (Phase 1) |
-| **Serving Layer**              | Exposes recommendation flow to an underwriting/pricing client | FastAPI, Docker | ⚪ Planned (Phase 6) |
-| **Tier 1 — Deterministic ML**  | GLM baseline, causal elasticity model (`CausalForestDML`), contextual bandit | scikit-learn, EconML/DoWhy, MLflow | ⚪ Planned (Phase 2-3) |
-| **LLM Gateway**                | Single enforcement boundary for every provider call: fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process) | ⚪ Planned (Phase 4) |
-| **Regulatory RAG Index**       | Backing store for Compliance Agent retrieval and Gateway semantic cache | Redis Stack (RedisVL/HNSW) | ⚪ Planned (Phase 5) |
-| **Tier 2 — Agent Orchestration**| Pricing Strategy, Regulatory Compliance, Revenue/Loss-Ratio Impact agents on shared state | LangGraph, Pydantic | ⚪ Planned (Phase 4-5) |
-| **Tier 3 — Governance**        | HITL escalation, deterministic fallback, structured audit log | Custom, SQLite (dev) / TBD persistence | ⚪ Planned (Phase 7) |
-| **Observability & Eval**       | Tracing, cost, drift detection, and retrieval-quality / LLM-as-judge harnesses | OTel, DeepEval / custom | ⚪ Planned (Phase 8) |
-
-> **Phase 1 Deep-Dive Reports:**
-> - [Phase 1 Architecture Report](phase_1_architecture_report.md) — Technical implementation, component matrix, granular Mermaid diagrams, and design patterns.
-> - [Phase 1 Evaluation Report](../evaluations/phase_1_evaluation_report.md) — System mechanics, GX validation runs, DVC pipeline outputs, and falsification audit.
-> - [Test Suite Report](../evaluations/test_suite_report.md) — Automated test suite structure, coverage matrix (94% coverage), and execution runbooks.
+| Component                      | Responsibility                                                                                                              | Key technology                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Serving layer                  | Exposes the recommendation flow to an underwriting/pricing client                                                           | FastAPI, Docker                                     |
+| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity model, contextual bandit                                                                    | scikit-learn, EconML/DoWhy, MLflow, DVC             |
+| Data contracts                 | CI-blocking validation of both data intake paths                                                                            | Great Expectations                                  |
+| LLM Gateway                    | Single enforcement boundary for every provider call: abstraction, fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process)                                |
+| Regulatory RAG index           | Backing store for the Compliance Agent's retrieval and the Gateway's semantic cache                                         | Redis Stack (RedisVL/HNSW)                          |
+| Tier 2 — Agentic orchestration | Pricing Strategy, Regulatory Compliance, Revenue/Loss-Ratio Impact agents on shared state                                   | LangGraph, Pydantic                                 |
+| Tier 3 — Governance            | HITL escalation, deterministic fallback, structured audit log                                                               | Custom, backed by a persistence layer (TBD Phase 7) |
+| Observability                  | Tracing, cost, drift, and evaluation                                                                                        | OTel, LLM-as-judge regression suite                 |
+| CI/CD                          | Reproducibility, coverage, and data-contract gating                                                                         | GitHub Actions                                      |
 
 ## 3. Data Flow (Planned)
 
@@ -176,6 +168,18 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Consequences:** All PRs and commits must pass all quality, invariant, and contract gates before merging.
 
+### ADR-009: Showcase interface — Incremental glass-box demo, curated scenarios, FastAPI + Jinja2
+
+**Status:** Approved (pre-Phase 2)
+
+**Context:** The PRD names a secondary audience (hiring managers, technical evaluators, academic reviewers) distinct from the in-universe personas. No artifact currently lets that audience observe the governed multi-agent decision loop running without reading code or ADRs. This is a separate question from PRD §12's exclusion of a full production UI — that exclusion concerns a real underwriting console for daily operational use, not a demo interface for portfolio evaluation. Full deliberation recorded in `../decisions/showcase_ui_assessment.md`.
+
+**Decision:** Build a minimal, explicitly-labeled "glass-box" demo interface — not a production dashboard — using FastAPI with server-rendered Jinja2 templates (HTML-over-the-wire), consistent with the SSR dashboard pattern already established elsewhere in this portfolio. It is built incrementally, with a slice added at the close of each phase that produces something worth showing (Phase 2: elasticity/bandit output view; Phase 6: multi-agent trace panel; Phase 7: audit record and HITL view) rather than as a dedicated standalone phase. It exposes a curated set of 3–5 preset scenarios via dropdown selection — not free-form input — deliberately including at least one scenario engineered to trigger escalation and one to trigger the deterministic fallback, not only successful-approval paths.
+
+**Rationale:** A code listing cannot communicate that the system is _governed_, not merely agentic — an evaluator needs to see an escalation trigger or a fallback engage to register that distinction. FastAPI + Jinja2 was chosen over Streamlit/Gradio to remain consistent with established portfolio precedent and to avoid the "quick model demo" association those frameworks carry, which risks undercutting the production-engineering positioning this project is built around. Incremental delivery avoids concentrating UI risk at the end of the roadmap, when schedule pressure is highest and scope quietly erodes. Curated scenarios over free-form input were chosen because INV-10 means there is no live data source for genuinely free-form input to query against — and because showing only successful approvals would hide the actual differentiator (the governance layer), which is the entire point of exposing this to the secondary audience in the first place.
+
+**Consequences:** `canvas.md` §4, `prd.md` §12, and `technical_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
+
 ## 5. Open Implementation Notes
 
 - The specific persistence layer for the Tier 3 audit log is deferred to Phase 7 and not yet decided.
@@ -189,4 +193,3 @@ At the close of each phase in `../references/technical_roadmap.md`:
 1. Update "Current Implementation Status" to reflect what was actually built.
 2. Mark each relevant ADR's status as **Validated** (implementation matched the decision) or **Amended** (implementation diverged, the amendment must be logged as a new dated entry under the original ADR, not a silent edit).
 3. Add new ADRs for any architecturally significant decision made during implementation that wasn't anticipated in Phase 0.
-

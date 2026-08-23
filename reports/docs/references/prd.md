@@ -118,12 +118,13 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Multi-jurisdiction, multi-state simultaneous filing logic.
 - Live carrier core system integration (API contracts modeled, not connected).
 - Autonomous rate publication without human sign-off.
+- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009, Canvas §4): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. The showcase interface's existence does not reopen this exclusion.
 
 ## 13. Dependencies & Constraints
 
 - Depends on public dataset and regulatory corpus availability and quality; no proprietary carrier data is used.
 - Depends on LLM provider availability, mediated through the Gateway's fallback chain.
-- Solo-practitioner build capacity constrains scope; phase gating and the `src/` line-count ceiling are the primary controls.
+- Solo-practitioner build capacity constrains scope; phase gating (Rule 9) and the `src/` line-count ceiling are the primary controls.
 - No live production deployment is in scope; all "production-grade" claims refer to architecture and engineering discipline, not live operational status.
 
 ## 14. Open Questions / Risks (To Be Revisited After Implementation)
