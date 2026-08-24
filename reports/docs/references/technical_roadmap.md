@@ -38,7 +38,7 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
 - GLM baseline model (actuarial-standard reference point).
 - Causal elasticity model (`CausalForestDML` or equivalent double-ML estimator), including a confounding sensitivity analysis.
 - MLflow experiment tracking and model registry integration.
-  **Deliverables:** baseline and causal model artifacts; MLflow experiment logs; evaluation report on calibration and treatment-effect confidence intervals; a first showcase-interface slice (ADR-009) exposing elasticity/bandit output for the phase's preset scenarios.
+  **Deliverables:** baseline and causal model artifacts; MLflow experiment logs; evaluation report on calibration and treatment-effect confidence intervals; a first showcase-interface slice (ADR-009) exposing elasticity output for the phase's preset scenarios.
   **Exit criteria:** causal model outperforms the GLM baseline with defensible confidence intervals (PRD §11); the showcase slice renders the phase's output correctly and is clearly labeled as a demo, not a production view.
   **Dependencies:** Phase 1 (data contracts).
   **Estimated duration:** 2–3 weeks.

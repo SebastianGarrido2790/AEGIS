@@ -54,8 +54,8 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 | Component                      | Responsibility                                                                                                              | Key technology                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Serving layer                  | Exposes the recommendation flow to an underwriting/pricing client                                                           | FastAPI, Docker                                     |
-| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity model, contextual bandit                                                                    | scikit-learn, EconML/DoWhy, MLflow, DVC             |
+| Serving layer                  | Exposes the recommendation flow and glass-box showcase interface to underwriting/pricing clients | FastAPI, Jinja2, Chart.js, Docker                   |
+| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity model, contextual bandit                                                                    | scikit-learn, statsmodels, EconML/DoWhy, MLflow, DVC |
 | Data contracts                 | CI-blocking validation of both data intake paths                                                                            | Great Expectations                                  |
 | LLM Gateway                    | Single enforcement boundary for every provider call: abstraction, fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process)                                |
 | Regulatory RAG index           | Backing store for the Compliance Agent's retrieval and the Gateway's semantic cache                                         | Redis Stack (RedisVL/HNSW)                          |
@@ -192,6 +192,102 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Consequences:** INV-6 and its new §9 (Evaluation, Calibration & Monitoring) are updated to reflect this. Phase 5/6 must expand `Tier2AgentsConfig` beyond its current two placeholder threshold fields before the Compliance Agent can ship — tracked as known, not silent, scope.
 
+### ADR-011: Elasticity dataset source & ingestion — OpenML/Kaggle freMTPL2 with local DVC tracking
+
+**Status:** Approved (Phase 2)
+
+**Context:** Phase 1 established data contracts and deferred raw dataset acquisition to Phase 2 (P1-D4c). Phase 2 modeling requires motor third-party liability exposure, claim frequency, and claim amount data.
+
+**Decision:** Acquire freMTPL2 (`freMTPL2freq` and `freMTPL2sev`) via `sklearn.datasets.fetch_openml` (with Kaggle ODbL public dataset mirror as verified source, `https://www.kaggle.com/datasets/karansarpal/fremtpl2-french-motor-tpl-insurance-claims`), persist the joined table into `data/raw/`, and DVC-track the resulting file.
+
+**Rationale:** `fetch_openml` eliminates extra download tools, while local DVC tracking ensures all subsequent DVC reproductions (`dvc repro`) and CI runs remain 100% offline, reproducible, and compliant with INV-10 (no live external network dependency).
+
+**Consequences:** `data/raw/elasticity_fremtpl2.csv` is versioned via DVC and validated against `elasticity_training_suite.json` (INV-3).
+
+### ADR-012: Feature engineering architecture — Decomposed transformers, grouped policy split & shared transformation function
+
+**Status:** Approved (Phase 2)
+
+**Context:** Raw insurance claims data requires transformations across multiple domains (exposure offset, driver risk profile, vehicle specs, geographic/bonus-malus features). Training and inference require strict parity without heavyweight feature-store infrastructure.
+
+**Decision:** Decompose feature transformers by domain under `src/aegis/pipelines/feature/`, implement a grouped train/test split by `policy_id`, and expose a single, deterministic, versioned transformation function imported identically by offline training pipelines and online FastAPI inference.
+
+**Rationale:** Modular transformers adhere to the INV-8 design ceiling and isolate unit-testable components. Grouped train/test splitting prevents policyholder leakage across evaluation folds. A single transformation function guarantees training-serving parity without external feature store overhead.
+
+**Consequences:** Feature logic is centralized and tested in `src/aegis/pipelines/feature/` and shared directly with `src/aegis/api/`.
+
+### ADR-013: Actuarial GLM baseline — Single Tweedie GLM on pure premium with statsmodels confidence intervals
+
+**Status:** Approved (Phase 2)
+
+**Context:** Phase 2 exit criteria mandate that the causal model outperforms an actuarial-standard GLM baseline with defensible confidence intervals.
+
+**Decision:** Fit a single Tweedie compound Poisson-Gamma GLM ($1 < p < 2$) on pure premium (loss cost = claim amount / exposure) with log link and exposure log-offset using `statsmodels.api.GLM`.
+
+**Rationale:** The Tweedie compound Poisson-Gamma distribution models zero-inflated continuous claim costs in a single unified loss-cost formulation matching the causal elasticity target. `statsmodels` provides closed-form asymptotic standard errors and parameter confidence intervals without computationally intensive bootstrapping.
+
+**Consequences:** `statsmodels` is added as a declared dependency in `pyproject.toml`.
+
+### ADR-014: Causal elasticity model — CausalForestDML with synthetic treatment validation & DoWhy refutation suite
+
+**Status:** Approved (Phase 2)
+
+**Context:** Observational auto insurance data lacks randomized price experiments. Estimator recovery must be scientifically verifiable, and confounding robustness must be provable.
+
+**Decision:** Train EconML's `CausalForestDML` on an engineered synthetic rate-change treatment with a known segment-varying elasticity ground truth function. Perform confounding sensitivity analysis using DoWhy's refutation suite (placebo treatment, random common cause, data subset refuters) and log refutation outputs to MLflow.
+
+**Rationale:** Synthetic treatment injection provides an exact ground truth to rigorously validate treatment effect recovery, parameter bias, and confidence interval coverage. DoWhy refutation tests provide standardized, reproducible confounding sensitivity checks.
+
+**Consequences:** Causal models and sensitivity results are logged to MLflow; the evaluation report explicitly documents this as estimator recovery validation.
+
+### ADR-015: MLflow tracking & model registry — Local SQLite backend with structured refutation artifacts
+
+**Status:** Approved (Phase 2)
+
+**Context:** The Roadmap requires MLflow experiment tracking and Model Registry integration. MLflow's default local file store (`./mlruns`) does not support the Model Registry.
+
+**Decision:** Configure MLflow with a local SQLite backend URI (`sqlite:///mlflow.db`) and local artifact directory (`./artifacts/mlflow/`). Register distinct models (`aegis-glm-baseline` and `aegis-causal-elasticity`) and log DoWhy refutation summaries as structured JSON run artifacts.
+
+**Rationale:** SQLite enables full MLflow Model Registry capabilities (model versioning, staging, aliases) without requiring a persistent standalone server process, adhering to the local-first zero-cost development posture.
+
+**Consequences:** `mlflow.db` is local and gitignored; MLflow UI is launched locally via `uv run mlflow ui`.
+
+### ADR-016: Evaluation documentation — Versioned Markdown report with MLflow run mirroring
+
+**Status:** Approved (Phase 2)
+
+**Context:** The Technical Roadmap requires an evaluation report on calibration, treatment-effect confidence intervals, and confounding analysis.
+
+**Decision:** Author a versioned Markdown evaluation report in `reports/docs/evaluations/phase_2_evaluation_report.md` (populating the "Evaluations" documentation pillar) and attach an identical copy as an MLflow run artifact.
+
+**Rationale:** Markdown reports provide durable, diffable documentation in git, while MLflow run artifacts maintain provenance coupling with specific trained model versions.
+
+**Consequences:** `reports/docs/evaluations/` receives its first comprehensive evaluation report.
+
+### ADR-017: Serving layer & showcase interface — Dedicated `src/aegis/api/` package with segment-varying preset scenarios
+
+**Status:** Approved (Phase 2)
+
+**Context:** ADR-009 mandates a glass-box showcase interface slice for Phase 2. Serving infrastructure must be separated from internal agent tools, and the Roadmap's Phase 2 deliverable line must accurately reflect Phase 2 scope.
+
+**Decision:** Establish `src/aegis/api/` for the FastAPI serving application and Jinja2 showcase templates. Correct `technical_roadmap.md` to specify elasticity output (omitting premature bandit references). Configure preset risk scenarios ("Young Urban Commuter", "Experienced Rural Driver", "High-Mileage Commercial Driver") to demonstrate segment-varying elasticity.
+
+**Rationale:** Separating `src/aegis/api/` from `src/aegis/tools/` maintains clean architectural boundaries. Preset scenarios showcase the core value proposition of Double-ML heterogeneous treatment effect estimation.
+
+**Consequences:** `src/aegis/api/` is introduced into the codebase; `technical_roadmap.md` is updated.
+
+### ADR-018: Visualization stack — Matplotlib for static reports & Chart.js CDN for interactive showcase UI
+
+**Status:** Approved (Phase 2)
+
+**Context:** Visualizations are required for both static evaluation reports and the interactive showcase demo interface.
+
+**Decision:** Use `matplotlib` to render static figures for the Markdown evaluation report, and use Chart.js (via CDN) for dynamic, interactive elasticity curves and confidence interval bands in the Jinja2 showcase UI.
+
+**Rationale:** Split tooling provides self-contained static figures for git-based documentation and rich, responsive client-side interactivity for the demo interface without server-side rendering overhead.
+
+**Consequences:** `matplotlib` is added to Python dependencies; Chart.js is integrated into frontend HTML/Jinja2 templates.
+
 ## 5. Open Implementation Notes
 
 - The specific persistence layer for the Tier 3 audit log is deferred to Phase 7 and not yet decided.
@@ -205,3 +301,4 @@ At the close of each phase in `../references/technical_roadmap.md`:
 1. Update "Current Implementation Status" to reflect what was actually built.
 2. Mark each relevant ADR's status as **Validated** (implementation matched the decision) or **Amended** (implementation diverged, the amendment must be logged as a new dated entry under the original ADR, not a silent edit).
 3. Add new ADRs for any architecturally significant decision made during implementation that wasn't anticipated in Phase 0.
+
