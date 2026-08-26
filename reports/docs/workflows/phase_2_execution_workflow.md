@@ -2,13 +2,27 @@
 
 **Purpose:** translate the approved Phase 2 decisions (`phase_2_implementation_plan.md`, recorded as ADR-011 through ADR-018 in `system_design.md`) into a concrete, sequential build order. No code is written in this document — each stage describes _what_ gets built and _how it's verified_, not the implementation itself.
 
-**Rule for every stage:** the gate at the end of a stage must pass before the next stage begins. If a gate fails, work stays in that stage until it passes; nothing downstream gets touched in the meantime — same discipline `phase_1_execution_workflow.md` closed on.
+**Rule for every stage:** the gate at the end of a stage must fully pass before the next stage begins. If a gate fails, work stays in that stage until it passes; nothing downstream gets touched in the meantime — same discipline `phase_1_execution_workflow.md` closed on.
 
 **Standing rule, from Stage 1 onward:** lint, type-check, and the module-size checker are re-run at the end of every stage, exactly as in Phase 1. Not repeated in every gate description below to avoid redundancy — assume it unless a stage says otherwise.
 
 **One divergence worth naming plainly before starting:** P2-D3b's approved outcome (a single Tweedie GLM on pure premium, ADR-013) went the opposite direction from what I'd recommended (frequency-severity decomposition). That's a legitimate call, not an oversight — a single Tweedie model on pure premium is itself a recognized actuarial convention, not a deviation from one, just a different one than the Roadmap's exact phrasing suggested to me. Building against the approved decision, not re-litigating it.
 
-Author: Sebastián Garrido Arévalo (execution and drafting) | Date: August 26, 2026
+Author: Sebastián Garrido Arévalo (execution and drafting) | Date: August 25, 2026
+
+---
+
+## Execution Flow Overview
+
+```
+Stage 0 (Pre-Flight Audit) ──► Stage 1 (Analytics Core & Engine) ──► Stage 2 (Wire Schemas & Serialization)
+                                                                               │
+                                                                               ▼
+Stage 5 (Cockpit Modal & UI) ◄── Stage 4 (API Route Delivery) ◄── Stage 3 (Grounded Narrative Synthesis)
+          │
+          ▼
+Stage 6 (Integration Tests & Quality Gate Audit)
+```
 
 ---
 
@@ -34,7 +48,7 @@ Author: Sebastián Garrido Arévalo (execution and drafting) | Date: August 26, 
 
 **Recommendation, not a silent fix:** this needs an explicit decision, not a rename buried in ingestion code. Likely resolution: adopt the rename mapping above, treat `premium` as a derived field computed during feature engineering (Stage 2) rather than an ingested one, and formally amend the `annual_mileage` requirement out of the elasticity suite — as its own dated ADR (ADR-019), not a quiet edit to a suite that already passed its own Phase 1 gate under a different assumption.
 
-**Gate 0 — must pass before Stage 1 begins:**
+**Gate 0 — must pass before Stage 1 begins:** ✅ **PASSED (2026-08-26)**
 
 - Phase 1's CI, both GX suites, and `dvc repro` are all still green — no drift since Phase 1 closed.
 - All Phase 2 dependencies are installed and reflected in `uv.lock`.

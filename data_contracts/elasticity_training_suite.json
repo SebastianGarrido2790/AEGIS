@@ -9,7 +9,6 @@
           "policy_id",
           "driver_age",
           "veh_age",
-          "annual_mileage",
           "exposure",
           "claim_count",
           "claim_amount",

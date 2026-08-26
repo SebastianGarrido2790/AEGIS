@@ -286,7 +286,21 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Rationale:** Split tooling provides self-contained static figures for git-based documentation and rich, responsive client-side interactivity for the demo interface without server-side rendering overhead.
 
-**Consequences:** `matplotlib` is added to Python dependencies; Chart.js is integrated into frontend HTML/Jinja2 templates.
+### ADR-019: freMTPL2 Schema Mapping & Elasticity Data Contract Amendment
+
+**Status:** Approved (Phase 2, Stage 0)
+
+**Context:** freMTPL2's published column structure (`IDpol`, `ClaimNb`, `Exposure`, `Area`, `VehPower`, `VehAge`, `DrivAge`, `BonusMalus`, `VehBrand`, `VehGas`, `Density`, `Region`, `ClaimAmount`) diverges from the initial schema field names assumed in Phase 1 planning. Additionally, `annual_mileage` is unobserved in freMTPL2 (and cannot be substituted with population density without distorting domain semantics), while charged `premium` is not directly recorded in the public benchmark claims dataset.
+
+**Decision:**
+1. Apply canonical column renaming at ingestion: `IDpol` $\rightarrow$ `policy_id`, `DrivAge` $\rightarrow$ `driver_age`, `VehAge` $\rightarrow$ `veh_age`, `ClaimNb` $\rightarrow$ `claim_count`, `Exposure` $\rightarrow$ `exposure`, `ClaimAmount` $\rightarrow$ `claim_amount`.
+2. Retain all auxiliary predictor features (`Area`, `VehPower`, `VehBrand`, `VehGas`, `Density`, `Region`, `BonusMalus`) as permitted columns (`exact_match=false`) for feature engineering and Double-ML heterogeneity modeling.
+3. Formally amend `data_contracts/elasticity_training_suite.json` to remove the `annual_mileage` column requirement.
+4. Derive `premium` during data preparation / feature engineering (Stage 2) as baseline actuarial rating pure premium ($LossCost = ClaimAmount / Exposure$ compound rate).
+
+**Rationale:** Explicit schema mapping provides a transparent bridge between the public freMTPL2 benchmark and the AEGIS pipeline. Formally amending the data contract via a recorded ADR preserves invariant integrity (INV-3) rather than burying an ad-hoc proxy in ingestion code.
+
+**Consequences:** `elasticity_training_suite.json` validates real-world freMTPL2 data intake while maintaining blocking data contract guarantees.
 
 ## 5. Open Implementation Notes
 
