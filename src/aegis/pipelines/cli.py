@@ -122,6 +122,20 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Ingest commands
+    p_ing_f = subparsers.add_parser("ingest-fremtpl2")
+    p_ing_f.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("data/raw/elasticity_fremtpl2.csv"),
+        help="Target CSV path for ingested freMTPL2 dataset",
+    )
+    p_ing_f.add_argument(
+        "--force-download",
+        action="store_true",
+        default=False,
+        help="Force download from OpenML even if output file exists",
+    )
+
     p_ing_e = subparsers.add_parser("ingest-elasticity")
     p_ing_e.add_argument(
         "--input-path",
@@ -228,6 +242,14 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
+    if args.command == "ingest-fremtpl2":
+        from aegis.pipelines.feature.ingest import ingest_fremtpl2_pipeline
+
+        ingest_fremtpl2_pipeline(
+            output_path=args.output_path,
+            force_download=args.force_download,
+        )
+        return 0
     if args.command == "ingest-elasticity":
         return ingest_file(args.input_path, args.output_path, "elasticity")
     if args.command == "ingest-regulatory":

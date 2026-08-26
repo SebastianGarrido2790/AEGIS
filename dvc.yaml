@@ -62,3 +62,35 @@ stages:
       - src/aegis/pipelines/cli.py
     outs:
       - data/versioned/regulatory_corpus.json
+
+  # ==========================================
+  # 3. Real freMTPL2 Elasticity Benchmark Pipeline Path (ADR-011, ADR-019)
+  # ==========================================
+  ingest_fremtpl2:
+    cmd: uv run python -m aegis.pipelines.cli ingest-fremtpl2 --output-path data/raw/elasticity_fremtpl2.csv
+    deps:
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/feature/ingest.py
+    outs:
+      - data/raw/elasticity_fremtpl2.csv
+
+  validate_fremtpl2_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-elasticity --data-path data/raw/elasticity_fremtpl2.csv --suite-path data_contracts/elasticity_training_suite.json --report-path data/validated/elasticity_fremtpl2_validation_report.json
+    deps:
+      - data/raw/elasticity_fremtpl2.csv
+      - data_contracts/elasticity_training_suite.json
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/data_contracts.py
+      - src/aegis/pipelines/expectations.py
+    outs:
+      - data/validated/elasticity_fremtpl2_validation_report.json
+
+  version_fremtpl2:
+    cmd: uv run python -m aegis.pipelines.cli version-elasticity --raw-path data/raw/elasticity_fremtpl2.csv --report-path data/validated/elasticity_fremtpl2_validation_report.json --output-path data/versioned/elasticity_fremtpl2.csv
+    deps:
+      - data/raw/elasticity_fremtpl2.csv
+      - data/validated/elasticity_fremtpl2_validation_report.json
+      - src/aegis/pipelines/cli.py
+    outs:
+      - data/versioned/elasticity_fremtpl2.csv
+

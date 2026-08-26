@@ -39,6 +39,7 @@ def test_cli_parser_commands_structure() -> None:
     """Verifies that all pipeline subcommands are registered in the parser."""
     parser = build_parser()
     expected_commands = [
+        "ingest-fremtpl2",
         "ingest-elasticity",
         "ingest-regulatory",
         "validate-elasticity",
@@ -198,6 +199,7 @@ def test_version_file_blocks_on_failure(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "subcmd,extra_args",
     [
+        ("ingest-fremtpl2", []),
         ("ingest-regulatory", []),
         ("validate-elasticity", []),
         ("validate-regulatory", []),
@@ -208,5 +210,10 @@ def test_version_file_blocks_on_failure(tmp_path: Path) -> None:
 def test_main_cli_routing(subcmd: str, extra_args: list[str], tmp_path: Path, config) -> None:
     """Verifies that main() dispatches to all subcommands."""
     test_args = ["cli.py", subcmd, *extra_args]
-    with patch("sys.argv", test_args), contextlib.suppress(Exception):
+    with (
+        patch("sys.argv", test_args),
+        patch("aegis.pipelines.feature.ingest.ingest_fremtpl2_pipeline"),
+        contextlib.suppress(Exception),
+    ):
         main()
+
