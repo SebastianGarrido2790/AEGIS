@@ -9,9 +9,12 @@ from aegis.pipelines.feature.ingest import (
     fetch_fremtpl2_data,
     ingest_fremtpl2_pipeline,
 )
+from aegis.pipelines.feature.pipeline import build_feature_matrix, create_policy_split
 
 __all__ = [
     "clean_and_merge_fremtpl2",
     "fetch_fremtpl2_data",
     "ingest_fremtpl2_pipeline",
+    "build_feature_matrix",
+    "create_policy_split",
 ]

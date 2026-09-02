@@ -96,7 +96,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 3. Implement the grouped, policy-level train/test split, using the `policy_id` column confirmed in Stage 0/1.
 4. Derive the `premium` field per Stage 0's resolution.
 
-**Gate 2 — must pass before Stage 3 begins:**
+**Gate 2 — must pass before Stage 3 begins:** ✅ **PASSED (2026-09-01)**
 
 - The shared transformation function is deterministic — invoking it twice on identical input produces identical output.
 - The grouped split has zero `policy_id` overlap between train and test sets — checked directly, not assumed.

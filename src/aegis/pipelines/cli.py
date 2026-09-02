@@ -11,11 +11,14 @@ import shutil
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 from aegis.config.loader import get_config
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
     validate_regulatory_corpus,
 )
+from aegis.pipelines.feature.pipeline import build_feature_matrix
 from aegis.utils.exceptions import DataContractError
 
 
@@ -234,6 +237,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/versioned/regulatory_corpus.json"),
     )
 
+    p_feature = subparsers.add_parser("build-features")
+    p_feature.add_argument(
+        "--input-path",
+        type=Path,
+        default=Path("data/versioned/elasticity_fremtpl2.csv"),
+        help="Validated source dataset for feature construction",
+    )
+    p_feature.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("data/versioned/feature_matrix.csv"),
+        help="Target path for the engineered feature matrix",
+    )
+
     return parser
 
 
@@ -262,6 +279,13 @@ def main() -> int:
         return version_file(args.raw_path, args.report_path, args.output_path)
     if args.command == "version-regulatory":
         return version_file(args.raw_path, args.report_path, args.output_path)
+    if args.command == "build-features":
+        dataset = pd.read_csv(args.input_path)
+        feature_matrix = build_feature_matrix(dataset)
+        args.output_path.parent.mkdir(parents=True, exist_ok=True)
+        feature_matrix.to_csv(args.output_path, index=False)
+        print(f"[FEATURE] Wrote feature matrix to {args.output_path}")
+        return 0
 
     return 1
 

@@ -94,3 +94,15 @@ stages:
     outs:
       - data/versioned/elasticity_fremtpl2.csv
 
+  engineer_features:
+    cmd: uv run python -m aegis.pipelines.cli build-features --input-path data/versioned/elasticity_fremtpl2.csv --output-path data/versioned/feature_matrix.csv
+    deps:
+      - data/versioned/elasticity_fremtpl2.csv
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/feature/pipeline.py
+      - src/aegis/pipelines/feature/exposure.py
+      - src/aegis/pipelines/feature/driver.py
+      - src/aegis/pipelines/feature/vehicle.py
+    outs:
+      - data/versioned/feature_matrix.csv
+
