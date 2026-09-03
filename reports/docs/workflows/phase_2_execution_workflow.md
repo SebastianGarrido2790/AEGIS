@@ -116,7 +116,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 2. Extract native `statsmodels` confidence intervals on the fitted parameters.
 3. Compute and record the baseline calibration metric that Stage 4 will need to beat.
 
-**Gate 3 — must pass before Stage 4 begins:**
+**Gate 3 — must pass before Stage 4 begins:** ✅ **PASSED (2026-09-02)**
 
 - The GLM fits without convergence errors or degenerate output.
 - Parameter confidence intervals are finite and computable — not NaN, not degenerate.

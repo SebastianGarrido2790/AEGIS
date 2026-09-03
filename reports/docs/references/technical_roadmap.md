@@ -14,7 +14,7 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
 **Exit criteria:** all seven Phase 0 artifacts complete and internally consistent; the three architectural decisions (LiteLLM Gateway, Redis Stack, GX+DVC data contracts) confirmed and reflected across every document.
 **Dependencies:** none.
 
-## Phase 1 — Project Scaffolding & Data Contracts
+## Phase 1 — Project Scaffolding & Data Contracts  _(complete)_
 
 **Goal:** Stand up the repo skeleton, dependency management, configuration schema, and CI-blocking data contracts before any modeling begins — no data enters the pipeline unvalidated.
 **Key tasks:**
