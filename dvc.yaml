@@ -106,3 +106,12 @@ stages:
     outs:
       - data/versioned/feature_matrix.csv
 
+  train_glm_baseline:
+    cmd: uv run python -m aegis.pipelines.cli train-glm --input-path data/versioned/feature_matrix.csv --output-path data/validated/glm_baseline.json
+    deps:
+      - data/versioned/feature_matrix.csv
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/training/glm_baseline.py
+    outs:
+      - data/validated/glm_baseline.json
+

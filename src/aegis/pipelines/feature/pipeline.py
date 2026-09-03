@@ -6,6 +6,8 @@ inference, ensuring that training and serving reuse the same logic.
 
 from __future__ import annotations
 
+from typing import cast
+
 import pandas as pd
 
 from aegis.pipelines.feature.driver import compute_driver_risk
@@ -69,11 +71,14 @@ def build_feature_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         "risk_index",
         "premium",
     ]
+    for column in ["claim_amount", "claim_count", "treatment_rate_change"]:
+        if column in output.columns:
+            audit_columns.append(column)
     for column in ["policy_id", "premium"]:
         if column not in output.columns:
             raise KeyError(f"Required output column missing after transformation: {column}")
 
-    return output[audit_columns]
+    return cast(pd.DataFrame, output.loc[:, audit_columns])
 
 
 def create_policy_split(
@@ -87,7 +92,10 @@ def create_policy_split(
     if not 0.0 < test_size < 1.0:
         raise ValueError("test_size must fall strictly between 0 and 1.")
 
-    policies = frame["policy_id"].drop_duplicates().sort_values().tolist()
+    policies = sorted(
+        cast(list[str], frame["policy_id"].drop_duplicates().tolist()),
+        key=str,
+    )
     if len(policies) < 2:
         return frame.copy(), frame.iloc[0:0].copy()
 
@@ -96,7 +104,7 @@ def create_policy_split(
         random_state=random_state,
     )
     test_count = max(1, round(len(policies) * test_size))
-    selected = set(rng.iloc[:test_count].index.tolist())
+    selected = rng.iloc[:test_count].index.tolist()
 
     train_frame = frame.loc[~frame["policy_id"].isin(selected)].copy().reset_index(drop=True)
     test_frame = frame.loc[frame["policy_id"].isin(selected)].copy().reset_index(drop=True)

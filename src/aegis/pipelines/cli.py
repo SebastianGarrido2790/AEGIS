@@ -19,6 +19,10 @@ from aegis.pipelines.data_contracts import (
     validate_regulatory_corpus,
 )
 from aegis.pipelines.feature.pipeline import build_feature_matrix
+from aegis.pipelines.training.glm_baseline import (
+    fit_tweedie_baseline,
+    save_baseline_artifact,
+)
 from aegis.utils.exceptions import DataContractError
 
 
@@ -251,6 +255,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Target path for the engineered feature matrix",
     )
 
+    p_glm = subparsers.add_parser("train-glm")
+    p_glm.add_argument(
+        "--input-path",
+        type=Path,
+        default=Path("data/versioned/feature_matrix.csv"),
+        help="Stage 2 feature matrix used for GLM training",
+    )
+    p_glm.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("data/validated/glm_baseline.json"),
+        help="Target JSON path for baseline metrics and intervals",
+    )
+
     return parser
 
 
@@ -285,6 +303,12 @@ def main() -> int:
         args.output_path.parent.mkdir(parents=True, exist_ok=True)
         feature_matrix.to_csv(args.output_path, index=False)
         print(f"[FEATURE] Wrote feature matrix to {args.output_path}")
+        return 0
+    if args.command == "train-glm":
+        dataset = pd.read_csv(args.input_path)
+        result = fit_tweedie_baseline(dataset)
+        save_baseline_artifact(result, args.output_path)
+        print(f"[GLM] Wrote baseline artifact to {args.output_path}")
         return 0
 
     return 1

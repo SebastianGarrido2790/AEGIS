@@ -146,12 +146,12 @@ stages:
     deps:
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: 88d945089135d15cb2e71fa0f788041b
-      size: 8485
+      md5: a45b7b0d06984af8998bd33cbdadce81
+      size: 10217
     - path: src/aegis/pipelines/feature/ingest.py
       hash: md5
-      md5: c714f78660414dde4109193d7995852e
-      size: 5727
+      md5: ef5d206ffb5b07451c68cf2706d47710
+      size: 5796
     outs:
     - path: data/raw/elasticity_fremtpl2.csv
       hash: md5
@@ -173,8 +173,8 @@ stages:
       size: 3533
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: 88d945089135d15cb2e71fa0f788041b
-      size: 8485
+      md5: a45b7b0d06984af8998bd33cbdadce81
+      size: 10217
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
       md5: e1220c967cea1d5d66281435a356ecaa
@@ -204,10 +204,66 @@ stages:
       size: 186
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: 88d945089135d15cb2e71fa0f788041b
-      size: 8485
+      md5: a45b7b0d06984af8998bd33cbdadce81
+      size: 10217
     outs:
     - path: data/versioned/elasticity_fremtpl2.csv
       hash: md5
       md5: e191da4f56806c37a26f0610f584821b
       size: 53523253
+  engineer_features:
+    cmd: uv run python -m aegis.pipelines.cli build-features --input-path 
+      data/versioned/elasticity_fremtpl2.csv --output-path 
+      data/versioned/feature_matrix.csv
+    deps:
+    - path: data/versioned/elasticity_fremtpl2.csv
+      hash: md5
+      md5: e191da4f56806c37a26f0610f584821b
+      size: 53523253
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: a45b7b0d06984af8998bd33cbdadce81
+      size: 10217
+    - path: src/aegis/pipelines/feature/driver.py
+      hash: md5
+      md5: a82d6d0ff517157e1e45d97d208a4b2d
+      size: 918
+    - path: src/aegis/pipelines/feature/exposure.py
+      hash: md5
+      md5: a179d9684f77808b0010ba534c9785af
+      size: 856
+    - path: src/aegis/pipelines/feature/pipeline.py
+      hash: md5
+      md5: ea2ff3da0c0cfa357ec04af10734162b
+      size: 3853
+    - path: src/aegis/pipelines/feature/vehicle.py
+      hash: md5
+      md5: 5961078ee6f8cab6a6022f2c722f66ed
+      size: 1053
+    outs:
+    - path: data/versioned/feature_matrix.csv
+      hash: md5
+      md5: 388dff2addc20e811a7b17d923abad07
+      size: 77719728
+  train_glm_baseline:
+    cmd: uv run python -m aegis.pipelines.cli train-glm --input-path 
+      data/versioned/feature_matrix.csv --output-path 
+      data/validated/glm_baseline.json
+    deps:
+    - path: data/versioned/feature_matrix.csv
+      hash: md5
+      md5: 388dff2addc20e811a7b17d923abad07
+      size: 77719728
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: a45b7b0d06984af8998bd33cbdadce81
+      size: 10217
+    - path: src/aegis/pipelines/training/glm_baseline.py
+      hash: md5
+      md5: 614ad4d4b3ef2278eb750de9029e528f
+      size: 5223
+    outs:
+    - path: data/validated/glm_baseline.json
+      hash: md5
+      md5: 7e9675a8f773cc55cbc41190fdcc6bae
+      size: 1383
