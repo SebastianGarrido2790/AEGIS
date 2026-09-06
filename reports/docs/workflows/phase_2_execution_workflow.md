@@ -145,7 +145,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 5 — MLflow Tracking & Registry Integration
+## Stage 5 — MLflow Tracking & Registry Integration ✅ **PASSED**
 
 **Implements:** ADR-015.
 

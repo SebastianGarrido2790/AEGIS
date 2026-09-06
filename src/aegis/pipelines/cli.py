@@ -27,6 +27,7 @@ from aegis.pipelines.training.glm_baseline import (
     fit_tweedie_baseline,
     save_baseline_artifact,
 )
+from aegis.pipelines.training.mlflow_tracking import track_and_register_model
 from aegis.utils.exceptions import DataContractError
 
 
@@ -326,12 +327,48 @@ def main() -> int:
         dataset = pd.read_csv(args.input_path)
         result = fit_tweedie_baseline(dataset)
         save_baseline_artifact(result, args.output_path)
+        track_and_register_model(
+            model_name="glm_baseline",
+            registered_name="aegis-glm-baseline",
+            model_object={
+                "model": "tweedie_glm",
+                "calibration_metrics": result.calibration_metrics,
+                "feature_columns": list(result.feature_columns),
+            },
+            params={"random_state": 42},
+            metrics=result.calibration_metrics,
+            artifact_payload={
+                "calibration_metrics": result.calibration_metrics,
+                "confidence_intervals": {
+                    str(name): {"lower": float(row.iloc[0]), "upper": float(row.iloc[1])}
+                    for name, row in result.confidence_intervals.iterrows()
+                },
+            },
+            artifact_name="glm_baseline_summary.json",
+        )
         print(f"[GLM] Wrote baseline artifact to {args.output_path}")
         return 0
     if args.command == "train-causal":
         dataset = pd.read_csv(args.input_path)
         result = fit_causal_elasticity(dataset)
         save_causal_artifact(result, args.output_path)
+        track_and_register_model(
+            model_name="causal_elasticity",
+            registered_name="aegis-causal-elasticity",
+            model_object={
+                "model": "causal_forest_dml",
+                "average_treatment_effect": result.average_treatment_effect,
+                "correlation": result.correlation,
+                "refutation_summary": result.refutation_summary,
+            },
+            params={"random_state": 42},
+            metrics=result.calibration_metrics,
+            artifact_payload={
+                "refutation_summary": result.refutation_summary,
+                "calibration_metrics": result.calibration_metrics,
+            },
+            artifact_name="causal_refutation_summary.json",
+        )
         print(f"[CAUSAL] Wrote causal artifact to {args.output_path}")
         return 0
 
