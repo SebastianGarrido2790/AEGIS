@@ -115,3 +115,12 @@ stages:
     outs:
       - data/validated/glm_baseline.json
 
+  train_causal_elasticity:
+    cmd: uv run python -m aegis.pipelines.cli train-causal --input-path data/versioned/feature_matrix.csv --output-path data/validated/causal_elasticity.json
+    deps:
+      - data/versioned/feature_matrix.csv
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/training/causal_elasticity.py
+    outs:
+      - data/validated/causal_elasticity.json
+

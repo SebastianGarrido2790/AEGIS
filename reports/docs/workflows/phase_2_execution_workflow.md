@@ -31,7 +31,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 0 — Pre-Implementation Verification & Dependency Check
+## Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **PASSED**
 
 **Implements:** groundwork for ADR-011 through ADR-018; no ADR is _built_ in this stage, but several are only safely buildable once this stage's findings are resolved.
 
@@ -53,7 +53,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 **Recommendation, not a silent fix:** this needs an explicit decision, not a rename buried in ingestion code. Likely resolution: adopt the rename mapping above, treat `premium` as a derived field computed during feature engineering (Stage 2) rather than an ingested one, and formally amend the `annual_mileage` requirement out of the elasticity suite — as its own dated ADR (ADR-019), not a quiet edit to a suite that already passed its own Phase 1 gate under a different assumption.
 
-**Gate 0 — must pass before Stage 1 begins:** ✅ **PASSED (2026-08-26)**
+**Gate 0 — must pass before Stage 1 begins:**
 
 - Phase 1's CI, both GX suites, and `dvc repro` are all still green — no drift since Phase 1 closed.
 - All Phase 2 dependencies are installed and reflected in `uv.lock`.
@@ -62,7 +62,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 1 — Dataset Ingestion & DVC Integration
+## Stage 1 — Dataset Ingestion & DVC Integration ✅ **PASSED**
 
 **Implements:** ADR-011.
 
@@ -75,7 +75,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 3. DVC-track the resulting local file, extending `dvc.yaml` with a new ingest stage for the real dataset — additive to, not a replacement for, the Phase 1 fixture-based stages, which continue to exist for CI's fast, self-contained GX-gate testing.
 4. Run the (now-amended, per ADR-019) elasticity suite against the real ingested data.
 
-**Gate 1 — must pass before Stage 2 begins:** ✅ **PASSED (2026-08-26)**
+**Gate 1 — must pass before Stage 2 begins:**
 
 - The real dataset, post-mapping, passes the amended GX suite cleanly — this is the first genuine real-world test of a suite that, until now, had only ever seen hand-crafted fixtures.
 - `dvc repro` reproduces the real-data ingest stage without a live network dependency on a second run (OpenML is only touched once, at first fetch).
@@ -83,7 +83,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 2 — Feature Engineering Pipeline
+## Stage 2 — Feature Engineering Pipeline ✅ **PASSED**
 
 **Implements:** ADR-012.
 
@@ -96,7 +96,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 3. Implement the grouped, policy-level train/test split, using the `policy_id` column confirmed in Stage 0/1.
 4. Derive the `premium` field per Stage 0's resolution.
 
-**Gate 2 — must pass before Stage 3 begins:** ✅ **PASSED (2026-09-01)**
+**Gate 2 — must pass before Stage 3 begins:**
 
 - The shared transformation function is deterministic — invoking it twice on identical input produces identical output.
 - The grouped split has zero `policy_id` overlap between train and test sets — checked directly, not assumed.
@@ -104,7 +104,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 3 — GLM Baseline
+## Stage 3 — GLM Baseline ✅ **PASSED**
 
 **Implements:** ADR-013.
 
@@ -116,7 +116,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 2. Extract native `statsmodels` confidence intervals on the fitted parameters.
 3. Compute and record the baseline calibration metric that Stage 4 will need to beat.
 
-**Gate 3 — must pass before Stage 4 begins:** ✅ **PASSED (2026-09-02)**
+**Gate 3 — must pass before Stage 4 begins:**
 
 - The GLM fits without convergence errors or degenerate output.
 - Parameter confidence intervals are finite and computable — not NaN, not degenerate.
@@ -124,7 +124,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 4 — Causal Elasticity Model
+## Stage 4 — Causal Elasticity Model ✅ **PASSED**
 
 **Implements:** ADR-014.
 
