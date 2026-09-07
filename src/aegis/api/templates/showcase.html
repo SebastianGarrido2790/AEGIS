@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AEGIS / Showcase</title>
+  <link rel="stylesheet" href="/static/showcase.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="kicker">AEGIS / Phase 2</p>
+        <h1>Elasticity review cockpit</h1>
+        <p class="lede">A glass-box view of the registered causal validation model across curated risk segments.</p>
+      </div>
+      <span class="demo-badge">{{ demo_label }}</span>
+    </header>
+
+    <section class="control-bar" aria-label="Preset scenario selection">
+      <form method="get" action="/">
+        <label for="preset">Preset scenario</label>
+        <select id="preset" name="preset" onchange="this.form.submit()">
+          {% for scenario in scenarios %}
+          <option value="{{ scenario.key }}" {% if view_model and view_model.scenario.key == scenario.key %}selected{% endif %}>{{ scenario.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Load scenario</button>
+      </form>
+      <span class="source-note">Source: registered MLflow model</span>
+    </section>
+
+    {% if error %}
+    <section class="notice error" role="alert">
+      <strong>Scenario unavailable</strong>
+      <span>{{ error }}</span>
+      <a href="/">Return to the default preset</a>
+    </section>
+    {% elif view_model %}
+    <section class="scenario-heading">
+      <div>
+        <p class="eyebrow">{{ view_model.scenario.risk_profile }}</p>
+        <h2>{{ view_model.scenario.name }}</h2>
+        <p>{{ view_model.scenario.subtitle }}</p>
+      </div>
+      <div class="governance-state">{{ view_model.scenario.governance_state }}</div>
+    </section>
+
+    <section class="metrics" aria-label="Scenario metrics">
+      <article class="metric metric-accent">
+        <span>Elasticity estimate</span>
+        <strong>{{ "%.2f"|format(view_model.elasticity) }}</strong>
+        <small>Registered causal model output</small>
+      </article>
+      <article class="metric">
+        <span>95% confidence interval</span>
+        <strong>{{ "%.2f"|format(view_model.confidence_interval.lower) }} to {{ "%.2f"|format(view_model.confidence_interval.upper) }}</strong>
+        <small>Alpha {{ view_model.confidence_interval.alpha }}</small>
+      </article>
+      <article class="metric">
+        <span>Governance signal</span>
+        <strong>{{ view_model.scenario.governance_state }}</strong>
+        <small>{{ view_model.scenario.governance_note }}</small>
+      </article>
+    </section>
+
+    <section class="analysis-grid">
+      <div class="chart-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Segment view</p>
+            <h2>Estimated treatment effect</h2>
+          </div>
+          <span class="model-tag">{{ view_model.model_name }}</span>
+        </div>
+        <div class="chart-wrap"><canvas id="elasticityChart" aria-label="Elasticity estimate and confidence interval chart"></canvas></div>
+      </div>
+      <aside class="detail-panel">
+        <p class="eyebrow">Model record</p>
+        <dl>
+          <div><dt>Treatment</dt><dd>{{ view_model.treatment_variable }}</dd></div>
+          <div><dt>Scenario multiplier</dt><dd>{{ "%.2f"|format(view_model.scenario.model_multiplier) }}x</dd></div>
+          <div><dt>Decision boundary</dt><dd>Human review only</dd></div>
+        </dl>
+        <p class="disclaimer">This interface demonstrates Phase 2 estimator validation. It is not a production pricing system and does not publish rates.</p>
+      </aside>
+    </section>
+    {% endif %}
+  </main>
+  {% if view_model %}
+  <script>
+    const scenarioData = {{ {"name": view_model.scenario.name, "elasticity": view_model.elasticity, "lower": view_model.confidence_interval.lower, "upper": view_model.confidence_interval.upper}|tojson }};
+    new Chart(document.getElementById('elasticityChart'), {
+      type: 'bar',
+      data: {
+        labels: [scenarioData.name],
+        datasets: [
+          { label: 'Estimate', data: [scenarioData.elasticity], backgroundColor: '#d45b3f', borderRadius: 2, barThickness: 58 },
+          { label: 'Lower bound', data: [scenarioData.lower], backgroundColor: '#273b3d', barThickness: 8 },
+          { label: 'Upper bound', data: [scenarioData.upper], backgroundColor: '#273b3d', barThickness: 8 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { grid: { color: '#d8d5cc' } }, x: { grid: { display: false } } } }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

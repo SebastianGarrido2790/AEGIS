@@ -138,6 +138,7 @@ def _log_model_package(run_id: str, model_object: Any, artifact_path: str = "mod
         python_model=_SerializablePythonModel(payload),
         input_example={"payload": payload},
     )
+    mlflow.log_dict(payload, f"{artifact_path}/metadata.json")
     return f"runs:/{run_id}/{artifact_path}"
 
 

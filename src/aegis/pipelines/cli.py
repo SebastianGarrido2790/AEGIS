@@ -358,6 +358,11 @@ def main() -> int:
             model_object={
                 "model": "causal_forest_dml",
                 "average_treatment_effect": result.average_treatment_effect,
+                "treatment_effect_confidence_interval": {
+                    "lower": result.treatment_effect_confidence_interval[0],
+                    "upper": result.treatment_effect_confidence_interval[1],
+                    "alpha": 0.05,
+                },
                 "correlation": result.correlation,
                 "refutation_summary": result.refutation_summary,
             },

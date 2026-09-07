@@ -165,7 +165,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 6 — Evaluation Report
+## Stage 6 — Evaluation Report ✅ **PASSED**
 
 **Implements:** ADR-016.
 
@@ -183,7 +183,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 ---
 
-## Stage 7 — Showcase Interface Foundation
+## Stage 7 — Showcase Interface Foundation ✅ **PASSED**
 
 **Implements:** ADR-017, ADR-018.
 
@@ -201,6 +201,11 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - Every preset scenario renders the correct elasticity value and confidence interval — cross-checked by hand against Stage 4/5's actual output, not just "the page loads without an error."
 - The demo label is visible on every route reachable from the interface, not only the landing page.
 - A deliberately malformed or missing preset request is handled gracefully — this project's first live HTTP endpoint, and the first place a bad request needs to degrade cleanly rather than crash the process.
+
+**Gate 7 evidence:** `src/aegis/api/` now serves the three ADR-017 preset
+scenarios from registered MLflow model metadata, renders the interval band with
+Chart.js, labels the interface as a demo, and returns a usable error page for an
+unknown preset. The route suite and live HTTP smoke test both passed.
 
 ---
 

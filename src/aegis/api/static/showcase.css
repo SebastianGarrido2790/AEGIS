@@ -1,0 +1,28 @@
+:root {
+  color-scheme: light;
+  --ink: #203133;
+  --muted: #687577;
+  --paper: #f4f1e9;
+  --panel: #fffdf8;
+  --line: #d8d5cc;
+  --accent: #d45b3f;
+  --accent-dark: #943a2d;
+  --teal: #3a7774;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: radial-gradient(circle at 100% 0%, #dce9e2 0, transparent 34%), var(--paper); font-family: Georgia, 'Times New Roman', serif; }
+.shell { max-width: 1180px; margin: 0 auto; padding: 42px 28px 72px; }
+.masthead, .scenario-heading, .panel-heading, .control-bar, .metrics, .analysis-grid { display: flex; }
+.masthead { align-items: flex-start; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 34px; }
+.kicker, .eyebrow, label, .metric span, .metric small, .source-note, .demo-badge, .model-tag, dt, .governance-state { font-family: 'Trebuchet MS', sans-serif; text-transform: uppercase; letter-spacing: .08em; }
+.kicker, .eyebrow { color: var(--accent-dark); font-size: .72rem; margin: 0 0 10px; }
+h1, h2, p { margin-top: 0; } h1 { max-width: 720px; font-size: clamp(2.6rem, 7vw, 5.8rem); line-height: .92; font-weight: 400; margin-bottom: 18px; } h2 { font-size: 2rem; font-weight: 400; margin-bottom: 8px; }
+.lede { color: var(--muted); font-size: 1.1rem; max-width: 600px; line-height: 1.5; }
+.demo-badge { color: var(--panel); background: var(--accent-dark); padding: 10px 12px; font-size: .65rem; white-space: nowrap; }
+.control-bar { align-items: center; justify-content: space-between; gap: 20px; padding: 24px 0; border-bottom: 1px solid var(--line); } form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } label { font-size: .7rem; color: var(--muted); } select, button { min-height: 42px; border: 1px solid var(--ink); padding: 0 14px; font: inherit; background: var(--panel); color: var(--ink); } button { background: var(--ink); color: var(--panel); cursor: pointer; } .source-note { color: var(--muted); font-size: .65rem; }
+.scenario-heading { align-items: end; justify-content: space-between; gap: 20px; padding: 52px 0 26px; } .scenario-heading p:not(.eyebrow) { color: var(--muted); margin-bottom: 0; } .governance-state, .model-tag { color: var(--teal); border: 1px solid var(--teal); padding: 8px 10px; font-size: .65rem; }
+.metrics { gap: 12px; margin-bottom: 14px; } .metric { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); padding: 22px; min-height: 148px; } .metric-accent { border-top: 4px solid var(--accent); } .metric span { display: block; color: var(--muted); font-size: .65rem; margin-bottom: 20px; } .metric strong { display: block; font-size: 1.65rem; font-weight: 400; margin-bottom: 12px; } .metric small { display: block; color: var(--muted); font-size: .62rem; line-height: 1.4; text-transform: none; letter-spacing: 0; }
+.analysis-grid { gap: 14px; } .chart-panel, .detail-panel { background: var(--panel); border: 1px solid var(--line); padding: 24px; } .chart-panel { flex: 1; min-width: 0; } .detail-panel { width: 31%; } .panel-heading { align-items: start; justify-content: space-between; gap: 16px; } .chart-wrap { height: 320px; position: relative; } dl { margin: 26px 0; } dl div { border-top: 1px solid var(--line); padding: 14px 0; } dt, dd { margin: 0; } dt { color: var(--muted); font-size: .62rem; margin-bottom: 6px; } dd { font-size: 1rem; word-break: break-word; } .disclaimer { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--muted); line-height: 1.5; }
+.notice { margin-top: 32px; border: 1px solid var(--accent); padding: 20px; display: grid; gap: 8px; } .notice.error { background: #fff3ed; } .notice a { color: var(--accent-dark); }
+@media (max-width: 760px) { .shell { padding: 28px 16px 48px; } .masthead, .control-bar, .scenario-heading, .metrics, .analysis-grid { display: block; } .demo-badge { display: inline-block; margin-top: 20px; } .source-note { display: block; margin-top: 16px; } .scenario-heading { padding-top: 36px; } .governance-state { display: inline-block; margin-top: 18px; } .metric, .detail-panel { width: 100%; margin-bottom: 12px; } .chart-panel { margin-bottom: 12px; } }
