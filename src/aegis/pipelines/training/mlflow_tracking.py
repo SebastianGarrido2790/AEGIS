@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 import mlflow
-from mlflow.pyfunc import PythonModel
+from mlflow.pyfunc.model import PythonModel
 
 
 class _SerializablePythonModel(PythonModel):
@@ -17,7 +19,7 @@ class _SerializablePythonModel(PythonModel):
     def __init__(self, payload: Any):
         self.payload = payload
 
-    def predict(self, context: Any, model_input: Any) -> Any:
+    def predict(self, context: Any, model_input: Any, params: dict[str, Any] | None = None) -> Any:
         """Return the payload without altering the caller's model input."""
         if model_input is None:
             return self.payload
@@ -36,6 +38,21 @@ def _normalize_artifact_location(path: str | Path | None) -> str:
     return resolved.as_uri()
 
 
+def _has_valid_artifact_uri(location: str | None) -> bool:
+    """Return True when the stored MLflow artifact location is a supported URI."""
+    if not location:
+        return False
+    if location.startswith("file://"):
+        return True
+    if (
+        len(location) >= 2
+        and location[1] == ":"
+        and (location[2:3] == "\\" or location[2:3] == "/")
+    ):
+        return False
+    return location.startswith(("s3://", "gs://", "wasbs://", "http://", "https://"))
+
+
 def configure_mlflow_tracking(
     tracking_uri: str = "sqlite:///mlflow.db",
     artifact_location: str | None = None,
@@ -52,6 +69,39 @@ def configure_mlflow_tracking(
             name=experiment_name,
             artifact_location=artifact_root,
         )
+    elif not _has_valid_artifact_uri(experiment.artifact_location):
+        if tracking_uri.startswith("sqlite:///"):
+            db_path = tracking_uri.replace("sqlite:///", "", 1)
+            if not Path(db_path).is_absolute():
+                db_path = str((Path.cwd() / db_path).resolve())
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "UPDATE experiments SET artifact_location = ? WHERE experiment_id = ?",
+                    (artifact_root, experiment.experiment_id),
+                )
+                conn.execute(
+                    """
+                    UPDATE runs
+                    SET artifact_uri = ? || run_uuid || '/artifacts'
+                    WHERE experiment_id = ?
+                      AND artifact_uri NOT LIKE 'file://%'
+                    """,
+                    (artifact_root.rstrip("/") + "/", experiment.experiment_id),
+                )
+                conn.commit()
+            # Rebuild MLflow's store after the direct SQLite repair so this
+            # process does not retain the stale experiment metadata.
+            mlflow.set_tracking_uri(tracking_uri)
+        else:
+            try:
+                client.delete_experiment(experiment.experiment_id)
+            except Exception:
+                client._tracking_client.store.delete_experiment(experiment.experiment_id)
+            experiment_id = client.create_experiment(
+                name=experiment_name,
+                artifact_location=artifact_root,
+            )
+        experiment_id = experiment.experiment_id
     else:
         experiment_id = experiment.experiment_id
 
@@ -91,6 +141,21 @@ def _log_model_package(run_id: str, model_object: Any, artifact_path: str = "mod
     return f"runs:/{run_id}/{artifact_path}"
 
 
+def attach_report_artifact(
+    run_id: str,
+    report_path: Path | str,
+    tracking_uri: str = "sqlite:///mlflow.db",
+    artifact_path: str = "evaluation",
+) -> None:
+    """Attach a repository evaluation report to an existing MLflow run."""
+    source = Path(report_path)
+    if not source.is_file():
+        raise FileNotFoundError(f"Evaluation report not found: {source}")
+
+    client = mlflow.MlflowClient(tracking_uri=tracking_uri)
+    client.log_artifact(run_id, str(source), artifact_path=artifact_path)
+
+
 def track_and_register_model(
     model_name: str,
     registered_name: str,
@@ -121,11 +186,7 @@ def track_and_register_model(
             mlflow.log_artifact(str(temp_path), artifact_path="diagnostics")
 
         model_uri = _log_model_package(run.info.run_id, model_object)
-        try:
+        with suppress(Exception):
             mlflow.register_model(model_uri=model_uri, name=registered_name)
-        except (
-            Exception
-        ):  # pragma: no cover - MLflow registry may accept the model without any extra action.
-            pass
 
         return run

@@ -34,6 +34,7 @@ class CausalElasticityResult:
     feature_columns: tuple[str, ...]
     treatment_variable: str
     average_treatment_effect: float
+    treatment_effect_confidence_interval: tuple[float, float]
     correlation: float
     calibration_metrics: dict[str, float]
     refutation_summary: dict[str, Any]
@@ -188,9 +189,14 @@ def fit_causal_elasticity(
     model.fit(Y_train, T_train, X=X_train)
 
     raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
+    interval_lower, interval_upper = model.effect_interval(X_test, alpha=0.05)
+    treatment_effect_confidence_interval = (
+        float(np.mean(np.asarray(interval_lower).reshape(-1))),
+        float(np.mean(np.asarray(interval_upper).reshape(-1))),
+    )
     ground_truth = (0.05 + 0.10 * test_frame["risk_index"]).to_numpy()
     if raw_effect.shape[0] != ground_truth.shape[0]:
-        raw_effect = np.asarray(model.effect(X_test, T0=np.zeros(len(X_test)))).reshape(-1)
+        raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
     if raw_effect.shape[0] != ground_truth.shape[0]:
         raw_effect = np.repeat(float(np.mean(T_train)), len(test_frame))
 
@@ -217,6 +223,7 @@ def fit_causal_elasticity(
         feature_columns=feature_columns,
         treatment_variable="treatment_rate_change",
         average_treatment_effect=average_treatment_effect,
+        treatment_effect_confidence_interval=treatment_effect_confidence_interval,
         correlation=correlation,
         calibration_metrics=calibration_metrics,
         refutation_summary=refutation_summary,
@@ -233,6 +240,11 @@ def save_causal_artifact(result: CausalElasticityResult, output_path: Path | str
         "treatment_variable": result.treatment_variable,
         "feature_columns": list(result.feature_columns),
         "average_treatment_effect": result.average_treatment_effect,
+        "treatment_effect_confidence_interval": {
+            "lower": result.treatment_effect_confidence_interval[0],
+            "upper": result.treatment_effect_confidence_interval[1],
+            "alpha": 0.05,
+        },
         "calibration_metrics": result.calibration_metrics,
         "refutation_summary": result.refutation_summary,
     }
