@@ -11,8 +11,8 @@ Designed for actuarial and pricing analysts, underwriting teams, and compliance 
 | Phase                                              | Description                                                                                                     | Status         |
 | :------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------- |
 | **Phase 0 — Planning & Design**                    | ML Canvas, Project Charter, PRD, User Story, Technical Roadmap, System Design ADRs                              | ✅ Complete    |
-| **Phase 1 — Scaffolding & Data Contracts**         | Repository structure, `uv` toolchain, `params.yaml`, Great Expectations suites (elasticity & regulatory corpus) | 🟡 In Progress |
-| **Phase 2 — Tier 1: Deterministic ML Baseline**    | GLM baseline, Double ML causal elasticity estimator (`CausalForestDML`), MLflow experiment tracking             | ⬜ Scheduled   |
+| **Phase 1 — Scaffolding & Data Contracts**         | Repository structure, `uv` toolchain, `params.yaml`, Great Expectations suites (elasticity & regulatory corpus) | ✅ Complete    |
+| **Phase 2 — Tier 1: Deterministic ML Baseline**    | freMTPL2 ingestion, deterministic features, Tweedie GLM, synthetic causal validation, MLflow registry, showcase | ✅ Complete    |
 | **Phase 3 — Contextual Bandit Exploration Engine** | Bounded Thompson Sampling exploration corridor, synthetic production stream simulator, regret evaluation        | ⬜ Scheduled   |
 | **Phase 4 — LLM Gateway Integration**              | In-process LiteLLM Gateway, Redis Stack cache, pre-flight guardrails (PII/injection), OTel cost/trace emission  | ⬜ Scheduled   |
 | **Phase 5 — Regulatory RAG Foundation**            | RedisVL/HNSW vector index, regulatory corpus ingestion, retrieval-quality evaluation harness                    | ⬜ Scheduled   |
@@ -49,35 +49,27 @@ AEGIS is built upon strict architectural guardrails and engineering invariants:
             │
             ▼
 ┌────────────────────────┐
-│   FastAPI Middleware   │
+│ FastAPI Showcase (demo)│
 └───────────┬────────────┘
             │
             ▼
-┌────────────────────────┐
-│ LangGraph Coordinator  │
-└───────────┬────────────┘
-            │
-┌──────────────────────────────┐        ┌─────────────────────────────┐
-│  Tier 1: Deterministic ML    │        │     LLM Gateway (LiteLLM)   │
-│  - GLM Baseline              │        │  - Provider Fallback Chain  │
-│  - Causal Elasticity (DML)   │        │  - Pre-flight Guardrails    │
-│  - Contextual Bandit         │        │  - OTel Cost/Trace Export   │
-└──────────────┬───────────────┘        └──────────────┬──────────────┘
-               │                                       │
-               │    ┌─────────────────────────────┐    │
-               └───►│   Agent Orchestration       │◄───┘
-                    │   - Pricing Strategy Agent  │
-                    │   - Regulatory Compliance   │
-                    │   - Revenue Impact Agent    │
-                    └──────────────┬──────────────┘
-                                   │
-                                   ▼
-                    ┌─────────────────────────────┐
-                    │      Governance Tier        │
-                    │   - HITL Escalation Gate    │
-                    │   - Deterministic Fallback  │
-                    │   - Structured Audit Log    │
-                    └─────────────────────────────┘
+┌──────────────────────────────┐
+│ Registered MLflow metadata   │
+│ `aegis-causal-elasticity`    │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│  Phase 2: Tier 1 ML          │
+│  - DVC + GX data contracts   │
+│  - Shared deterministic      │
+│    feature pipeline          │
+│  - Tweedie GLM baseline      │
+│  - CausalForestDML validation│
+└──────────────────────────────┘
+
+Future phases add the LangGraph coordinator, LLM Gateway, RAG, and governance
+tiers downstream of this registered deterministic output.
 ```
 
 ---
@@ -87,7 +79,7 @@ AEGIS is built upon strict architectural guardrails and engineering invariants:
 - **Language:** Python 3.12 (Strict typing with `pyright`)
 - **Dependency Management:** `uv`
 - **Agent Orchestration:** LangGraph (Coordinator with parallel Compliance & Impact branches)
-- **Deterministic & Causal ML:** scikit-learn (GLM baseline), EconML/DoWhy (`CausalForestDML`), Contextual Bandit (Thompson Sampling)
+- **Deterministic & Causal ML:** statsmodels Tweedie GLM, EconML/DoWhy (`CausalForestDML`); contextual bandit is Phase 3
 - **LLM Gateway & Caching:** LiteLLM (In-Process Gateway), Redis Stack (`RedisVL`/HNSW)
 - **Data Versioning & Contracts:** DVC, Great Expectations (GX)
 - **Experiment Tracking:** MLflow
@@ -100,21 +92,22 @@ AEGIS is built upon strict architectural guardrails and engineering invariants:
 
 ```text
 .
-├── src/
-│   ├── gateway/         # LiteLLM Gateway configuration & guardrails (INV-1)
-│   ├── agents/          # LangGraph agents (Pricing Strategy, Compliance, Revenue Impact)
-│   ├── governance/      # HITL escalation logic, fallback handlers, audit logging
-│   ├── pipelines/       # FTI: Feature, Training, and Inference pipelines
-│   ├── bandit/          # Contextual bandit exploration engine
+├── src/aegis/
+│   ├── api/             # FastAPI showcase and registered-model service
+│   ├── gateway/         # LiteLLM Gateway boundary (future phase)
+│   ├── agents/          # LangGraph agents (future phase)
+│   ├── governance/      # HITL, fallback, and audit components (future phase)
+│   ├── pipelines/       # DVC, contracts, features, and training
+│   ├── bandit/          # Contextual bandit exploration (Phase 3)
 │   ├── tools/           # Deterministic tool services
-│   ├── schemas/         # Pydantic v2 data contracts & audit schemas
-│   ├── utils/           # Typed exception hierarchy, prompt sanitization, logger
-│   └── config/          # Centralized configuration & params loader
+│   ├── schemas/         # Pydantic I/O contracts
+│   ├── utils/           # Typed exception hierarchy and utilities
+│   └── config/           # Centralized configuration and params loader
 ├── data_contracts/      # Great Expectations suites (elasticity & regulatory corpus)
 ├── tests/
 │   ├── unit/            # Unit tests for tools, models, and schemas
-│   ├── integration/     # End-to-end LangGraph & Gateway integration tests
-│   └── evals/           # Retrieval groundedness and LLM-as-judge evals
+│   ├── integration/     # Integration tests
+│   └── evals/           # Evaluation suites for later agentic phases
 ├── reports/
 │   └── docs/            # Architecture ADRs, PRD, Roadmap, Charter, Runbooks
 ├── scripts/
@@ -149,8 +142,8 @@ uv sync
 
 | Action                                  | Command                                                 |
 | :-------------------------------------- | :------------------------------------------------------ |
-| **Start FastAPI Service**               | `uv run uvicorn src.api.main:app --reload`              |
-| **Run Test Suite**                      | `uv run pytest`                                         |
+| **Start Phase 2 Showcase**              | `uv run uvicorn aegis.api.app:app --reload`             |
+| **Run Test Suite**                      | `uv run pytest -q`                                      |
 | **Lint & Type Check**                   | `uv run ruff check . && uv run pyright`                 |
 | **Enforce Module Line Ceiling (INV-8)** | `uv run python scripts/check_module_size.py`            |
 | **Run Data Contract Suite**             | `uv run great_expectations checkpoint run <suite_name>` |
