@@ -1,7 +1,7 @@
 # Phase 2 — Execution Workflow
 
 **Product:** AEGIS | **Phase:** 2 of 9 | **Version:** 1.0.0 | **Date:** 2026-08-25
-**Status:** 🟡 Ready to execute
+**Status:** 🟢 Complete — all Phase 2 gates passed
 **Authority:** `phase_2_implementation_plan.md` v1.0.0 (D1-D8, all approved)
 **Scope of this document:** sequencing only, no code.
 
@@ -60,6 +60,19 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - The column-mismatch finding above is explicitly resolved — the rename mapping, the `premium` derivation approach, and the `annual_mileage` suite amendment are each a conscious decision on record (ADR-019), not something Stage 1 discovers mid-ingestion and papers over.
 - The ODbL attribution text is drafted and ready for Stage 6.
 
+**Gate 0 evidence:**
+
+- **Dependency and regression foundation:** Phase 2 dependencies are declared in
+    `pyproject.toml` and resolved in `uv.lock`; the completed Phase 2 regression
+    run passed pytest, Ruff, Pyright, the module-size check, and `dvc repro`.
+- **Schema decision:** ADR-019 in `system_design.md` records the freMTPL2
+    rename mapping, removes the unavailable `annual_mileage` assumption, and
+    defines derived pure premium rather than treating charged premium as an
+    observed field.
+- **Attribution:** the Phase 2 evaluation report records the OpenML datasets
+    (`freMTPL2freq` 41214 and `freMTPL2sev` 41215), the Kaggle reference mirror,
+    and the ODbL educational/benchmarking use.
+
 ---
 
 ## Stage 1 — Dataset Ingestion & DVC Integration ✅ **PASSED**
@@ -80,6 +93,18 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - The real dataset, post-mapping, passes the amended GX suite cleanly — this is the first genuine real-world test of a suite that, until now, had only ever seen hand-crafted fixtures.
 - `dvc repro` reproduces the real-data ingest stage without a live network dependency on a second run (OpenML is only touched once, at first fetch).
 - No fetch step exists anywhere except the one-time ingest — every subsequent stage in this phase reads the DVC-tracked local file, never re-fetches.
+
+**Gate 1 evidence:**
+
+- `data/raw/elasticity_fremtpl2.csv` contains the joined, mapped freMTPL2
+    benchmark with **678,013 records** produced by the one-time OpenML ingestion
+    path in `src/aegis/pipelines/feature/ingest.py`.
+- The real-data validation report
+    `data/validated/elasticity_fremtpl2_validation_report.json` records a clean
+    **12/12 Great Expectations pass**.
+- The real-data ingest, validation, and version stages are represented in the
+    `dvc.yaml` DAG; subsequent feature and training stages consume the local
+    DVC-tracked outputs.
 
 ---
 
@@ -102,6 +127,14 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - The grouped split has zero `policy_id` overlap between train and test sets — checked directly, not assumed.
 - Feature pipeline output passes a schema check (expected columns present, correct types) before any model touches it.
 
+**Gate 2 evidence:**
+
+- `tests/unit/test_feature_pipeline.py` verifies deterministic feature output,
+    zero policy-ID overlap in the grouped split, and the expected feature schema.
+- The DVC `engineer_features` stage consumes
+    `data/versioned/elasticity_fremtpl2.csv` and writes the reproducible
+    `data/versioned/feature_matrix.csv` used by both downstream model stages.
+
 ---
 
 ## Stage 3 — GLM Baseline ✅ **PASSED**
@@ -121,6 +154,15 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - The GLM fits without convergence errors or degenerate output.
 - Parameter confidence intervals are finite and computable — not NaN, not degenerate.
 - The baseline calibration metric is recorded somewhere Stage 4 can reference it directly, not re-derived from memory later.
+
+**Gate 3 evidence:**
+
+- `tests/unit/test_glm_baseline.py::test_tweedie_baseline_fits_with_finite_intervals`
+    verifies successful Tweedie fitting, convergence, and finite confidence
+    intervals.
+- `data/validated/glm_baseline.json` and the Phase 2 evaluation report record
+    the held-out baseline metrics: test MAE **610.459436957206** and test RMSE
+    **18839.474205824252**, together with finite parameter intervals.
 
 ---
 
@@ -143,6 +185,18 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - All three DoWhy refuters run to completion and produce a non-trivial result — none silently skipped or swallowed.
 - The causal model's calibration outperforms Stage 3's recorded GLM baseline with defensible confidence intervals — the literal PRD §11 requirement, checked directly against Stage 3's number.
 
+**Gate 4 evidence:**
+
+- `tests/unit/test_causal_elasticity.py::test_fit_causal_elasticity_recovers_ground_truth`
+    verifies recovery against the seeded synthetic treatment construction.
+- `data/validated/causal_elasticity.json` records the causal validation metrics:
+    average treatment effect **283.046024241386**, correlation **0.229755747986**,
+    and baseline MAE **282.819899460500**, plus the mean 95% treatment-effect
+    interval from **-188.002110469074** to **220.243577291437**.
+- The same artifact records completed `placebo_treatment`,
+    `random_common_cause`, and `data_subset` refutation entries, each with status
+    `ok` and `passed: true`.
+
 ---
 
 ## Stage 5 — MLflow Tracking & Registry Integration ✅ **PASSED**
@@ -163,6 +217,17 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 - The registered causal model version has the DoWhy refutation JSON attached and retrievable as a run artifact.
 - Re-running the tracked training reproduces the same logged metrics within floating-point tolerance — a lightweight reproducibility check, consistent with this project's CI reproducibility discipline everywhere else.
 
+**Gate 5 evidence:**
+
+- `tests/unit/test_mlflow_tracking.py` verifies registry creation, named model
+    lookup, version metadata, diagnostic artifact retrieval, and report artifact
+    attachment using the SQLite-backed tracking store.
+- The local registry contains both approved names:
+    `aegis-glm-baseline` and `aegis-causal-elasticity`.
+- The causal run exposes `diagnostics/causal_refutation_summary.json` and the
+    registered model package metadata; the reproducible training path is wired in
+    the DVC `train_glm_baseline` and `train_causal_elasticity` stages.
+
 ---
 
 ## Stage 6 — Evaluation Report ✅ **PASSED**
@@ -180,6 +245,15 @@ Stage 6 (Integration Tests & Quality Gate Audit)
 
 - The report contains every element the Roadmap's exit criterion names — calibration, treatment-effect confidence intervals — plus the dataset attribution and the explicit validation-not-discovery framing.
 - The `docs/evaluations/` copy and the MLflow-attached copy are checked identical — no drift between the two required copies.
+
+**Gate 6 evidence:**
+
+- `reports/docs/evaluations/phase_2_evaluation_report.md` includes dataset
+    attribution, GLM calibration, causal-treatment intervals, DoWhy refutations,
+    and the explicit estimator-validation-not-discovery framing.
+- The report documents the matching MLflow attachment at
+    `evaluation/phase_2_evaluation_report.md` and records that the repository and
+    downloaded MLflow copies passed a byte-for-byte identity check.
 
 ---
 
@@ -209,7 +283,7 @@ unknown preset. The route suite and live HTTP smoke test both passed.
 
 ---
 
-## Stage 8 — Full Phase 2 Regression & Falsification Pass
+## Stage 8 — Full Phase 2 Regression & Falsification Pass ✅ **PASSED**
 
 **Implements:** the phase's overall exit criterion, closing the same way Phase 1 did.
 
@@ -227,6 +301,28 @@ unknown preset. The route suite and live HTTP smoke test both passed.
 - The showcase slice renders correctly and is unambiguously labeled as a demo, not a production view.
 - Full CI is green end-to-end, including every new Phase 2 gate.
 - The falsification pass confirms every new gate actually blocks on the failure it claims to catch.
+
+**Gate 8 evidence:**
+
+- **Full regression:** `uv run pytest -q` passed with **54 tests passing**. This
+    includes feature-pipeline determinism, GLM convergence and finite intervals,
+    synthetic causal recovery, MLflow registration, and showcase route tests.
+- **Static quality gates:** `uv run ruff check .`, `uv run pyright`, and
+    `python scripts/check_module_size.py` all passed. All 30 Python modules under
+    `src/` remain below the 1,000-line ceiling.
+- **Pipeline reproduction:** `uv run dvc repro` completed the GX-gated fixture
+    and freMTPL2 paths, feature engineering, GLM training, and causal training.
+    The causal run registered `aegis-causal-elasticity` and produced the structured
+    causal artifact.
+- **Exit-criterion evidence:** the evaluation report records the converged
+    Tweedie baseline, finite treatment-effect intervals, synthetic-treatment
+    validation metrics, and all three DoWhy refutation results. The showcase
+    renders all three registered-model presets, carries the demo-only label, and
+    handles an unknown preset without crashing.
+- **Registry regression repaired:** the showcase loader is pinned to the local
+    `sqlite:///mlflow.db` registry and selects the newest complete causal payload,
+    preventing stale or partial MLflow versions from reaching the UI. The focused
+    showcase suite passed with **4 tests passing** after this repair.
 
 ---
 

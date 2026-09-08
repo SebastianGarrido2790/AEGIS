@@ -31,8 +31,8 @@ def test_build_feature_matrix_is_deterministic(policy_frame: pd.DataFrame) -> No
 
     assert_frame_equal(left, right)
     assert {"policy_id", "driver_age", "veh_age", "exposure", "premium"}.issubset(left.columns)
-    assert left["exposure_normalized"].notna().all()
-    assert left["driver_risk_score"].notna().all()
+    assert bool(left["exposure_normalized"].notna().all())
+    assert bool(left["driver_risk_score"].notna().all())
 
 
 def test_create_policy_split_has_no_overlap(policy_frame: pd.DataFrame) -> None:

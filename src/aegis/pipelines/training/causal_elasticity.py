@@ -190,11 +190,13 @@ def fit_causal_elasticity(
 
     raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
     interval_lower, interval_upper = model.effect_interval(X_test, alpha=0.05)
+    interval_lower_values = np.asarray(interval_lower, dtype=float).reshape(-1)
+    interval_upper_values = np.asarray(interval_upper, dtype=float).reshape(-1)
     treatment_effect_confidence_interval = (
-        float(np.mean(np.asarray(interval_lower).reshape(-1))),
-        float(np.mean(np.asarray(interval_upper).reshape(-1))),
+        float(np.mean(interval_lower_values)),
+        float(np.mean(interval_upper_values)),
     )
-    ground_truth = (0.05 + 0.10 * test_frame["risk_index"]).to_numpy()
+    ground_truth = np.asarray(0.05 + 0.10 * test_frame["risk_index"], dtype=float)
     if raw_effect.shape[0] != ground_truth.shape[0]:
         raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
     if raw_effect.shape[0] != ground_truth.shape[0]:

@@ -27,12 +27,12 @@ def test_add_synthetic_treatment_has_known_ground_truth(feature_frame: pd.DataFr
     )
 
     assert "treatment_rate_change" in prepared.columns
-    assert prepared["treatment_rate_change"].notna().all()
+    assert bool(prepared["treatment_rate_change"].notna().all())
     assert prepared["treatment_rate_change"].std() > 0.0
-    assert prepared["treatment_rate_change"].gt(0.0).all()
+    assert bool(prepared["treatment_rate_change"].gt(0.0).all())
 
     expected = prepared["risk_index"] * 0.10 + 0.05
-    assert (prepared["treatment_rate_change"] - expected).abs().max() < 0.5
+    assert float((prepared["treatment_rate_change"] - expected).abs().max()) < 0.5
 
 
 def test_fit_causal_elasticity_recovers_ground_truth(feature_frame: pd.DataFrame) -> None:

@@ -182,6 +182,10 @@ def track_and_register_model(
         if metrics:
             mlflow.log_metrics({str(key): float(value) for key, value in metrics.items()})
 
+        metadata_payload = artifact_payload if artifact_payload is not None else model_object
+        if isinstance(metadata_payload, dict):
+            mlflow.log_dict(metadata_payload, "registered_model_metadata.json")
+
         if artifact_payload is not None:
             temp_path = Path(_write_json_artifact(artifact_payload, artifact_name))
             mlflow.log_artifact(str(temp_path), artifact_path="diagnostics")
