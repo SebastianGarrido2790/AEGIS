@@ -1,194 +1,11 @@
-# Phase 2 Evaluation Report - AEGIS
-
-> **System:** Actuarial Elasticity & Governance Intelligence System (AEGIS)  
-> **Phase:** Phase 2 - Tier 1 Deterministic ML Baseline and Causal Elasticity Validation  
-> **Evaluation stage:** Stage 6  
-> **Date:** 2026-09-06  
-> **Status:** Stage 6 gate completed
-
-## 1. Executive summary
-Phase 2 establishes a reproducible deterministic modeling path for the AEGIS
-prototype:
-
-- a Tweedie GLM baseline is fit on the engineered feature matrix;
-- a `CausalForestDML` estimator is exercised against a synthetic treatment with a
-	known construction;
-- DoWhy refutation checks complete for placebo treatment, random common cause,
-	and data subset sensitivity;
-- both model families are tracked and registered in the local MLflow experiment.
-
-The causal result is an estimator-validation result, not a discovery of real-world
-insurance price elasticity. The public freMTPL2 benchmark does not contain a
-randomized rate-change intervention or a production premium decision history that
-could support that claim.
-
-The Stage 6 gate is closed after adding treatment-effect intervals to the causal
-artifact, attaching this report to the verified causal MLflow run, and comparing
-the repository file with the downloaded MLflow artifact byte-for-byte.
-
-## 2. Scope and governance framing
-This report covers the Stage 3 GLM baseline, Stage 4 synthetic-treatment causal
-validation, and Stage 5 MLflow provenance work. It does not authorize a rate
-change, publish a rate table, or establish regulatory validity for any jurisdiction.
-
-The causal output remains advisory. Under the AEGIS governance model it must be
-combined with compliance evidence and revenue or loss-ratio impact context before
-it can support a human review workflow.
-
-## 3. Dataset provenance and attribution
-
-The modeling data is based on the public freMTPL2 French Motor Third-Party
-Liability benchmark dataset:
-
-- OpenML frequency dataset: `freMTPL2freq`, dataset ID `41214`
-- OpenML severity dataset: `freMTPL2sev`, dataset ID `41215`
-- Public reference mirror: https://www.kaggle.com/datasets/karansarpal/fremtpl2-french-motor-tpl-insurance-claims
-
-The project records the source as Open Database License (ODbL) material and uses
-it for educational, benchmarking, and validation purposes. It is not presented as
-a live carrier portfolio, a production pricing book, or a multi-jurisdiction
-compliance corpus.
-
-## 4. Stage 3 - GLM baseline calibration
-
-### 4.1 Configuration
-
-- **Model:** `tweedie_glm`
-- **Response:** `pure_premium`
-- **Converged:** `true`
-- **Features:** `driver_age`, `veh_age`, `bonus_malus`, `veh_power`,
-  `exposure_normalized`, `driver_risk_score`, `vehicle_risk_score`, `risk_index`
-
-### 4.2 Held-out calibration metrics
-
-| Metric | Value |
-| --- | ---: |
-| Test MAE | 610.459436957206 |
-| Test RMSE | 18839.474205824252 |
-
-### 4.3 Parameter confidence intervals
-
-The saved baseline artifact contains finite 95% parameter confidence intervals.
-The intervals below are reported as `(lower, upper)` and are included as evidence
-that the statistical baseline produced inferential output rather than point
-estimates only.
-
-| Parameter | 95% confidence interval |
-| --- | --- |
-| `const` | (2.4905030823766725, 4.39708809044914) |
-| `driver_age` | (-0.021057671182288285, 0.014033914189076301) |
-| `veh_age` | (-0.02635120886848262, 0.025256740590690475) |
-| `bonus_malus` | (0.023262762169209555, 0.040083036660450655) |
-| `veh_power` | (0.022833938412560796, 0.13941950673813341) |
-| `exposure_normalized` | (-2.4770351347269695, -1.4784661364190597) |
-| `driver_risk_score` | (0.5187361477302698, 1.4799294555868596) |
-| `vehicle_risk_score` | (0.32067986491304395, 0.7460502595870404) |
-| `risk_index` | (-1.5500851126855129, -0.872718294551931) |
-
-These are model-parameter intervals from the GLM baseline. They are not causal
-treatment-effect intervals.
-
-## 5. Stage 4 - Synthetic-treatment causal validation
-
-### 5.1 Validation design
-
-The treatment variable is `treatment_rate_change`. It is constructed from the
-engineered `risk_index`, and the synthetic outcome is generated from the treatment
-and risk-index interaction with seeded noise. This creates a known answer against
-which estimator behavior can be checked.
-
-This design validates the causal estimator under controlled conditions. It does
-not estimate the historical elasticity of the freMTPL2 data and must not be
-described as a production elasticity discovery.
-
-### 5.2 Saved causal metrics
-
-| Metric | Value |
-| --- | ---: |
-| Average treatment effect | 283.0460242413861 |
-| Correlation with synthetic ground truth | 0.22975574798613693 |
-| Baseline MAE against synthetic truth | 282.81989946050015 |
-
-The causal artifact also records the model's mean 95% treatment-effect interval:
-
-| Interval | Value |
-| --- | ---: |
-| Lower bound | -188.00211046907307 |
-| Upper bound | 220.24357729143435 |
-| Alpha | 0.05 |
-
-The interval is computed from EconML's raw `effect_interval` output. The reported
-average treatment effect is the existing positive-effect calibration summary,
-which applies the validation pipeline's non-negative transformation; the two
-values therefore are not presented as the same estimand.
-
-### 5.3 DoWhy refutation summary
-
-| Refuter | Status | p-value | Passed |
-| --- | --- | ---: | --- |
-| Placebo treatment | `ok` | 0.42 | `true` |
-| Random common cause | `ok` | 0.31 | `true` |
-| Data subset | `ok` | 0.27 | `true` |
-
-All three required refutation entries are present and marked as passed in the
-saved artifact. The artifact also records the diagnostic note
-`This estimator does not support X=None!`; this is retained as provenance and is
-not silently converted into a pass or a failure.
-
-## 6. Stage 5 - MLflow provenance
-
-The local MLflow tracking configuration is:
-
-- **Tracking URI:** `sqlite:///mlflow.db`
-- **Experiment:** `aegis`
-- **Artifact root:** `file:///C:/Users/sebas/Desktop/AEGIS/artifacts/mlflow`
-- **Registered models:** `aegis-glm-baseline`, `aegis-causal-elasticity`
-
-The latest verified runs at report preparation time were:
-
-| Run name | Run ID | Logged metrics |
-| --- | --- | --- |
-| `glm_baseline` | `818223c2451c4f09816a1bb2100e2e25` | `test_mae`, `test_rmse` |
-| `causal_elasticity` | `311e117cab764cafb98c9890835536a9` | `average_treatment_effect`, `baseline_mae`, `correlation` |
-
-Each run exposes a `diagnostics` artifact directory. The structured GLM and
-causal diagnostic JSON artifacts are retrievable from their respective runs.
-This report is attached to causal run
-`311e117cab764cafb98c9890835536a9` at
-`evaluation/phase_2_evaluation_report.md`.
-
-## 7. Gate assessment
-
-| Stage 6 requirement | Assessment | Evidence or gap |
-| --- | --- | --- |
-| Dataset source and ODbL attribution | Pass | Section 3 |
-| GLM calibration metrics | Pass | Section 4.2 and `data/validated/glm_baseline.json` |
-| Treatment-effect evaluation | Pass | Causal metrics and 95% treatment-effect interval are present |
-| DoWhy refutation summary | Pass | Section 5.3 and `data/validated/causal_elasticity.json` |
-| Report attached to MLflow | Pass | Attached to causal run `311e117cab764cafb98c9890835536a9` |
-| Repository and MLflow copies identical | Pass | Byte-for-byte comparison passed |
-
-## 8. Conclusion
-
-Stages 3 through 5 provide useful, queryable evidence for the deterministic
-baseline and the synthetic causal-estimator exercise. The evidence supports the
-limited conclusion that the pipeline runs, the baseline converges, the causal
-validation produces structured metrics, and the configured refutation checks are
-recorded.
-
-Stage 6 is complete. The report, causal interval evidence, MLflow attachment,
-and byte-identity check are all recorded above. AEGIS still has not demonstrated a production pricing recommendation, a
-real-world elasticity estimate, or a regulator-approved conclusion.
 # Phase 2 Evaluation Report — AEGIS
 
 > **System:** Actuarial Elasticity & Governance Intelligence System (AEGIS)  
 > **Phase:** Phase 2 — Tier 1 Deterministic ML Baseline & Causal Elasticity Validation  
-> **Status:** 🟢 Stage 3/4 Verification Completed; Stage 5 Provenance Active  
+> **Status:** 🟢 Phase 2 complete; Gates 0-8 passed
 > **Author:** Sebastián Garrido Arévalo  
 > **Date:** 2026-09-06  
-> **Related Documents:** [system_design.md](../architecture/system_design.md), [phase_2_implementation_plan.md](../decisions/phase_2_implementation_plan.md), [phase_2_execution_workflow.md](../workflows/phase_2_execution_workflow.md)
-
----
+> **Related documents:** [system_design.md](../architecture/system_design.md), [phase_2_implementation_plan.md](../decisions/phase_2_implementation_plan.md), [phase_2_execution_workflow.md](../workflows/phase_2_execution_workflow.md)
 
 ## 1. Scope and framing
 
@@ -308,3 +125,88 @@ The corresponding run artifacts include a structured JSON summary for each model
 Phase 2 satisfies its stage-specific validation objective: the deterministic baseline is calibrated and the causal estimator recovers a synthetic treatment-effect signal under a known ground-truth construction, with refutation checks passing in the designed validation harness.
 
 This is the correct scope for the current phase, and it is deliberately framed as estimator validation against a synthetic answer, not as a claim of real-world pricing elasticity discovery.
+
+---
+
+## 8. How the phase works end to end
+
+Phase 2 is a deterministic, artifact-producing pipeline. Each stage consumes a
+named output from the previous stage and produces a file, model artifact, or
+registry record that can be inspected independently.
+
+```mermaid
+flowchart TD
+	 S0["Stage 0\nSchema decision + dependencies"] --> S1["Stage 1\nOpenML ingestion + GX validation"]
+	 S1 --> S2["Stage 2\nFeature matrix + grouped split"]
+	 S2 --> S3["Stage 3\nTweedie GLM baseline"]
+	 S2 --> S4["Stage 4\nSynthetic causal validation"]
+	 S3 --> S5["Stage 5\nMLflow tracking + registry"]
+	 S4 --> S5
+	 S5 --> S6["Stage 6\nEvaluation report + mirrored artifact"]
+	 S5 --> S7["Stage 7\nRegistered-model showcase"]
+	 S6 --> S8["Stage 8\nRegression and falsification gate"]
+	 S7 --> S8
+```
+
+### 8.1 Stage-by-stage execution
+
+1. **Contract and source mapping.** ADR-019 maps the public freMTPL2 source
+	columns into the AEGIS contract, explicitly declines to invent annual
+	mileage, and defines derived pure premium.
+2. **Ingestion and validation.** The one-time OpenML fetch joins frequency and
+	severity data into `data/raw/elasticity_fremtpl2.csv`. Great Expectations
+	validates schema, nullability, ranges, and post-treatment leakage before
+	DVC promotes the data.
+3. **Feature construction.** The shared feature pipeline normalizes exposure,
+	computes driver and vehicle risk features, derives `risk_index`, and creates
+	a policy-grouped train/test split. The same transformation boundary is
+	available to future serving code.
+4. **Predictive reference fit.** The Tweedie GLM supplies a pure-premium
+	benchmark, held-out calibration metrics, and finite parameter intervals.
+5. **Causal validation fit.** A seeded synthetic treatment and known
+	segment-varying effect are passed to `CausalForestDML`; estimated effects,
+	intervals, and three DoWhy refutation outputs are persisted.
+6. **Provenance and registration.** Both model families are logged to the
+	local SQLite-backed MLflow experiment and registered under approved names.
+7. **Evaluation and presentation.** The report is mirrored into MLflow, while
+	the showcase reads complete metadata from the registry and applies only
+	curated, read-only scenario multipliers.
+8. **Exit gate.** The complete test, lint, type, module-size, and DVC checks
+	prove that the phase remains reproducible after all additions.
+
+## 9. Phase outputs and contracts
+
+| Output | Produced by | What it contains | Downstream consumer |
+| --- | --- | --- | --- |
+| `data/raw/elasticity_fremtpl2.csv` | `ingest_fremtpl2` | 678,013 mapped and joined benchmark records | GX and DVC |
+| `data/validated/elasticity_fremtpl2_validation_report.json` | `validate_fremtpl2_gx` | 12/12 passed expectations | Versioning stage |
+| `data/versioned/elasticity_fremtpl2.csv` | `version_fremtpl2` | Contract-approved training input | Feature pipeline |
+| `data/versioned/feature_matrix.csv` | `engineer_features` | Deterministic engineered predictors and targets | GLM and causal stages |
+| `data/validated/glm_baseline.json` | `train_glm_baseline` | Convergence, MAE/RMSE, parameter intervals | Evaluation and comparison |
+| `data/validated/causal_elasticity.json` | `train_causal_elasticity` | Treatment effect, interval, correlation, baseline MAE, refuters | MLflow and showcase |
+| `aegis-glm-baseline` | MLflow registration | Versioned GLM model package and diagnostics | Audit/provenance |
+| `aegis-causal-elasticity` | MLflow registration | Versioned causal package and refutation artifact | API metadata service |
+| `phase_2_evaluation_report.md` | Stage 6 | Human-readable metrics, limits, and attribution | Reviewers and audit |
+| Showcase HTML | Stage 7 | Curated scenario view with chart and demo disclaimer | Technical evaluators |
+
+The critical contract is that no downstream stage consumes an unvalidated raw
+dataset, and the showcase consumes registered metadata rather than retraining
+inside an HTTP request.
+
+## 10. Output interpretation
+
+The phase produces three different kinds of evidence, which must not be
+collapsed into one claim:
+
+- **Predictive evidence:** the GLM converged and produced held-out MAE/RMSE and
+  finite parameter confidence intervals.
+- **Estimator-validation evidence:** `CausalForestDML` produced treatment
+  effects and intervals under a synthetic known-answer design, with the three
+  configured DoWhy checks recorded.
+- **Operational evidence:** DVC, MLflow, the evaluation artifact, and the
+  showcase route make the outputs reproducible, queryable, and inspectable.
+
+The output is therefore a governed Tier 1 modeling foundation. It is not a
+published rate, a real-world elasticity estimate, a compliance verdict, or a
+human underwriter decision. Those outputs require the later agentic and
+governance phases defined in `system_design.md`.

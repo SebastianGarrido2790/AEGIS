@@ -1,8 +1,8 @@
-# System Design — Architectural Decision Record — AEGIS _(working title)_
+# System Design — Architectural Decision Record — AEGIS
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 1 Implemented.** Repository scaffold, namespaced package layout, Pydantic configuration schema, Great Expectations data contracts (regulatory and elasticity suites), DVC parallel DAGs, INV-8 module size enforcement, and unified CI workflow are fully implemented and validated.
+**Status: Phase 2 Implemented and Validated.** Phase 1 foundations remain validated; Phase 2 adds the DVC-gated freMTPL2 path, deterministic feature pipeline, Tweedie GLM baseline, synthetic-treatment causal validation, MLflow tracking/registry, evaluation artifacts, and a read-only showcase interface. Tier 2 agent orchestration and Tier 3 governance remain future phases.
 
 ---
 
@@ -64,7 +64,57 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 | Observability                  | Tracing, cost, drift, and evaluation                                                                                        | OTel, LLM-as-judge regression suite                 |
 | CI/CD                          | Reproducibility, coverage, and data-contract gating                                                                         | GitHub Actions                                      |
 
-## 3. Data Flow (Planned)
+## 3. Phase 2 implemented architecture
+
+Phase 2 implements the Tier 1 deterministic branch of the architecture above.
+The current runtime and artifact path is:
+
+```mermaid
+flowchart TD
+    SOURCE["OpenML freMTPL2freq/freMTPL2sev"] --> INGEST["feature/ingest.py"]
+    INGEST --> GX["Great Expectations contract"]
+    GX --> DVC["DVC versioned dataset"]
+    DVC --> FEATURES["Shared feature pipeline"]
+    FEATURES --> GLM["Tweedie GLM baseline"]
+    FEATURES --> CAUSAL["CausalForestDML\nsynthetic treatment"]
+    GLM --> MLFLOW["MLflow tracking + registry"]
+    CAUSAL --> MLFLOW
+    MLFLOW --> SERVICE["Registered metadata service"]
+    SERVICE --> SHOWCASE["FastAPI/Jinja2 showcase"]
+```
+
+The implementation has three hard boundaries:
+
+1. **Data boundary:** Great Expectations must pass before DVC promotion.
+2. **Model boundary:** GLM and causal training consume the same deterministic,
+   policy-grouped feature matrix and emit JSON artifacts plus MLflow records.
+3. **Serving boundary:** the showcase reads a complete registered causal
+   metadata payload; it does not retrain or publish rates.
+
+The causal output is advisory estimator-validation evidence. It is not yet
+combined with compliance retrieval, revenue/loss-ratio impact, HITL escalation,
+or structured audit persistence. Those are downstream Tier 2 and Tier 3
+responsibilities.
+
+### Phase 2 implementation inventory
+
+| Concern | Implemented location | Primary output |
+| --- | --- | --- |
+| freMTPL2 ingestion and mapping | `src/aegis/pipelines/feature/ingest.py` | `data/raw/elasticity_fremtpl2.csv` |
+| Blocking data validation | `src/aegis/pipelines/data_contracts.py`, `data_contracts/` | GX validation reports |
+| Reproducible orchestration | `dvc.yaml`, `dvc.lock` | Versioned data and model stages |
+| Shared features and split | `src/aegis/pipelines/feature/pipeline.py` | `data/versioned/feature_matrix.csv` |
+| Predictive baseline | `src/aegis/pipelines/training/glm_baseline.py` | `glm_baseline.json` |
+| Causal validation | `src/aegis/pipelines/training/causal_elasticity.py` | `causal_elasticity.json` |
+| Experiment provenance | `src/aegis/pipelines/training/mlflow_tracking.py` | Runs and registered models |
+| Read-only presentation | `src/aegis/api/` | Curated demo showcase |
+
+This implementation inventory is the concrete Phase 2 subset of the broader
+architecture. It intentionally leaves the LLM Gateway, LangGraph agents,
+Redis-backed regulatory RAG, governance fallback, HITL, and audit log outside
+the completed phase.
+
+## 4. Data Flow (Target Architecture)
 
 1. A segment/policy is submitted to the FastAPI layer.
 2. Tier 1 returns a causal elasticity estimate and a bandit-bounded proposed adjustment.
@@ -74,7 +124,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 6. The Governance layer evaluates the combined output: within-bounds-and-compliant proposals are marked ready for routine underwriter sign-off; anything else is escalated with full state attached.
 7. A structured audit record is persisted regardless of outcome.
 
-## 4. Architectural Decision Records
+## 5. Architectural Decision Records
 
 ### ADR-001: LLM Gateway — LiteLLM (in-process) over a standalone proxy
 
@@ -194,7 +244,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-011: Elasticity dataset source & ingestion — OpenML/Kaggle freMTPL2 with local DVC tracking
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** Phase 1 established data contracts and deferred raw dataset acquisition to Phase 2 (P1-D4c). Phase 2 modeling requires motor third-party liability exposure, claim frequency, and claim amount data.
 
@@ -206,7 +256,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-012: Feature engineering architecture — Decomposed transformers, grouped policy split & shared transformation function
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** Raw insurance claims data requires transformations across multiple domains (exposure offset, driver risk profile, vehicle specs, geographic/bonus-malus features). Training and inference require strict parity without heavyweight feature-store infrastructure.
 
@@ -218,7 +268,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-013: Actuarial GLM baseline — Single Tweedie GLM on pure premium with statsmodels confidence intervals
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** Phase 2 exit criteria mandate that the causal model outperforms an actuarial-standard GLM baseline with defensible confidence intervals.
 
@@ -230,7 +280,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-014: Causal elasticity model — CausalForestDML with synthetic treatment validation & DoWhy refutation suite
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** Observational auto insurance data lacks randomized price experiments. Estimator recovery must be scientifically verifiable, and confounding robustness must be provable.
 
@@ -242,7 +292,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-015: MLflow tracking & model registry — Local SQLite backend with structured refutation artifacts
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** The Roadmap requires MLflow experiment tracking and Model Registry integration. MLflow's default local file store (`./mlruns`) does not support the Model Registry.
 
@@ -254,7 +304,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-016: Evaluation documentation — Versioned Markdown report with MLflow run mirroring
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** The Technical Roadmap requires an evaluation report on calibration, treatment-effect confidence intervals, and confounding analysis.
 
@@ -266,7 +316,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-017: Serving layer & showcase interface — Dedicated `src/aegis/api/` package with segment-varying preset scenarios
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** ADR-009 mandates a glass-box showcase interface slice for Phase 2. Serving infrastructure must be separated from internal agent tools, and the Roadmap's Phase 2 deliverable line must accurately reflect Phase 2 scope.
 
@@ -278,7 +328,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-018: Visualization stack — Matplotlib for static reports & Chart.js CDN for interactive showcase UI
 
-**Status:** Approved (Phase 2)
+**Status:** Validated (Phase 2)
 
 **Context:** Visualizations are required for both static evaluation reports and the interactive showcase demo interface.
 
@@ -288,7 +338,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-019: freMTPL2 Schema Mapping & Elasticity Data Contract Amendment
 
-**Status:** Approved (Phase 2, Stage 0)
+**Status:** Validated (Phase 2, Stage 0)
 
 **Context:** freMTPL2's published column structure (`IDpol`, `ClaimNb`, `Exposure`, `Area`, `VehPower`, `VehAge`, `DrivAge`, `BonusMalus`, `VehBrand`, `VehGas`, `Density`, `Region`, `ClaimAmount`) diverges from the initial schema field names assumed in Phase 1 planning. Additionally, `annual_mileage` is unobserved in freMTPL2 (and cannot be substituted with population density without distorting domain semantics), while charged `premium` is not directly recorded in the public benchmark claims dataset.
 
@@ -302,13 +352,13 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Consequences:** `elasticity_training_suite.json` validates real-world freMTPL2 data intake while maintaining blocking data contract guarantees.
 
-## 5. Open Implementation Notes
+## 6. Open Implementation Notes
 
 - The specific persistence layer for the Tier 3 audit log is deferred to Phase 7 and not yet decided.
 - The minimal HITL review interface (Phase 7) is scoped as an endpoint, not a full dashboard, consistent with PRD §12 (out of scope: full production UI).
 - This document will be updated at the close of each phase in the Technical Roadmap to reflect the actual implemented state.
 
-## 6. Update Protocol
+## 7. Update Protocol
 
 At the close of each phase in `../references/technical_roadmap.md`:
 

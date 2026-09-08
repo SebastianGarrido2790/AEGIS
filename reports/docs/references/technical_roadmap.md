@@ -29,7 +29,7 @@ Durations are best-effort and flexible to accommodate new findings; no phase beg
   **Dependencies:** none.
   **Estimated duration:** 1–2 weeks.
 
-## Phase 2 — Tier 1: Deterministic ML Baseline
+## Phase 2 — Tier 1: Deterministic ML Baseline _(complete)_
 
 **Goal:** Establish the GLM actuarial baseline, then the causal elasticity/uplift model that supersedes it.
 **Key tasks:**
