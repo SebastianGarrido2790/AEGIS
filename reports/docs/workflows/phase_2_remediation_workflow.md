@@ -13,7 +13,7 @@
 **Objective:** record the current, broken state as evidence — not just a claim — before anything changes, so the eventual "fixed" state has something concrete to be compared against.
 
 **Steps:**
-1. Archive the current `causal_elasticity.json`, `glm_baseline.json`, and the full `test_causal_elasticity.py` file exactly as reviewed, under a dated subfolder (e.g., `reports/docs/evaluations/phase_2_pre_remediation/`) — not deleted, not overwritten, kept as the documented "before."
+1. Archive the current `data/validated/causal_elasticity.json`, `data/validated/glm_baseline.json`, and the full `test_causal_elasticity.py` file exactly as reviewed, under a dated subfolder (e.g., `reports/docs/evaluations/phase_2_pre_remediation/`) — not deleted, not overwritten, kept as the documented "before."
 2. Record, verbatim, the three findings this baseline demonstrates: the point estimate (283.05) falling outside its own reported interval `[-188.00, 220.24]`; the `diagnostic_note` proving the DoWhy fallback fired; the correlation (0.23) against the wrong ground-truth formula.
 
 **Gate 0 — must pass before Stage 1 begins:**
