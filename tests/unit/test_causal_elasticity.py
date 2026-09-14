@@ -46,6 +46,7 @@ def test_fit_causal_elasticity_recovers_ground_truth(feature_frame: pd.DataFrame
     assert result.average_treatment_effect > 0.0
     lower, upper = result.treatment_effect_confidence_interval
     assert lower <= upper
+    assert lower <= result.average_treatment_effect <= upper
     assert lower == pytest.approx(lower)
     assert upper == pytest.approx(upper)
     assert set(result.refutation_summary) >= {

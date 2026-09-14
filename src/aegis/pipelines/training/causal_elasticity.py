@@ -249,35 +249,35 @@ def fit_causal_elasticity(
 
     model.fit(Y_train, T_train, X=X_train)
 
-    raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
+    raw_effect = np.asarray(model.effect(X_test), dtype=float).reshape(-1)
     interval_lower, interval_upper = model.effect_interval(X_test, alpha=0.05)
     interval_lower_values = np.asarray(interval_lower, dtype=float).reshape(-1)
     interval_upper_values = np.asarray(interval_upper, dtype=float).reshape(-1)
-    treatment_effect_confidence_interval = (
-        float(np.mean(interval_lower_values)),
-        float(np.mean(interval_upper_values)),
-    )
+    ci_lower_mean = float(np.mean(interval_lower_values))
+    ci_upper_mean = float(np.mean(interval_upper_values))
+    treatment_effect_confidence_interval = (ci_lower_mean, ci_upper_mean)
+
+    # Point estimate directly from untransformed model effect (Fix #3)
+    average_treatment_effect = float(np.mean(raw_effect))
+
+    # Internal consistency check: ATE must fall within reported mean CI bounds
+    if not (ci_lower_mean <= average_treatment_effect <= ci_upper_mean):
+        raise ValueError(
+            f"Point estimate ({average_treatment_effect:.4f}) falls outside reported "
+            f"confidence interval [{ci_lower_mean:.4f}, {ci_upper_mean:.4f}]."
+        )
+
     ground_truth = compute_true_causal_effect(test_frame["risk_index"])
-    if raw_effect.shape[0] != ground_truth.shape[0]:
-        raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
-    if raw_effect.shape[0] != ground_truth.shape[0]:
-        raw_effect = np.repeat(float(np.mean(T_train)), len(test_frame))
-
-    positive_effect = np.clip(raw_effect - np.min(raw_effect), 0.0, None)
-    if np.allclose(positive_effect, 0.0):
-        positive_effect = np.abs(raw_effect) + 1e-6
-
     correlation = (
-        float(np.corrcoef(positive_effect, ground_truth)[0, 1]) if len(positive_effect) > 1 else 1.0
+        float(np.corrcoef(raw_effect, ground_truth)[0, 1]) if len(raw_effect) > 1 else 1.0
     )
     if not np.isfinite(correlation):
         correlation = 0.0
 
-    average_treatment_effect = float(np.mean(positive_effect))
     reference = ground_truth
     calibration_metrics = {
         "correlation": correlation,
-        "baseline_mae": float(mean_absolute_error(reference, positive_effect)),
+        "baseline_mae": float(mean_absolute_error(reference, raw_effect)),
         "average_treatment_effect": average_treatment_effect,
     }
     refutation_summary = _run_dowhy_refuters(prepared)

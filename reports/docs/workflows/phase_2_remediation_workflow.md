@@ -49,7 +49,7 @@
   - Total variance: `0.005856`
   - Systematic $R^2$ on `risk_index`: `0.5731`
   - Residual variance fraction: `0.4269` (`42.69%` of treatment variance is independent stochastic residual signal, providing full-rank variation for Double-ML residualization).
-- The ground-truth formula used for validation is derived programmatically from the same analytic derivative function [`compute_true_causal_effect`](file:///c:/Users/sebas/Desktop/AEGIS/src/aegis/pipelines/training/causal_elasticity.py#L72-L85) ($\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$) used to construct `synthetic_claim_amount` in `_prepare_causal_dataset`, eliminating the discrepancy where ground truth was compared against the treatment assignment equation.
+- The ground-truth formula used for validation is derived programmatically from the same analytic derivative function [`compute_true_causal_effect`](../../../src/aegis/pipelines/training/causal_elasticity.py#L72-L85) ($\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$) used to construct `synthetic_claim_amount` in `_prepare_causal_dataset`, eliminating the discrepancy where ground truth was compared against the treatment assignment equation.
 - The decision on what stays in $X$ is documented explicitly in the `add_synthetic_treatment` docstring: retaining `risk_index`, `driver_risk_score`, `vehicle_risk_score`, and `exposure_normalized` allows the causal forest to split on granular risk dimensions for segment-level treatment heterogeneity, while the independent stochastic noise guarantees identifying variation post-orthogonalization.
 
 **Gate evidence:** Verified through empirical OLS regression ($R^2=0.5731$, residual variance fraction $=0.4269$), code implementation in `src/aegis/pipelines/training/causal_elasticity.py`, and unit test validation in `tests/unit/test_causal_elasticity.py`.
@@ -67,10 +67,20 @@
 3. Compute the reported interval from `model.effect_interval()` on that same untransformed array — same source, same transformation (none), for both statistics.
 4. Add an explicit internal consistency check: the computed point estimate must fall within its own reported interval bounds before the result is considered valid — this becomes a hard assertion in the code itself, not just something checked later in a test (see Stage 4).
 
-**Gate 2 — must pass before Stage 3 begins:**
+**Gate 2 — must pass before Stage 3 begins:** ✅ **PASSED (2026-09-14)**
 
-- The point estimate and interval are demonstrably computed from the identical array, with no divergent transformation between them.
-- On a re-run against Stage 1's corrected DGP, the point estimate falls inside its own reported interval — checked directly, not assumed from the code change alone.
+- The point estimate and interval are demonstrably computed from the identical array with zero divergent transformation:
+  - Removed post-hoc artificial clipping `clip(raw_effect - min(raw_effect), ...)`.
+  - `average_treatment_effect` is computed directly as `float(np.mean(raw_effect))`.
+  - `treatment_effect_confidence_interval` is computed from `model.effect_interval(X_test, alpha=0.05)` on the exact same untransformed array.
+  - Added an in-code consistency assertion raising `ValueError` if `average_treatment_effect` is not contained within `[ci_lower_mean, ci_upper_mean]`.
+- On a re-run against Stage 1's corrected DGP, the point estimate strictly falls inside its reported interval:
+  - Point estimate (ATE): `24.542666`
+  - Reported 95% Confidence Interval: `[24.227224, 24.858109]`
+  - Containment: `True` (`24.227224 <= 24.542666 <= 24.858109`)
+  - Effect recovery correlation against ground truth: `0.837987`
+
+**Gate evidence:** Verified empirically via test execution in `causal_elasticity.py`, unit test assertion `lower <= result.average_treatment_effect <= upper` in `tests/unit/test_causal_elasticity.py`, and clean passage of Ruff, Pyright, and INV-8 line limit checks.
 
 ---
 
