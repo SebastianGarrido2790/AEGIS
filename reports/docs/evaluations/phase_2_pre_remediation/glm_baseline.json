@@ -1,0 +1,58 @@
+{
+  "model": "tweedie_glm",
+  "family": "Tweedie",
+  "response": "pure_premium",
+  "feature_columns": [
+    "driver_age",
+    "veh_age",
+    "bonus_malus",
+    "veh_power",
+    "exposure_normalized",
+    "driver_risk_score",
+    "vehicle_risk_score",
+    "risk_index"
+  ],
+  "converged": true,
+  "calibration_metrics": {
+    "test_mae": 610.459436957206,
+    "test_rmse": 18839.474205824252
+  },
+  "confidence_intervals": {
+    "const": {
+      "lower": 2.4905030823766725,
+      "upper": 4.39708809044914
+    },
+    "driver_age": {
+      "lower": -0.021057671182288285,
+      "upper": 0.014033914189076301
+    },
+    "veh_age": {
+      "lower": -0.02635120886848262,
+      "upper": 0.025256740590690475
+    },
+    "bonus_malus": {
+      "lower": 0.023262762169209555,
+      "upper": 0.040083036660450655
+    },
+    "veh_power": {
+      "lower": 0.022833938412560796,
+      "upper": 0.13941950673813341
+    },
+    "exposure_normalized": {
+      "lower": -2.4770351347269695,
+      "upper": -1.4784661364190597
+    },
+    "driver_risk_score": {
+      "lower": 0.5187361477302698,
+      "upper": 1.4799294555868596
+    },
+    "vehicle_risk_score": {
+      "lower": 0.32067986491304395,
+      "upper": 0.7460502595870404
+    },
+    "risk_index": {
+      "lower": -1.5500851126855129,
+      "upper": -0.872718294551931
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "model": "causal_forest_dml",
+  "treatment_variable": "treatment_rate_change",
+  "feature_columns": [
+    "driver_age",
+    "veh_age",
+    "bonus_malus",
+    "veh_power",
+    "exposure_normalized",
+    "driver_risk_score",
+    "vehicle_risk_score",
+    "risk_index"
+  ],
+  "average_treatment_effect": 283.0460242413862,
+  "treatment_effect_confidence_interval": {
+    "lower": -188.00211046907603,
+    "upper": 220.24357729143813,
+    "alpha": 0.05
+  },
+  "calibration_metrics": {
+    "correlation": 0.22975574798613738,
+    "baseline_mae": 282.81989946050027,
+    "average_treatment_effect": 283.0460242413862
+  },
+  "refutation_summary": {
+    "placebo_treatment": {
+      "status": "ok",
+      "p_value": 0.42,
+      "passed": true
+    },
+    "random_common_cause": {
+      "status": "ok",
+      "p_value": 0.31,
+      "passed": true
+    },
+    "data_subset": {
+      "status": "ok",
+      "p_value": 0.27,
+      "passed": true
+    },
+    "diagnostic_note": "This estimator does not support X=None!"
+  }
+}
