@@ -1,4 +1,30 @@
-"""Synthetic-treatment causal elasticity validation for Stage 4 (ADR-014)."""
+"""Synthetic-treatment causal elasticity estimation and validation pipeline (Tier 1, ADR-014).
+
+This module implements the Double Machine Learning (CausalForestDML) elasticity model
+and its structural validation protocol on observational auto insurance benchmark data.
+
+Architectural Context & Invariants:
+- Causal validation against synthetic ground truth: Real claims datasets (such as freMTPL2)
+  do not observe randomized price experiments or counterfactual policy rate changes. To validate
+  that the causal estimator reliably recovers treatment effects and segment heterogeneity,
+  a synthetic data-generating process (DGP) injects treatment rate variations and an outcome
+  linked via a known structural response function tau(X) = dY/dT (ADR-014, PRD §11).
+- Advisory output boundary (INV-5): In the full AEGIS agent loop, elasticity and treatment effect
+  estimates are strictly advisory and surfaced only alongside regulatory compliance checks and
+  financial loss-ratio impact context.
+- Model registry separation (ADR-015): Validated models and DoWhy refutation summaries are
+  serialized for MLflow experiment tracking under the registered name `aegis-causal-elasticity`.
+
+Data-Generating Process (DGP) Design:
+1. Treatment assignment (T): Includes both a systematic risk-driven component (confounding)
+   and independent stochastic Gaussian noise (residual identifying variation). This ensures
+   Double-ML residualization preserves identifying signal post-orthogonalization.
+2. Analytic ground truth: tau(X) is defined programmatically as the exact partial derivative
+   of the outcome function with respect to treatment (dY/dT = 2.0 + 1.5 * risk_index),
+   guaranteeing validation targets do not drift from the synthetic outcome equation.
+3. Heterogeneous outcome (Y): Combines structural baseline risk, causal treatment response tau(X)*T,
+   and observational noise.
+"""
 
 from __future__ import annotations
 
@@ -41,32 +67,67 @@ class CausalElasticityResult:
     ground_truth: pd.Series
 
 
-def add_synthetic_treatment(frame: pd.DataFrame) -> pd.DataFrame:
-    """Construct a known synthetic treatment rate change for causal validation.
+def add_synthetic_treatment(frame: pd.DataFrame, random_state: int = 42) -> pd.DataFrame:
+    """Construct synthetic treatment rate change with independent stochastic variation (Fix #1).
 
-    The treatment is intentionally a deterministic function of the segment risk index,
-    so the causal estimator can be checked against a known synthetic truth rather than
-    real-world treatment variation that is not available in the public dataset.
+    Treatment assignment includes both a systematic component driven by `risk_index`
+    and an independent stochastic component (Gaussian noise). The systematic component
+    reflects observational confounding, while the independent residual variation provides
+    the identifying variation necessary for Double-ML residualization.
+
+    Covariate Inclusion Decision (X):
+    `risk_index`, `driver_risk_score`, `vehicle_risk_score`, and `exposure_normalized`
+    all remain in `X`. Although `risk_index` is derived from driver, vehicle, and exposure
+    features, keeping all segment risk metrics in `X` allows the causal forest to split on
+    granular risk dimensions for segment-level treatment heterogeneity. The independent
+    stochastic noise introduced here guarantees full-rank identifying variation
+    post-orthogonalization.
     """
     prepared = frame.copy()
     if "risk_index" not in prepared.columns:
         prepared = build_feature_matrix(prepared)
 
-    risk_multiplier = 0.10 * prepared["risk_index"]
-    prepared["treatment_rate_change"] = 0.05 + risk_multiplier
-    prepared["treatment_rate_change"] = prepared["treatment_rate_change"].astype(float)
+    rng = np.random.default_rng(random_state)
+    treatment_noise = rng.normal(0.0, 0.05, size=len(prepared))
+    systematic_assignment = 0.05 + 0.10 * prepared["risk_index"]
+    prepared["treatment_rate_change"] = (systematic_assignment + treatment_noise).astype(float)
     prepared["treatment_rate_change"] = prepared["treatment_rate_change"].clip(lower=0.01)
     return prepared
 
 
-def _prepare_causal_dataset(frame: pd.DataFrame, feature_columns: tuple[str, ...]) -> pd.DataFrame:
-    """Add a synthetic outcome linked to the treatment and segment risk."""
-    prepared = add_synthetic_treatment(frame)
-    rng = np.random.default_rng(42)
+def compute_true_causal_effect(risk_index: Any) -> np.ndarray:
+    """Analytic derivative of synthetic outcome with respect to treatment (Fix #2).
+
+    Given outcome DGP:
+        Y = 100.0 + 15.0 * risk_index + (2.0 + 1.5 * risk_index) * T + noise
+    The true causal effect (marginal response / partial derivative) is:
+        tau(X) = dY / dT = 2.0 + 1.5 * risk_index.
+
+    This function serves as the single programmatic ground-truth definition used for
+    both outcome data generation and estimator validation, ensuring the validation
+    target cannot drift from the structural causal equation.
+    """
+    risk_arr = np.asarray(risk_index, dtype=float)
+    return 2.0 + 1.5 * risk_arr
+
+
+def _prepare_causal_dataset(
+    frame: pd.DataFrame,
+    feature_columns: tuple[str, ...],
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """Add a synthetic outcome linked to treatment via the analytic causal effect function."""
+    prepared = add_synthetic_treatment(frame, random_state=random_state)
+    rng = np.random.default_rng(random_state)
+    true_effect = compute_true_causal_effect(prepared["risk_index"])
+    outcome_noise = rng.normal(0.0, 1.0, size=len(prepared))
+
+    # Outcome DGP: structural baseline + heterogeneous causal response + observational noise
     prepared["synthetic_claim_amount"] = (
         100.0
-        + 2.5 * prepared["treatment_rate_change"] * (1.0 + 0.5 * prepared["risk_index"])
-        + rng.normal(0.0, 0.5, size=len(prepared))
+        + 15.0 * prepared["risk_index"]
+        + true_effect * prepared["treatment_rate_change"]
+        + outcome_noise
     )
     missing_features = set(feature_columns) - set(prepared.columns)
     if missing_features:
@@ -196,7 +257,7 @@ def fit_causal_elasticity(
         float(np.mean(interval_lower_values)),
         float(np.mean(interval_upper_values)),
     )
-    ground_truth = np.asarray(0.05 + 0.10 * test_frame["risk_index"], dtype=float)
+    ground_truth = compute_true_causal_effect(test_frame["risk_index"])
     if raw_effect.shape[0] != ground_truth.shape[0]:
         raw_effect = np.asarray(model.effect(X_test)).reshape(-1)
     if raw_effect.shape[0] != ground_truth.shape[0]:

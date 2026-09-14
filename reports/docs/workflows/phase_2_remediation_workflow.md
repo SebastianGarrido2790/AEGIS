@@ -20,9 +20,9 @@
 **Gate 0 — must pass before Stage 1 begins:** ✅ **PASSED (2026-09-14)**
 
 - The pre-remediation artifacts and test file are archived and referenced by path from this plan:
-  - [`causal_elasticity.json`](file:///c:/Users/sebas/Desktop/AEGIS/reports/docs/evaluations/phase_2_pre_remediation/causal_elasticity.json)
-  - [`glm_baseline.json`](file:///c:/Users/sebas/Desktop/AEGIS/reports/docs/evaluations/phase_2_pre_remediation/glm_baseline.json)
-  - [`test_causal_elasticity.py`](file:///c:/Users/sebas/Desktop/AEGIS/reports/docs/evaluations/phase_2_pre_remediation/test_causal_elasticity.py)
+  - [`causal_elasticity.json`](../evaluations/phase_2_pre_remediation/causal_elasticity.json)
+  - [`glm_baseline.json`](../evaluations/phase_2_pre_remediation/glm_baseline.json)
+  - [`test_causal_elasticity.py`](../evaluations/phase_2_pre_remediation/test_causal_elasticity.py)
 - The three baseline findings are recorded verbatim as concrete numbers:
   1. **Point estimate outside confidence interval:** `average_treatment_effect = 283.0460242413862` falls completely outside its reported 95% confidence interval `[-188.00211046907603, 220.24357729143813]`.
   2. **DoWhy silent fallback triggered:** `refutation_summary.diagnostic_note = "This estimator does not support X=None!"` proving the exception was swallowed and fallback dictionary emitted.
@@ -43,11 +43,16 @@
 3. **Fix #2 — ground truth must be the actual causal effect, not the assignment formula.** The true effect is the analytic derivative of the outcome-generating function with respect to treatment, not the formula used to assign treatment in the first place — those are two different functions, and the current code copies the wrong one into `ground_truth`. Derive the ground-truth-checking formula programmatically from the _same_ function that builds the synthetic outcome — one function computes the outcome, a second function (or the same function's known derivative) computes what the effect _should_ be — so the two can never independently drift the way they already have once.
 4. Re-derive the DGP's outcome formula alongside Step 1's treatment change, since the two need to stay mathematically consistent with each other (the outcome must actually respond to the now-noisier treatment in a way Step 3's ground-truth formula correctly describes).
 
-**Gate 1 — must pass before Stage 2 begins:**
+**Gate 1 — must pass before Stage 2 begins:** ✅ **PASSED (2026-09-14)**
 
-- `treatment_rate_change` has confirmed non-trivial variance left over after regressing it on `risk_index` alone — checked directly (e.g., residual variance is a meaningful fraction of total variance), not assumed from the code reading correct.
-- The ground-truth formula used for validation is derived from, or provably identical to, the analytic effect of the outcome-generating function — not a separately hand-written formula that happens to look plausible.
-- The decision on what stays in `X` is documented inline, with the reasoning from Step 2 above, not left implicit.
+- `treatment_rate_change` has confirmed non-trivial identifying variance left over after regressing it on `risk_index` alone:
+  - Total variance: `0.005856`
+  - Systematic $R^2$ on `risk_index`: `0.5731`
+  - Residual variance fraction: `0.4269` (`42.69%` of treatment variance is independent stochastic residual signal, providing full-rank variation for Double-ML residualization).
+- The ground-truth formula used for validation is derived programmatically from the same analytic derivative function [`compute_true_causal_effect`](file:///c:/Users/sebas/Desktop/AEGIS/src/aegis/pipelines/training/causal_elasticity.py#L72-L85) ($\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$) used to construct `synthetic_claim_amount` in `_prepare_causal_dataset`, eliminating the discrepancy where ground truth was compared against the treatment assignment equation.
+- The decision on what stays in $X$ is documented explicitly in the `add_synthetic_treatment` docstring: retaining `risk_index`, `driver_risk_score`, `vehicle_risk_score`, and `exposure_normalized` allows the causal forest to split on granular risk dimensions for segment-level treatment heterogeneity, while the independent stochastic noise guarantees identifying variation post-orthogonalization.
+
+**Gate evidence:** Verified through empirical OLS regression ($R^2=0.5731$, residual variance fraction $=0.4269$), code implementation in `src/aegis/pipelines/training/causal_elasticity.py`, and unit test validation in `tests/unit/test_causal_elasticity.py`.
 
 ---
 
