@@ -156,10 +156,18 @@
 1. **Imputation logging (`driver.py`, `vehicle.py`).** The `.fillna(median)` calls are a reasonable choice for a public benchmark dataset, but currently leave no trace that imputation happened. Add an explicit count of imputed values per column, logged at feature-matrix build time — so a future reader can see, e.g., "driver_age: 0 imputed" and trust the number, rather than having to infer it never happened.
 2. **Split-logic clarification (`pipeline.py`).** `create_policy_split`'s logic is confirmed correct — the string-sort-then-permute approach doesn't affect which policies land in train vs. test, only an arbitrary (but seed-stable) ordering that has no bearing on split validity. Add an inline comment stating this explicitly, including a note on the `"POL-10"` sorting before `"POL-2"` lexicographic quirk, so a future reader doesn't mistake deliberate, harmless behavior for a bug.
 
-**Gate 5 — must pass before Stage 6 begins:**
+**Gate 5 — must pass before Stage 6 begins:** ✅ **PASSED (2026-09-17)**
 
-- A feature-matrix build against a deliberately-nulled test fixture produces a visible, correct imputation count in the log output.
-- The split-logic comment is in place and technically accurate against the actual sampling mechanism, not a simplified paraphrase of it.
+- A feature-matrix build against a deliberately-nulled test fixture produces a visible, correct imputation count in the log output:
+  - Added logging to `src/aegis/pipelines/feature/driver.py` for `driver_age` and `bonus_malus`.
+  - Added logging to `src/aegis/pipelines/feature/vehicle.py` for `veh_age`, `veh_power`, and `density`.
+  - Verified via `tests/unit/test_feature_pipeline.py::test_build_feature_matrix_imputation_logging_with_nulls` that a fixture with missing values records exact counts (`driver_age: 2 imputed`, `bonus_malus: 1 imputed`, `veh_age: 2 imputed`, `veh_power: 1 imputed`, `density: 3 imputed`).
+  - Verified via `tests/unit/test_feature_pipeline.py::test_build_feature_matrix_imputation_logging_zero_when_clean` that clean fixtures explicitly record `0 imputed` across all columns.
+- The split-logic comment is in place and technically accurate against the actual sampling mechanism, not a simplified paraphrase of it:
+  - Added detailed inline architectural documentation in `src/aegis/pipelines/feature/pipeline.py` explaining the canonical lexicographical sorting baseline, the `"POL-10"` sorting before `"POL-2"` string quirk, the statistical equivalence of any deterministic initial order under subsequent uniform pseudo-random permutation (`pd.Series.sample(frac=1.0, random_state=random_state)`), and the strict grouped partition guarantee preventing policy-level leakage.
+  - Verified via `tests/unit/test_feature_pipeline.py::test_create_policy_split_lexicographic_order_stability`.
+
+**Gate evidence:** Verified empirically via pytest execution in `tests/unit/test_feature_pipeline.py` (6/6 passed), clean Pyright type check (0 errors), clean Ruff linting, and INV-8 line limit compliance across all modules.
 
 ---
 
