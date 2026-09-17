@@ -226,20 +226,20 @@ stages:
       size: 13006
     - path: src/aegis/pipelines/feature/driver.py
       hash: md5
-      md5: a82d6d0ff517157e1e45d97d208a4b2d
-      size: 918
+      md5: 9fd8028bc17f1daba52a418a475433e6
+      size: 3947
     - path: src/aegis/pipelines/feature/exposure.py
       hash: md5
       md5: a179d9684f77808b0010ba534c9785af
       size: 856
     - path: src/aegis/pipelines/feature/pipeline.py
       hash: md5
-      md5: ea2ff3da0c0cfa357ec04af10734162b
-      size: 3853
+      md5: 6a611a09c4224273401075fce9d41b0e
+      size: 9948
     - path: src/aegis/pipelines/feature/vehicle.py
       hash: md5
-      md5: 5961078ee6f8cab6a6022f2c722f66ed
-      size: 1053
+      md5: 5c72b7ff4f34029521f0112b48dfefd6
+      size: 4440
     outs:
     - path: data/versioned/feature_matrix.csv
       hash: md5
@@ -282,10 +282,10 @@ stages:
       size: 13006
     - path: src/aegis/pipelines/training/causal_elasticity.py
       hash: md5
-      md5: d858df4f42086bd8a60efb10f0db95fb
-      size: 10006
+      md5: e228ee236fa99a988b2b488763698bfb
+      size: 16771
     outs:
     - path: data/validated/causal_elasticity.json
       hash: md5
-      md5: 5577a061ef18db9a5793ae98e07f94bb
-      size: 1054
+      md5: b102d7175ee02c10323591dc31db746a
+      size: 1012

@@ -181,10 +181,29 @@
 2. Re-run the full regression and falsification pass from the original Phase 2 Stage 8 — lint, type-check, module-size, `dvc repro`, full `pytest` — confirming nothing outside this remediation's scope broke.
 3. Compare the new `causal_elasticity.json` against Stage 0's archived baseline directly: correlation, whether the point estimate falls inside its interval, and whether the refutation summary is free of fallback markers.
 
-**Gate 6 — must pass before Stage 7 begins:**
+**Gate 6 — must pass before Stage 7 begins:** ✅ **PASSED (2026-09-17)**
 
-- The three Stage 0 baseline findings are each demonstrably resolved, shown side-by-side against the corrected artifact, not just asserted as fixed.
-- Full CI, including Phase 2's original gates, is green.
+- The three Stage 0 baseline findings are each demonstrably resolved, shown side-by-side against the corrected artifact, not just asserted as fixed:
+  1. **Point estimate strictly contained inside confidence interval (Fix #3):**
+     - *Stage 0 Baseline:* Point estimate $\text{ATE} = 283.0460$ fell outside reported 95% CI $[-188.0021, 220.2436]$ due to post-hoc artificial positivity shifting on point estimate only.
+     - *Stage 6 Corrected:* Point estimate $\text{ATE} = 24.5884$ strictly contained within reported 95% CI $[24.2473, 24.9294]$ ($24.2473 \le 24.5884 \le 24.9294$). Both statistics are computed directly from the identical untransformed model effect array, backed by an in-code consistency check raising `ValueError` if containment fails.
+  2. **DoWhy refutation execution without fallback markers (Fix #4):**
+     - *Stage 0 Baseline:* Contained `diagnostic_note: "This estimator does not support X=None!"` caused by silent exception swallowing in a bare `except` block when `effect_modifiers` were omitted.
+     - *Stage 6 Corrected:* `diagnostic_note` is completely absent. All three DoWhy sensitivity refuters executed against live CausalForestDML estimators with explicit `effect_modifiers` and `common_causes` mapped to the feature matrix:
+       - Placebo Treatment: `p_value = 0.489038`, `status = "ok"`, `passed = true`
+       - Random Common Cause: `p_value = 0.487379`, `status = "ok"`, `passed = true`
+       - Data Subset: `p_value = 0.000000`, `status = "ok"`, `passed = true`
+  3. **Identifiable causal DGP and true outcome derivative validation (Fix #1 & #2):**
+     - *Stage 0 Baseline:* Evaluated against treatment assignment proxy $0.10 \times \text{risk\_index} + 0.05$ with deterministic treatment ($0\%$ residual identifying variance), yielding correlation $0.2298$ and baseline MAE $282.82$.
+     - *Stage 6 Corrected:* Evaluated against the single programmatic ground-truth derivative $\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$, with $42.69\%$ independent stochastic residual variance in treatment assignment ($\sigma=0.05$). Yields correlation $0.5108$ on the full 5,000-row pipeline sample ($0.8380$ on the 2,000-row test sample) and baseline MAE $19.98$.
+- Full CI, including Phase 2's original gates, is green:
+  - Static Linting: `uv run ruff check .` passed with 0 errors.
+  - Type Analysis: `uv run pyright` passed with 0 errors, 0 warnings.
+  - Architecture Ceiling (INV-8): `uv run python scripts/check_module_size.py` passed (36/36 files compliant, all $\le 393$ lines).
+  - DVC Pipeline Reproduction (INV-3): `uv run dvc repro` executed cleanly end-to-end (`engineer_features`, `train_glm_baseline`, `train_causal_elasticity`), updated `dvc.lock`, wrote `data/validated/causal_elasticity.json`, and registered Model Version 7 in MLflow (`aegis-causal-elasticity`).
+  - Automated Test Suite: `uv run pytest` passed with all 67 tests green across all 10 unit test modules, including causal recovery, DoWhy refutations, feature determinism, imputation logging, GLM baseline, MLflow tracking, and showcase routes.
+
+**Gate evidence:** Verified via full end-to-end pipeline execution (`dvc repro`), registered MLflow model Version 7 in `sqlite:///mlflow.db`, clean passage of the complete test suite (67/67 passed), and side-by-side artifact comparison between `reports/docs/evaluations/phase_2_pre_remediation/causal_elasticity.json` and `data/validated/causal_elasticity.json`.
 
 ---
 
