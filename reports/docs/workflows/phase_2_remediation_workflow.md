@@ -129,11 +129,21 @@
 7. **Improve logging, not just assertions:** the underlying functions (Stage 1–3's fixes) should log when imputation, fallback, or clipping behavior would have fired, so a future test failure comes with actionable context in the log output, not just a failed assertion with no trail back to cause.
 8. **Falsification check on the test suite itself** — the same technique already used at the close of both Phase 1 and Phase 2: temporarily reintroduce the original Stage 0 defects (the positivity shift, the deterministic treatment, the bare exception handler) one at a time, and confirm the rebuilt test suite actually fails on each. A test suite that's never seen a real failure hasn't demonstrated it can catch one.
 
-**Gate 4 — must pass before Stage 5 begins:**
+**Gate 4 — must pass before Stage 5 begins:** ✅ **PASSED (2026-09-17)**
 
-- Every assertion identified as tautological in review has been replaced or removed.
-- The falsification check in Step 8 confirms the rebuilt suite fails against each of the three original defects, individually reintroduced, and passes again once reverted.
-- The full `test_causal_elasticity.py` suite passes cleanly against the Stage 1–3 fixed code.
+- Every assertion identified as tautological in review has been replaced or removed:
+  - Replaced `lower == pytest.approx(lower)` and `upper == pytest.approx(upper)` (self-tautology) with strict interval bounds ordering: `lower < upper`, containment `lower <= ate <= upper`, and non-degenerate width `(upper - lower) > 0.05`.
+  - Replaced `baseline_mae >= 0.0` (definitionally true) with strict bounding `0.0 < baseline_mae < 50.0` and completeness check on required calibration keys.
+  - Replaced weak refuter key-existence check with explicit absence of fallback `diagnostic_note`, mandatory status `"ok"`, `passed is True`, and finite p-values across all three refuters (`placebo_treatment`, `random_common_cause`, `data_subset`).
+  - Raised correlation threshold from `>= 0.1` to calibrated `>= 0.75` (empirical model achieves ~0.838).
+- The falsification check in Step 8 confirmed the rebuilt suite fails against each of the three original defects, individually reintroduced, and passes again once reverted:
+  - **Defect 1 (Deterministic treatment assignment without noise):** Reintroduced `treatment_noise = 0.0`. `TestWeakTreatmentIdentification` failed immediately with `AssertionError: Residual variance fraction 0.0000 outside [0.20, 0.70]` and `AssertionError: Noise residual std 0.0000 is too low (<= 0.02)`. Reverted and verified clean pass.
+  - **Defect 2 (Positivity shift / Point estimate outside CI):** Reintroduced Stage 0 point estimate outside CI (`ATE = 283.046` vs CI `[-188.002, 220.244]`). `TestPointEstimateAndConfidenceInterval` failed immediately with `AssertionError` (`lower <= ate <= upper` violated), and `fit_causal_elasticity` internal guard raised `ValueError: Point estimate falls outside reported confidence interval`. Reverted and verified clean pass.
+  - **Defect 3 (DoWhy silent fallback with diagnostic note):** Reintroduced Stage 0 fallback summary containing `{"diagnostic_note": "This estimator does not support X=None!"}`. `TestDoWhyRefutationExecution` failed immediately with `AssertionError: Refutation summary contains fallback marker`. Reverted and verified clean pass.
+  - **Correlation threshold against proxy:** Verified that Stage 0 correlation of 0.229 fails the calibrated threshold gate `result.correlation >= 0.75`.
+- The full `test_causal_elasticity.py` suite passes cleanly against the Stage 1–3 fixed code (13/13 tests passed in 85.29s), and full unit test suite (64/64 tests) passes with 0 errors.
+
+**Gate evidence:** Verified empirically via pytest execution in `tests/unit/test_causal_elasticity.py` (13/13 passed), full unit test suite execution (64/64 passed), falsification runs for all 3 original defects, clean Pyright type check (0 errors), clean Ruff linting, and INV-8 line limit enforcement (36/36 files compliant).
 
 ---
 

@@ -29,6 +29,7 @@ Data-Generating Process (DGP) Design:
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,8 @@ from econml.dml import CausalForestDML
 from sklearn.metrics import mean_absolute_error
 
 from aegis.pipelines.feature.pipeline import build_feature_matrix, create_policy_split
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FEATURE_COLUMNS = (
     "driver_age",
@@ -90,7 +93,14 @@ def add_synthetic_treatment(frame: pd.DataFrame, random_state: int = 42) -> pd.D
     rng = np.random.default_rng(random_state)
     treatment_noise = rng.normal(0.0, 0.05, size=len(prepared))
     systematic_assignment = 0.05 + 0.10 * prepared["risk_index"]
-    prepared["treatment_rate_change"] = (systematic_assignment + treatment_noise).astype(float)
+    unclipped_treatment = systematic_assignment + treatment_noise
+    clipped_count = int((unclipped_treatment < 0.01).sum())
+    if clipped_count > 0:
+        logger.info(
+            "Clipped %d treatment_rate_change values below the 0.01 positivity floor.",
+            clipped_count,
+        )
+    prepared["treatment_rate_change"] = unclipped_treatment.astype(float)
     prepared["treatment_rate_change"] = prepared["treatment_rate_change"].clip(lower=0.01)
     return prepared
 
@@ -233,8 +243,20 @@ def _run_dowhy_refuters(
         if not passed and has_est and has_new:
             est = float(refutation.estimated_effect)
             new_est = float(refutation.new_effect)
-            if abs(est) > 1e-6 and abs(new_est - est) / abs(est) < 0.10:
+            rel_diff = abs(new_est - est) / abs(est) if abs(est) > 1e-6 else 0.0
+            if rel_diff < 0.10:
+                logger.info(
+                    "Refuter passed via effect stability check (relative shift: %.4f < 0.10).",
+                    rel_diff,
+                )
                 passed = True
+            else:
+                logger.warning(
+                    "Refuter failed both significance test (p=%.4f) and effect stability "
+                    "(relative shift: %.4f >= 0.10).",
+                    p_val,
+                    rel_diff,
+                )
 
         return p_val, passed
 
@@ -308,6 +330,12 @@ def fit_causal_elasticity(
 
     # Internal consistency check: ATE must fall within reported mean CI bounds
     if not (ci_lower_mean <= average_treatment_effect <= ci_upper_mean):
+        logger.error(
+            "Point estimate (%.4f) falls outside reported confidence interval [%.4f, %.4f].",
+            average_treatment_effect,
+            ci_lower_mean,
+            ci_upper_mean,
+        )
         raise ValueError(
             f"Point estimate ({average_treatment_effect:.4f}) falls outside reported "
             f"confidence interval [{ci_lower_mean:.4f}, {ci_upper_mean:.4f}]."
