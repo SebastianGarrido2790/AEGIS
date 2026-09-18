@@ -218,11 +218,15 @@
 3. Update `phase_2_execution_workflow.md`'s Gate 4 evidence to reflect the corrected numbers and the fact that the original "PASSED" reflected assertions that didn't test the right thing.
 4. Re-attach the corrected evaluation report to the MLflow run per the original byte-for-byte identity requirement (Stage 6/ADR-016), since the report content has changed.
 
-**Gate 7 — Phase 2 sign-off condition:**
+**Gate 7 — Phase 2 sign-off condition:** ✅ **PASSED (2026-09-17) — Phase 2 Sign-Off Formally Granted**
 
-- ADR-014 carries a dated Amended entry, not a silently updated Validated status.
-- Every document that previously stated or implied the causal validation had succeeded now reflects the corrected numbers and an honest account of what was wrong — nothing is left overwritten without a trace.
-- Only once this gate passes does Phase 2 carry genuine sign-off — superseding, not quietly replacing, its prior "Complete" markers.
+- **ADR-014 amended with dated entry:** In `reports/docs/architecture/system_design.md`, ADR-014 status is updated to `Amended (2026-09-17; originally Validated in Phase 2)`. A comprehensive amendment section was added recording the 4 root causes identified during audit (weak treatment identification with $0\%$ residual variance, validation target drift against the assignment proxy formula, point estimate vs. CI divergence from post-hoc clipping, and silent DoWhy exception swallowing) alongside the corresponding architectural resolutions.
+- **Evaluation report reconciled:** `reports/docs/evaluations/phase_2_evaluation_report.md` §4 was updated with the corrected causal validation numbers (ATE `24.588373`, CI `[24.247306, 24.929440]`, correlation `0.510846` pipeline / `0.837987` test sample, baseline MAE `19.975076`, live DoWhy refutations). Section 4.4 preserves the full "Remediation Audit Trail and Historical Note (2026-09-17)" explaining why the initial numbers were unsound, and Section 6 logs the provenance for registered Model Version 7 (run `6740ac140b7e42df8de9307747488a58`).
+- **Execution workflow reconciled:** `reports/docs/workflows/phase_2_execution_workflow.md` Gate 4 evidence was updated with the corrected causal validation numbers, live refuter metrics, and a historical note documenting that the initial "PASSED" reflected assertions that did not test the right thing.
+- **MLflow report mirroring byte-for-byte verified:** The updated `reports/docs/evaluations/phase_2_evaluation_report.md` was attached as a run artifact to active causal model run `6740ac140b7e42df8de9307747488a58` (and historical run `311e117cab764cafb98c9890835536a9`) via `attach_report_artifact`. Downloaded back from MLflow via `client.download_artifacts` and confirmed byte-for-byte identical (`source_bytes == downloaded_bytes`, 15,201 bytes) per ADR-016.
+- **Phase 2 Sign-Off:** With all 7 remediation stages completed, all gates passed, full CI green (67/67 tests, clean Ruff, Pyright, module-size, and DVC pipeline reproduction), and all documentation aligned with truth, Phase 2 sign-off is formally granted.
+
+**Gate evidence:** Verified through `reports/docs/architecture/system_design.md` (ADR-014 amended), `reports/docs/evaluations/phase_2_evaluation_report.md` (§4 and §6 reconciled), `reports/docs/workflows/phase_2_execution_workflow.md` (Gate 4 updated), and programmatic MLflow artifact download byte-for-byte verification.
 
 ---
 

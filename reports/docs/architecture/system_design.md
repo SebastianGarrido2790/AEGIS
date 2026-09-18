@@ -280,7 +280,7 @@ the completed phase.
 
 ### ADR-014: Causal elasticity model — CausalForestDML with synthetic treatment validation & DoWhy refutation suite
 
-**Status:** Validated (Phase 2)
+**Status:** Amended (2026-09-17; originally Validated in Phase 2)
 
 **Context:** Observational auto insurance data lacks randomized price experiments. Estimator recovery must be scientifically verifiable, and confounding robustness must be provable.
 
@@ -289,6 +289,19 @@ the completed phase.
 **Rationale:** Synthetic treatment injection provides an exact ground truth to rigorously validate treatment effect recovery, parameter bias, and confidence interval coverage. DoWhy refutation tests provide standardized, reproducible confounding sensitivity checks.
 
 **Consequences:** Causal models and sensitivity results are logged to MLflow; the evaluation report explicitly documents this as estimator recovery validation.
+
+**Amendment (2026-09-17) — Causal Validation, Point-Estimate/CI Alignment, and Refutation Recovery:**
+
+- **Audit Findings & Root Causes:**
+  1. *Weak Treatment Identification (Fix #1):* Treatment assignment was originally generated as a deterministic function of `risk_index` ($T = 0.05 + 0.10 \times \text{risk\_index}$), leaving $0\%$ residual identifying variation post-orthogonalization in Double-ML.
+  2. *Ground-Truth Drift (Fix #2):* Estimated effects were validated against the treatment assignment proxy formula rather than the true outcome response derivative $\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$.
+  3. *Point Estimate / Confidence Interval Divergence (Fix #3):* An artificial post-hoc clipping shift was applied exclusively to the point estimate (`clip(raw_effect - min(raw_effect), ...)`), resulting in an ATE of $283.05$ falling completely outside its reported 95% confidence interval $[-188.00, 220.24]$.
+  4. *Silent DoWhy Exception Swallowing (Fix #4):* DoWhy refuters failed with `ValueError: This estimator does not support X=None!` because `effect_modifiers` and `common_causes` were omitted from `CausalModel`, which was swallowed by a bare `except` handler that emitted static placeholder dictionaries (`p_value: 0.42`, `status: ok`).
+- **Amended Decision:**
+  1. Inject independent Gaussian noise ($\mathcal{N}(0, 0.05)$) into synthetic treatment assignment, guaranteeing $42.69\%$ identifying residual variance while retaining `risk_index`, driver/vehicle risk scores, and exposure in $X$ for segment heterogeneity modeling.
+  2. Define validation ground truth and outcome response programmatically via the single analytic derivative function `compute_true_causal_effect`.
+  3. Derive both point estimate and confidence interval directly from the identical untransformed model effect array without clipping, enforced by an in-code containment assertion (`ci_lower <= ATE <= ci_upper`).
+  4. Explicitly map feature columns as `effect_modifiers` and `common_causes` in DoWhy's `CausalModel` and eliminate the fallback handler so refuters execute live against `CausalForestDML` or fail loudly.
 
 ### ADR-015: MLflow tracking & model registry — Local SQLite backend with structured refutation artifacts
 
