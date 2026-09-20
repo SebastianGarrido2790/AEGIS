@@ -23,6 +23,7 @@ import pytest
 from aegis.pipelines.training.causal_elasticity import (
     CausalElasticityResult,
     add_synthetic_treatment,
+    compute_residual_variance_metrics,
     compute_true_causal_effect,
     fit_causal_elasticity,
     save_causal_artifact,
@@ -46,17 +47,20 @@ class TestWeakTreatmentIdentification:
     """Gate 1: Independent stochastic variation in synthetic treatment (Fix #1)."""
 
     def test_residual_variance_fraction_bounded(self, feature_frame: pd.DataFrame) -> None:
-        """Residual variance fraction must fall strictly in [0.20, 0.70]."""
+        """Residual identifying variance in [0.20, 0.70] and raw variance > 0."""
         sample = feature_frame.sample(2000, random_state=42).reset_index(drop=True)
         prepared = add_synthetic_treatment(sample, random_state=42)
 
-        corr = float(
-            np.corrcoef(prepared["risk_index"], prepared["treatment_rate_change"])[0, 1]
+        metrics = compute_residual_variance_metrics(prepared)
+        residual_identifying_variance = metrics["residual_identifying_variance"]
+        residual_variance = metrics["residual_variance"]
+
+        assert 0.20 <= residual_identifying_variance <= 0.70, (
+            f"Residual identifying variance {residual_identifying_variance:.4f} "
+            "outside [0.20, 0.70]"
         )
-        systematic_r2 = corr**2
-        residual_variance_fraction = 1.0 - systematic_r2
-        assert 0.20 <= residual_variance_fraction <= 0.70, (
-            f"Residual variance fraction {residual_variance_fraction:.4f} outside [0.20, 0.70]"
+        assert residual_variance > 0.001, (
+            f"Raw residual variance {residual_variance:.6f} is too low (<= 0.001)"
         )
 
     def test_treatment_retains_meaningful_noise_variance(
@@ -186,7 +190,13 @@ class TestCorrelationAndCalibrationMetrics:
         self, causal_result: CausalElasticityResult
     ) -> None:
         """Calibration metrics dictionary must contain all required metric keys."""
-        required_keys = {"correlation", "baseline_mae", "average_treatment_effect"}
+        required_keys = {
+            "correlation",
+            "baseline_mae",
+            "average_treatment_effect",
+            "residual_variance",
+            "residual_identifying_variance",
+        }
         actual_keys = set(causal_result.calibration_metrics.keys())
         assert required_keys.issubset(actual_keys), (
             f"Missing calibration metrics: {required_keys - actual_keys}"
@@ -220,6 +230,14 @@ class TestArtifactValidation:
         metrics = payload["calibration_metrics"]
         assert metrics["correlation"] >= 0.75
         assert 0.0 < metrics["baseline_mae"] < 50.0
+        assert "residual_variance" in metrics
+        assert "residual_identifying_variance" in metrics
+        assert 0.20 <= metrics["residual_identifying_variance"] <= 0.70
+        assert metrics["residual_variance"] > 0.001
+        assert "residual_variance" in payload
+        assert "residual_identifying_variance" in payload
+        assert 0.20 <= payload["residual_identifying_variance"] <= 0.70
+        assert payload["residual_variance"] > 0.001
 
         refutations = payload["refutation_summary"]
         assert "diagnostic_note" not in refutations

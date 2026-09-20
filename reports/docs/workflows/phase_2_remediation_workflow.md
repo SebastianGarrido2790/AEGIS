@@ -103,7 +103,7 @@
   - Live refuter metrics extracted directly from DoWhy's `refutation_result`:
     - `placebo_treatment`: `p_value = 0.384659`, `passed = true`, `status = "ok"`
     - `random_common_cause`: `p_value = 0.039538`, `passed = true`, `status = "ok"`
-    - `data_subset`: `p_value = 0.0`, `passed = true`, `status = "ok"`
+    - `data_subset`: `p_value < 0.001`, `passed = true`, `status = "ok"`
   - Confirmed `diagnostic_note` key is completely absent (`"diagnostic_note" in refutation_summary is False`).
   - Documented in code docstring the statistical direction for each refuter: DoWhy sensitivity refutations formulate stability / invariance as the null hypothesis; failing to reject the null (or preserving practical effect size within 10%) signifies estimate stability and constitutes a refutation pass.
 - Deliberately breaking the DoWhy call (omitting `effect_modifiers` to trigger `X=None`) was verified directly:
@@ -192,10 +192,10 @@
      - *Stage 6 Corrected:* `diagnostic_note` is completely absent. All three DoWhy sensitivity refuters executed against live CausalForestDML estimators with explicit `effect_modifiers` and `common_causes` mapped to the feature matrix:
        - Placebo Treatment: `p_value = 0.489038`, `status = "ok"`, `passed = true`
        - Random Common Cause: `p_value = 0.487379`, `status = "ok"`, `passed = true`
-       - Data Subset: `p_value = 0.000000`, `status = "ok"`, `passed = true`
+       - Data Subset: `p_value < 0.001`, `status = "ok"`, `passed = true`
   3. **Identifiable causal DGP and true outcome derivative validation (Fix #1 & #2):**
      - *Stage 0 Baseline:* Evaluated against treatment assignment proxy $0.10 \times \text{risk\_index} + 0.05$ with deterministic treatment ($0\%$ residual identifying variance), yielding correlation $0.2298$ and baseline MAE $282.82$.
-     - *Stage 6 Corrected:* Evaluated against the single programmatic ground-truth derivative $\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$, with $42.69\%$ independent stochastic residual variance in treatment assignment ($\sigma=0.05$). Yields correlation $0.5108$ on the full 5,000-row pipeline sample ($0.8380$ on the 2,000-row test sample) and baseline MAE $19.98$.
+     - *Stage 6 Corrected:* Evaluated against the single programmatic ground-truth derivative $\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$, with $42.69\%$ residual identifying variance fraction ($1 - R^2$) in treatment assignment on the 2,000-row test sample ($36.25\%$ on the 5,000-row pipeline sample, bounded in $[0.20, 0.70]$) and raw residual variance $0.0025$ ($\sigma=0.05$). Yields correlation $0.5108$ on the full 5,000-row pipeline sample ($0.8380$ on the 2,000-row test sample) and baseline MAE $19.98$.
 - Full CI, including Phase 2's original gates, is green:
   - Static Linting: `uv run ruff check .` passed with 0 errors.
   - Type Analysis: `uv run pyright` passed with 0 errors, 0 warnings.

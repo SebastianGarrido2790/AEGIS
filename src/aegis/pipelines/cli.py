@@ -364,6 +364,10 @@ def main() -> int:
                     "alpha": 0.05,
                 },
                 "correlation": result.correlation,
+                "residual_variance": result.calibration_metrics.get("residual_variance"),
+                "residual_identifying_variance": result.calibration_metrics.get(
+                    "residual_identifying_variance"
+                ),
                 "refutation_summary": result.refutation_summary,
             },
             params={"random_state": 42},

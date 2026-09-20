@@ -70,6 +70,30 @@ class CausalElasticityResult:
     ground_truth: pd.Series
 
 
+def compute_residual_variance_metrics(frame: pd.DataFrame) -> dict[str, float]:
+    """Compute raw residual variance and residual identifying variance diagnostic.
+
+    Args:
+        frame: DataFrame containing 'risk_index' and 'treatment_rate_change'.
+
+    Returns:
+        dict[str, float]: Dictionary containing:
+            - 'residual_variance': Raw sample variance of treatment residuals
+              (data provenance metric).
+            - 'residual_identifying_variance': Fraction of treatment variance unexplained
+              by systematic risk index (1 - R^2, diagnostic metric bounded in [0.20, 0.70]).
+    """
+    corr = float(np.corrcoef(frame["risk_index"], frame["treatment_rate_change"])[0, 1])
+    identifying_var = 1.0 - (corr**2)
+    systematic = 0.05 + 0.10 * frame["risk_index"]
+    raw_residual = frame["treatment_rate_change"] - systematic
+    raw_var = float(np.var(raw_residual, ddof=1))
+    return {
+        "residual_variance": raw_var,
+        "residual_identifying_variance": identifying_var,
+    }
+
+
 def add_synthetic_treatment(frame: pd.DataFrame, random_state: int = 42) -> pd.DataFrame:
     """Construct synthetic treatment rate change with independent stochastic variation (Fix #1).
 
@@ -348,11 +372,14 @@ def fit_causal_elasticity(
     if not np.isfinite(correlation):
         correlation = 0.0
 
+    res_metrics = compute_residual_variance_metrics(prepared)
     reference = ground_truth
     calibration_metrics = {
         "correlation": correlation,
         "baseline_mae": float(mean_absolute_error(reference, raw_effect)),
         "average_treatment_effect": average_treatment_effect,
+        "residual_variance": res_metrics["residual_variance"],
+        "residual_identifying_variance": res_metrics["residual_identifying_variance"],
     }
     refutation_summary = _run_dowhy_refuters(
         prepared,
@@ -387,6 +414,10 @@ def save_causal_artifact(result: CausalElasticityResult, output_path: Path | str
             "alpha": 0.05,
         },
         "calibration_metrics": result.calibration_metrics,
+        "residual_variance": result.calibration_metrics.get("residual_variance"),
+        "residual_identifying_variance": result.calibration_metrics.get(
+            "residual_identifying_variance"
+        ),
         "refutation_summary": result.refutation_summary,
     }
     destination.write_text(json.dumps(artifact, indent=2), encoding="utf-8")

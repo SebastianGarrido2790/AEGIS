@@ -298,10 +298,10 @@ the completed phase.
   3. *Point Estimate / Confidence Interval Divergence (Fix #3):* An artificial post-hoc clipping shift was applied exclusively to the point estimate (`clip(raw_effect - min(raw_effect), ...)`), resulting in an ATE of $283.05$ falling completely outside its reported 95% confidence interval $[-188.00, 220.24]$.
   4. *Silent DoWhy Exception Swallowing (Fix #4):* DoWhy refuters failed with `ValueError: This estimator does not support X=None!` because `effect_modifiers` and `common_causes` were omitted from `CausalModel`, which was swallowed by a bare `except` handler that emitted static placeholder dictionaries (`p_value: 0.42`, `status: ok`).
 - **Amended Decision:**
-  1. Inject independent Gaussian noise ($\mathcal{N}(0, 0.05)$) into synthetic treatment assignment, guaranteeing $42.69\%$ identifying residual variance while retaining `risk_index`, driver/vehicle risk scores, and exposure in $X$ for segment heterogeneity modeling.
+  1. Inject independent Gaussian noise ($\mathcal{N}(0, 0.05)$) into synthetic treatment assignment, guaranteeing $42.69\%$ identifying residual variance ($1 - R^2$) on the 2,000-row test sample ($36.25\%$ on the 5,000-row pipeline sample, strictly bounded in $[0.20, 0.70]$) and raw residual variance $0.0025$ ($\sigma=0.05$) recorded for data provenance, while retaining `risk_index`, driver/vehicle risk scores, and exposure in $X$ for segment heterogeneity modeling.
   2. Define validation ground truth and outcome response programmatically via the single analytic derivative function `compute_true_causal_effect`.
   3. Derive both point estimate and confidence interval directly from the identical untransformed model effect array without clipping, enforced by an in-code containment assertion (`ci_lower <= ATE <= ci_upper`).
-  4. Explicitly map feature columns as `effect_modifiers` and `common_causes` in DoWhy's `CausalModel` and eliminate the fallback handler so refuters execute live against `CausalForestDML` or fail loudly.
+  4. Explicitly map feature columns as `effect_modifiers` and `common_causes` in DoWhy's `CausalModel` and eliminate the fallback handler so refuters execute live against `CausalForestDML` or fail loudly (with data subset refuter stability reporting $p < 0.001$ alongside placebo $p = 0.489$ and random common cause $p = 0.487$).
 
 ### ADR-015: MLflow tracking & model registry — Local SQLite backend with structured refutation artifacts
 
@@ -371,7 +371,16 @@ the completed phase.
 - The minimal HITL review interface (Phase 7) is scoped as an endpoint, not a full dashboard, consistent with PRD §12 (out of scope: full production UI).
 - This document will be updated at the close of each phase in the Technical Roadmap to reflect the actual implemented state.
 
-## 7. Update Protocol
+## 7. Engineering Practices & Quality Standards (Remediation Lessons)
+
+The Phase 2 remediation established explicit engineering practices that govern all subsequent phases:
+
+- **Falsifiable Testing Discipline:** Unit tests must be constructed so that defective implementations (e.g., zero noise variance, out-of-bounds estimates, or silent fallback markers) genuinely fail. Tautological assertions (e.g., asserting `val == pytest.approx(val)` or `mae >= 0.0`) are strictly prohibited.
+- **Module Size & Decomposition Ceiling (INV-8):** Every source file under `src/` must remain strictly under 1,000 lines. Logic must be decomposed by responsibility before extending.
+- **Zero Silent Fallbacks:** Bare `except` handlers that catch and convert pipeline errors into successful return payloads are prohibited. Refuters and estimators must execute live or fail loudly with typed exceptions.
+- **Scientific Reporting Conventions:** P-values resulting from finite simulation or permutation tests that yield zero empirical rejections are reported as $p < 0.001$ rather than absolute zero. Diagnostic variance fractions ($1 - R^2$) and raw noise variances are logged together for full data provenance.
+
+## 8. Update Protocol
 
 At the close of each phase in `../references/technical_roadmap.md`:
 

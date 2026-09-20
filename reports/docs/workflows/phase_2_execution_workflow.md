@@ -193,7 +193,7 @@ Stage 6 (Integration Tests & Quality Gate Audit)
     and baseline MAE **19.975076**, with the 95% treatment-effect
     interval spanning **24.247306** to **24.929440** (point estimate strictly contained: $24.25 \le 24.59 \le 24.93$).
 - The same artifact records live DoWhy sensitivity refutations without fallback markers:
-    `placebo_treatment` ($p = 0.489038$), `random_common_cause` ($p = 0.487379$), and `data_subset` ($p = 0.000000$), each with status
+    `placebo_treatment` ($p = 0.489038$), `random_common_cause` ($p = 0.487379$), and `data_subset` ($p < 0.001$), each with status
     `ok` and `passed: true`.
 - *Historical Remediation Note (2026-09-17):* The initial Phase 2 sign-off recorded an ATE of **283.046024** and interval **[-188.002110, 220.243577]** (with point estimate outside CI due to post-hoc clipping), correlation **0.229756** evaluated against the assignment proxy rather than the true causal derivative, deterministic treatment assignment, and DoWhy refuters that had silently fallen back to static placeholder dictionaries. Gate 4 "PASSED" was withheld until all four defects were corrected, tests rebuilt to be genuinely falsifiable, and metrics verified under the Phase 2 Remediation Plan.
 

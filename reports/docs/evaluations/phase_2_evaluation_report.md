@@ -77,6 +77,8 @@ The project explicitly treats this as:
 - Point estimate contained in CI: `true` (24.2473 <= 24.5884 <= 24.9294)
 - Correlation to synthetic ground truth: 0.5108464627476709 (full 5,000-row pipeline sample; 0.8379867845664387 on 2,000-row unit-test sample)
 - Baseline MAE relative to synthetic truth: 19.97507608392098
+- Residual identifying variance (diagnostic fraction, 1 - R^2): 0.3624558787749478 (bounded in [0.20, 0.70]; 0.4268916686521306 on 2,000-row unit-test sample)
+- Residual variance (raw noise variance for data provenance): 0.0024972731060632996 (sigma^2 approx 0.05^2)
 
 ### 4.3 DoWhy refutation summary
 
@@ -84,7 +86,7 @@ DoWhy refutation checks were executed live as a sensitivity analysis guardrail (
 
 - `placebo_treatment`: `status = ok`, `p_value = 0.48903844410031894`, `passed = true`
 - `random_common_cause`: `status = ok`, `p_value = 0.4873792516880212`, `passed = true`
-- `data_subset`: `status = ok`, `p_value = 0.000000`, `passed = true`
+- `data_subset`: `status = ok`, `p_value < 0.001`, `passed = true`
 - `diagnostic_note`: absent (no fallback dictionary emitted)
 
 This pass confirms the synthetic causal structure passes standard refutation checks under live execution. It does not establish that the model has recovered a real-world elasticity from live insurance pricing data; it validates the estimator under the synthetic ground-truth design used by this project.
