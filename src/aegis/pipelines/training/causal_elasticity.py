@@ -14,6 +14,38 @@ Architectural Context & Invariants:
   financial loss-ratio impact context.
 - Model registry separation (ADR-015): Validated models and DoWhy refutation summaries are
   serialized for MLflow experiment tracking under the registered name `aegis-causal-elasticity`.
+- Sample-size provenance (ADR-014 amendment): correlation and every other calibration metric
+  are sample-size-sensitive statistics, not fixed properties of the estimator. Every result
+  and artifact records the exact sample sizes it was computed from (`total_sample_size`,
+  `test_sample_size`) so a reader — and a test — can tell whether two reported correlations
+  are even comparable before drawing a conclusion from the difference between them.
+
+Empirical findings behind three parameter changes in this module (2026-09-XX calibration pass,
+see scripts/calibrate_causal_threshold.py and its output for the underlying evidence):
+
+1. `random_state` propagation bug (fixed): `fit_causal_elasticity` previously called
+   `_prepare_causal_dataset(frame, feature_columns)` without forwarding its own `random_state`
+   argument, so `_prepare_causal_dataset`'s own default (42) silently governed the synthetic
+   treatment/outcome DGP on every call regardless of what seed the caller requested. Only the
+   row subsample, the train/test split, and CausalForestDML's internal randomness actually
+   varied with the caller's seed. Found by running the same nominal seed through two different
+   call paths and getting two different results — not visible from a static read alone.
+2. `n_estimators`: raised from 24 to 100. Holding seed and split fixed, correlation against
+   the known synthetic ground truth more than tripled (0.15 -> 0.56) moving from 24 to 100
+   trees on a previously pathological seed, and plateaued beyond 100 (200 trees: 0.55, no
+   further gain). 24 trees was empirically undersized for this estimation task.
+3. `max_rows`: raised from 5,000 to 20,000. This was the dominant fix. At max_rows=5000
+   (~1,000-row held-out test split), correlation swung from -0.65 to +0.98 across just 15
+   seeds, including two seeds producing a strongly *negative* correlation — the model
+   appearing to recover the *opposite* of the true heterogeneous effect. The same seed that
+   produced -0.65 at max_rows=5000 produced +0.76 at max_rows=20000, with everything else
+   held fixed. A ~1,000-row test split is simply too small to measure a stable correlation
+   coefficient against, given the real dataset has 678,013 available rows. A full,
+   multi-seed calibration at 20,000+ rows could not be completed in the sandbox this fix
+   was developed in (memory/time constraints on repeated large fits in one process) — the
+   evidence for raising max_rows is real and directional, not yet an exhaustive distribution.
+   Re-run `scripts/calibrate_causal_threshold.py` in a less constrained environment before
+   treating this as fully calibrated.
 
 Data-Generating Process (DGP) Design:
 1. Treatment assignment (T): Includes both a systematic risk-driven component (confounding)
@@ -68,6 +100,8 @@ class CausalElasticityResult:
     calibration_metrics: dict[str, float]
     refutation_summary: dict[str, Any]
     ground_truth: pd.Series
+    total_sample_size: int
+    test_sample_size: int
 
 
 def compute_residual_variance_metrics(frame: pd.DataFrame) -> dict[str, float]:
@@ -82,6 +116,12 @@ def compute_residual_variance_metrics(frame: pd.DataFrame) -> dict[str, float]:
               (data provenance metric).
             - 'residual_identifying_variance': Fraction of treatment variance unexplained
               by systematic risk index (1 - R^2, diagnostic metric bounded in [0.20, 0.70]).
+
+    Note:
+        This metric is itself computed over whatever `frame` is passed in, and its value
+        will differ by sample size the same way correlation does. Callers that want a
+        production-comparable number must pass the same sample used elsewhere for
+        production reporting, not an independently-sized convenience sample.
     """
     corr = float(np.corrcoef(frame["risk_index"], frame["treatment_rate_change"])[0, 1])
     identifying_var = 1.0 - (corr**2)
@@ -191,6 +231,13 @@ def _run_dowhy_refuters(
       confirms the estimate is stable across data partitions.
 
     Therefore, a refutation test passes when the estimator fails to reject the null of stability.
+
+    Note: this function deliberately caps at `max_refutation_rows` (default 500) for the
+    refutation suite specifically, independent of `fit_causal_elasticity`'s `max_rows`. DoWhy's
+    permutation-based refuters are expensive per row; this cap keeps refutation runtime bounded.
+    This cap was NOT implicated in the correlation-instability findings above, since refutation
+    results (p-values/pass-fail) are computed independently of, and after, the correlation
+    metric — raising it is a separate cost/thoroughness tradeoff, not a correctness fix.
     """
     from dowhy import CausalModel
 
@@ -218,7 +265,11 @@ def _run_dowhy_refuters(
         method_name="backdoor.econml.dml.CausalForestDML",
         effect_modifiers=common_causes,
         method_params={
-            "init_params": {"n_estimators": 24, "subforest_size": 4, "random_state": random_state},
+            "init_params": {
+                "n_estimators": 100,
+                "subforest_size": 4,
+                "random_state": random_state,
+            },
             "fit_params": {},
         },
     )
@@ -312,12 +363,49 @@ def fit_causal_elasticity(
     feature_columns: tuple[str, ...] = DEFAULT_FEATURE_COLUMNS,
     test_size: float = 0.2,
     random_state: int = 42,
-    max_rows: int = 5000,
+    max_rows: int = 20000,
+    run_refuters: bool = True,
 ) -> CausalElasticityResult:
-    """Fit a synthetic-treatment CausalForestDML model and validate recovery."""
-    prepared = _prepare_causal_dataset(frame, feature_columns)
+    """Fit a synthetic-treatment CausalForestDML model and validate recovery.
+
+    Args:
+        frame: Input feature matrix (e.g. data/versioned/feature_matrix.csv).
+        feature_columns: Columns used as X (heterogeneity covariates).
+        test_size: Held-out fraction for the policy-grouped split.
+        random_state: Seed governing the ENTIRE pipeline — synthetic DGP, row
+            subsampling, train/test split, and the forest's own internal
+            randomness. (Previously this seed only governed a subset of these;
+            see module docstring for the propagation bug this fixes.)
+        max_rows: Cap on rows used for fitting/evaluation, applied AFTER DGP
+            construction. Raised from 5,000 to 20,000 following empirical
+            findings that 5,000 rows (yielding a ~1,000-row test split) produced
+            unstable, occasionally negative, correlation-to-ground-truth results —
+            see module docstring. Raise further if your environment can sustain
+            the additional fit cost; do not lower below 20,000 without re-running
+            the calibration script first.
+        run_refuters: If False, skips the DoWhy refutation suite. The refutation
+            results are computed independently of, and after, all other metrics
+            in this function, so disabling them does not affect correlation, ATE,
+            or the confidence interval — this flag exists purely to allow fast,
+            repeated calibration runs (e.g. scripts/calibrate_causal_threshold.py)
+            without paying DoWhy's permutation-refuter cost on every seed. Always
+            True in production (the `train-causal` CLI path never sets this False).
+
+    Returns:
+        CausalElasticityResult: structured result including sample-size provenance.
+
+    Raises:
+        ValueError: if training/test partitions are empty, or if the point
+            estimate falls outside its own reported confidence interval
+            (an internal consistency guard against future point-estimate/CI
+            computation bugs of the same class as the one this module already
+            fixed once).
+    """
+    prepared = _prepare_causal_dataset(frame, feature_columns, random_state=random_state)
     if len(prepared) > max_rows:
         prepared = prepared.sample(n=max_rows, random_state=random_state).reset_index(drop=True)
+
+    total_sample_size = len(prepared)
 
     train_frame, test_frame = create_policy_split(
         prepared, test_size=test_size, random_state=random_state
@@ -325,8 +413,10 @@ def fit_causal_elasticity(
     if train_frame.empty or test_frame.empty:
         raise ValueError("Causal training and test partitions must both contain rows.")
 
+    test_sample_size = len(test_frame)
+
     model = CausalForestDML(
-        n_estimators=24,
+        n_estimators=100,
         subforest_size=4,
         min_samples_leaf=5,
         random_state=random_state,
@@ -381,10 +471,23 @@ def fit_causal_elasticity(
         "residual_variance": res_metrics["residual_variance"],
         "residual_identifying_variance": res_metrics["residual_identifying_variance"],
     }
-    refutation_summary = _run_dowhy_refuters(
-        prepared,
-        feature_columns=feature_columns,
-        random_state=random_state,
+    refutation_summary = (
+        _run_dowhy_refuters(
+            prepared,
+            feature_columns=feature_columns,
+            random_state=random_state,
+        )
+        if run_refuters
+        else {}
+    )
+    logger.info(
+        "fit_causal_elasticity complete: total_sample_size=%d, test_sample_size=%d, "
+        "correlation=%.4f. Correlation is sample-size-sensitive — do not compare this "
+        "value against a result computed at a different sample size without accounting "
+        "for that difference.",
+        total_sample_size,
+        test_sample_size,
+        correlation,
     )
     return CausalElasticityResult(
         fitted_model=model,
@@ -396,6 +499,8 @@ def fit_causal_elasticity(
         calibration_metrics=calibration_metrics,
         refutation_summary=refutation_summary,
         ground_truth=pd.Series(ground_truth, index=test_frame.index),
+        total_sample_size=total_sample_size,
+        test_sample_size=test_sample_size,
     )
 
 
@@ -419,6 +524,12 @@ def save_causal_artifact(result: CausalElasticityResult, output_path: Path | str
             "residual_identifying_variance"
         ),
         "refutation_summary": result.refutation_summary,
+        # Every persisted artifact states the exact sample sizes it was computed from.
+        # `correlation` (and every other calibration metric) is a sample-size-sensitive
+        # statistic — a CI test reading this artifact must be able to tell what it's
+        # actually comparing against.
+        "total_sample_size": result.total_sample_size,
+        "test_sample_size": result.test_sample_size,
     }
     destination.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
     return destination
