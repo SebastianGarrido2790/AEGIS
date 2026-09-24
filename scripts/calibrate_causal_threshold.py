@@ -80,7 +80,14 @@ def run_one_seed(
     """
     try:
         proc = subprocess.run(
-            [sys.executable, "-c", _WORKER_SCRIPT, str(feature_matrix_path), str(seed), str(max_rows)],
+            [
+                sys.executable,
+                "-c",
+                _WORKER_SCRIPT,
+                str(feature_matrix_path),
+                str(seed),
+                str(max_rows),
+            ],
             capture_output=True,
             text=True,
             timeout=timeout_seconds,

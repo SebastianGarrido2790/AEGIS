@@ -53,17 +53,24 @@ from aegis.pipelines.training.causal_elasticity import (
 # below MUST be re-calibrated at whatever size is actually used — it is not portable
 # across sample sizes.
 _UNIT_TEST_SAMPLE_SIZE = 20000
-_UNIT_TEST_CORRELATION_THRESHOLD = 0.40
+# Calibrated 2026-09 from 15 seeds at max_rows=20,000 via
+# `uv run python scripts/calibrate_causal_threshold.py --seeds 15`:
+#   min positive correlation = 0.4535 (seed 2), 14/15 seeds positive,
+#   1/15 negative (-0.4397, seed 14 — a genuine outlier, see module docstring).
+# Set just below the minimum positive correlation so the threshold is
+# meaningful (fails on the negative seed) but not so tight it breaks on
+# normal seed-to-seed variation.
+_UNIT_TEST_CORRELATION_THRESHOLD = 0.45
 
-# Production-artifact threshold. Derived from 3 real observations at max_rows=20,000
-# (0.7606, 0.6415, 0.4520 — see module docstring), set well below the worst of those
-# three, not from a full calibrated distribution.
-#
-# TODO(calibration, blocking before this is treated as final): run
-# `uv run python scripts/calibrate_causal_threshold.py --seeds 15` in a real (non-sandboxed)
-# environment and replace this constant with a value derived from the actual observed
-# distribution at production sample size, per the script's own output guidance.
-_PRODUCTION_ARTIFACT_CORRELATION_FLOOR = 0.30
+# Production-artifact correlation floor. Calibrated 2026-09 from 15 seeds at
+# max_rows=20,000 (see artifacts/calibration.json for full per-seed results):
+#   mean=0.717, stdev=0.349, min=-0.4397, max=0.9849, 14/15 positive.
+# Set at 0.40 — below the minimum positive correlation (0.4535) but above
+# the mean-minus-2sigma suggestion (0.10), which is not trustworthy here because
+# the distribution is heavily right-skewed with a single strong negative outlier.
+# This floor catches the observed negative seed (-0.44) and any future
+# regression that pushes correlation meaningfully below the positive cluster.
+_PRODUCTION_ARTIFACT_CORRELATION_FLOOR = 0.40
 _PRODUCTION_ARTIFACT_PATH = Path("data/validated/causal_elasticity.json")
 _PRODUCTION_MIN_EXPECTED_SAMPLE_SIZE = 15000
 
@@ -259,7 +266,7 @@ class TestArtifactValidation:
     def test_save_causal_artifact_creates_valid_payload(
         self, causal_result: CausalElasticityResult, tmp_path: Path
     ) -> None:
-        """Saved artifact must preserve model, CI, calibration, refutation, and sample-size metadata."""
+        """Preserve model, CI, calibration, refutation, and sample-size metadata."""
         artifact_path = tmp_path / "causal_elasticity.json"
         saved = save_causal_artifact(causal_result, artifact_path)
 
