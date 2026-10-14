@@ -11,23 +11,11 @@ import shutil
 import sys
 from pathlib import Path
 
-import pandas as pd
-
 from aegis.config.loader import get_config
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
     validate_regulatory_corpus,
 )
-from aegis.pipelines.feature.pipeline import build_feature_matrix
-from aegis.pipelines.training.causal_elasticity import (
-    fit_causal_elasticity,
-    save_causal_artifact,
-)
-from aegis.pipelines.training.glm_baseline import (
-    fit_tweedie_baseline,
-    save_baseline_artifact,
-)
-from aegis.pipelines.training.mlflow_tracking import track_and_register_model
 from aegis.utils.exceptions import DataContractError
 
 
@@ -134,20 +122,6 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Ingest commands
-    p_ing_f = subparsers.add_parser("ingest-fremtpl2")
-    p_ing_f.add_argument(
-        "--output-path",
-        type=Path,
-        default=Path("data/raw/elasticity_fremtpl2.csv"),
-        help="Target CSV path for ingested freMTPL2 dataset",
-    )
-    p_ing_f.add_argument(
-        "--force-download",
-        action="store_true",
-        default=False,
-        help="Force download from OpenML even if output file exists",
-    )
-
     p_ing_e = subparsers.add_parser("ingest-elasticity")
     p_ing_e.add_argument(
         "--input-path",
@@ -246,48 +220,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/versioned/regulatory_corpus.json"),
     )
 
-    p_feature = subparsers.add_parser("build-features")
-    p_feature.add_argument(
-        "--input-path",
-        type=Path,
-        default=Path("data/versioned/elasticity_fremtpl2.csv"),
-        help="Validated source dataset for feature construction",
-    )
-    p_feature.add_argument(
-        "--output-path",
-        type=Path,
-        default=Path("data/versioned/feature_matrix.csv"),
-        help="Target path for the engineered feature matrix",
-    )
-
-    p_glm = subparsers.add_parser("train-glm")
-    p_glm.add_argument(
-        "--input-path",
-        type=Path,
-        default=Path("data/versioned/feature_matrix.csv"),
-        help="Stage 2 feature matrix used for GLM training",
-    )
-    p_glm.add_argument(
-        "--output-path",
-        type=Path,
-        default=Path("data/validated/glm_baseline.json"),
-        help="Target JSON path for baseline metrics and intervals",
-    )
-
-    p_causal = subparsers.add_parser("train-causal")
-    p_causal.add_argument(
-        "--input-path",
-        type=Path,
-        default=Path("data/versioned/feature_matrix.csv"),
-        help="Stage 2 feature matrix used for causal elasticity validation",
-    )
-    p_causal.add_argument(
-        "--output-path",
-        type=Path,
-        default=Path("data/validated/causal_elasticity.json"),
-        help="Target JSON path for causal metrics and refutations",
-    )
-
     return parser
 
 
@@ -296,14 +228,6 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "ingest-fremtpl2":
-        from aegis.pipelines.feature.ingest import ingest_fremtpl2_pipeline
-
-        ingest_fremtpl2_pipeline(
-            output_path=args.output_path,
-            force_download=args.force_download,
-        )
-        return 0
     if args.command == "ingest-elasticity":
         return ingest_file(args.input_path, args.output_path, "elasticity")
     if args.command == "ingest-regulatory":
@@ -316,70 +240,6 @@ def main() -> int:
         return version_file(args.raw_path, args.report_path, args.output_path)
     if args.command == "version-regulatory":
         return version_file(args.raw_path, args.report_path, args.output_path)
-    if args.command == "build-features":
-        dataset = pd.read_csv(args.input_path)
-        feature_matrix = build_feature_matrix(dataset)
-        args.output_path.parent.mkdir(parents=True, exist_ok=True)
-        feature_matrix.to_csv(args.output_path, index=False)
-        print(f"[FEATURE] Wrote feature matrix to {args.output_path}")
-        return 0
-    if args.command == "train-glm":
-        dataset = pd.read_csv(args.input_path)
-        result = fit_tweedie_baseline(dataset)
-        save_baseline_artifact(result, args.output_path)
-        track_and_register_model(
-            model_name="glm_baseline",
-            registered_name="aegis-glm-baseline",
-            model_object={
-                "model": "tweedie_glm",
-                "calibration_metrics": result.calibration_metrics,
-                "feature_columns": list(result.feature_columns),
-            },
-            params={"random_state": 42},
-            metrics=result.calibration_metrics,
-            artifact_payload={
-                "calibration_metrics": result.calibration_metrics,
-                "confidence_intervals": {
-                    str(name): {"lower": float(row.iloc[0]), "upper": float(row.iloc[1])}
-                    for name, row in result.confidence_intervals.iterrows()
-                },
-            },
-            artifact_name="glm_baseline_summary.json",
-        )
-        print(f"[GLM] Wrote baseline artifact to {args.output_path}")
-        return 0
-    if args.command == "train-causal":
-        dataset = pd.read_csv(args.input_path)
-        result = fit_causal_elasticity(dataset)
-        save_causal_artifact(result, args.output_path)
-        track_and_register_model(
-            model_name="causal_elasticity",
-            registered_name="aegis-causal-elasticity",
-            model_object={
-                "model": "causal_forest_dml",
-                "average_treatment_effect": result.average_treatment_effect,
-                "treatment_effect_confidence_interval": {
-                    "lower": result.treatment_effect_confidence_interval[0],
-                    "upper": result.treatment_effect_confidence_interval[1],
-                    "alpha": 0.05,
-                },
-                "correlation": result.correlation,
-                "residual_variance": result.calibration_metrics.get("residual_variance"),
-                "residual_identifying_variance": result.calibration_metrics.get(
-                    "residual_identifying_variance"
-                ),
-                "refutation_summary": result.refutation_summary,
-            },
-            params={"random_state": 42},
-            metrics=result.calibration_metrics,
-            artifact_payload={
-                "refutation_summary": result.refutation_summary,
-                "calibration_metrics": result.calibration_metrics,
-            },
-            artifact_name="causal_refutation_summary.json",
-        )
-        print(f"[CAUSAL] Wrote causal artifact to {args.output_path}")
-        return 0
 
     return 1
 

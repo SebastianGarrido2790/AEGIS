@@ -12,7 +12,7 @@ Designed for actuarial and pricing analysts, underwriting teams, and compliance 
 | :------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------- |
 | **Phase 0 — Planning & Design**                    | ML Canvas, Project Charter, PRD, User Story, Technical Roadmap, System Design ADRs                              | ✅ Complete    |
 | **Phase 1 — Scaffolding & Data Contracts**         | Repository structure, `uv` toolchain, `params.yaml`, Great Expectations suites (elasticity & regulatory corpus) | ✅ Complete    |
-| **Phase 2 — Tier 1: Deterministic ML Baseline**    | freMTPL2 ingestion, deterministic features, Tweedie GLM, synthetic causal validation, MLflow registry, showcase | ✅ Complete    |
+| **Phase 2 — Tier 1: Deterministic ML Baseline**    | freMTPL2 ingestion, deterministic features, Tweedie GLM, synthetic causal validation, MLflow registry, showcase | 🔄 Reset — EDA-first redo pending |
 | **Phase 3 — Contextual Bandit Exploration Engine** | Bounded Thompson Sampling exploration corridor, synthetic production stream simulator, regret evaluation        | ⬜ Scheduled   |
 | **Phase 4 — LLM Gateway Integration**              | In-process LiteLLM Gateway, Redis Stack cache, pre-flight guardrails (PII/injection), OTel cost/trace emission  | ⬜ Scheduled   |
 | **Phase 5 — Regulatory RAG Foundation**            | RedisVL/HNSW vector index, regulatory corpus ingestion, retrieval-quality evaluation harness                    | ⬜ Scheduled   |
@@ -27,17 +27,20 @@ Designed for actuarial and pricing analysts, underwriting teams, and compliance 
 
 AEGIS is built upon strict architectural guardrails and engineering invariants:
 
-- **INV-1: Gateway Exclusivity.** No agent or module imports a raw provider SDK. Every LLM call routes through an in-process LiteLLM Gateway enforcing fallback chains, caching, and guardrails.
-- **INV-2: Single Vector Store.** Redis Stack (`RedisVL`/HNSW) serves as the unified store for both the regulatory RAG index and the Gateway's semantic prompt cache.
-- **INV-3: Data Contracts are Blocking.** Great Expectations suites validate elasticity training data and regulatory text prior to DVC versioning or indexing; contract failures halt the pipeline.
-- **INV-4: No Autonomous Publication.** AEGIS produces recommendations terminating at auto-approved routine sign-off or underwriter escalation — never publishing directly to a live rate table.
-- **INV-5: Advisory Causal Output.** Causal elasticity estimates and bandit suggestions are never surfaced to a user without accompanying compliance citations and revenue/loss-ratio financial context.
-- **INV-6: Grounding Failure Triggers Fallback.** When compliance retrieval groundedness drops below threshold, the system safely falls back to the last approved rate table and flags an escalation rather than guessing.
-- **INV-7: 100% Complete Audit Record.** Every decision produces a structured, immutable, independently reconstructable audit record.
-- **INV-8: 1,000-Line Module Ceiling.** Source modules under `src/` are capped at 1,000 lines, enforcing tight modularity and isolated testability.
-- **INV-9: Explicit Single-Jurisdiction Scope.** Compliance verdicts explicitly denote evaluation against an illustrative jurisdiction corpus, never claiming multi-state legal coverage.
-- **INV-10: Modeled Core-System Contracts.** Carrier core-system API contracts are modeled and mocked in v1 without live external network connections.
+| ID | Invariant | Origin | Enforcement |
+|---|---|---|---|
+| **INV-1** | **Gateway exclusivity.** No module may import or instantiate a raw LLM provider SDK client. Every LLM call routes through the LiteLLM Gateway. | ADR-001 | CI import-boundary check: build fails if a provider SDK is imported outside `src/aegis/gateway/`. |
+| **INV-2** | **Single vector store.** Redis Stack (RedisVL) is the only vector store. No second vector database without a superseding ADR. | ADR-002 | CI dependency audit flags any new vector-store package in `pyproject.toml`. |
+| **INV-3** | **Data contracts are blocking.** No dataset or corpus document is DVC-versioned or indexed without first passing its Great Expectations suite. A failed suite halts the pipeline. | ADR-003 | GX validation is a hard upstream dependency of every downstream DVC stage. |
+| **INV-4** | **No autonomous publication.** The system recommends a premium adjustment; it never publishes one. Every recommendation terminates at auto-approved-for-review or HITL escalation. | PRD §4; `scoping_doc.md` §§3,7 | Governance output schema has no "published" state; publication is manual, out-of-system. |
+| **INV-5** | **Causal output is advisory, not authoritative.** Elasticity/bandit output is never surfaced without accompanying Compliance and Revenue/Loss-Ratio Impact context. | PRD §6; `scoping_doc.md` §11 | Pricing Strategy output schema requires non-null Compliance and Impact fields. |
+| **INV-6** | **Grounding failure triggers fallback, not guessing.** Groundedness is a joint read across Faithfulness, Answer Relevancy, Context Recall, Context Precision — never a single score. Below threshold: fall back to the last compliance-approved rate table and escalate. | ADR-003 rationale; `scoping_doc.md` §11; refined by ADR-010 | Threshold check raises a typed exception in the Compliance node, caught by the governance fallback handler. |
+| **INV-7** | **Complete audit record, no exceptions.** Every recommendation produces one complete, structured, independently reconstructable audit record. | PRD FR-7, PRD §11 | Audit schema validation is the last gate before any API response; failure raises. |
+| **INV-8** | **Module size ceiling.** No file under `src/` exceeds 1,000 lines. Decompose, don't extend. | Project router (Phase 1) | `uv run python scripts/check_module_size.py`; over-limit fails the build. |
+| **INV-9** | **Single-jurisdiction scope is explicit, never implied.** Every compliance verdict states the corpus models one illustrative jurisdiction. | PRD §12, User Story §7 | Fixed disclaimer field in every Compliance output schema. |
+| **INV-10** | **No live core-system integration in v1.** Carrier core-system contracts are modeled/mocked, never connected live. | PRD §12 | No production carrier credential slot exists in configuration. |
 
+**Amendment record:** INV-6 was refined from an ad hoc single groundedness score to the four-metric joint read above, recorded as ADR-010 — not a silent edit. The current `tier2_agents.groundedness_threshold` / `evidence_coverage_threshold` fields in `params.yaml` are Phase 1-era placeholders (ADR-005) and MUST be replaced with the full four-metric threshold set before the Compliance Agent ships (Phase 5/6).
 ---
 
 ## 🏗️ Architecture Overview

@@ -1,6 +1,6 @@
 # Phase 1 — Execution Workflow
 
-**Purpose:** translate the approved Phase 1 decisions (`phase_1_implementation_plan.md`, recorded as ADR-004 through ADR-008 in `system_design.md`) into a concrete, sequential build order. No code is written in this document — each stage below describes _what_ gets built and _how it's verified_, not the implementation itself.
+**Purpose:** translate the approved Phase 1 decisions (`implementation_plan.md`, recorded as ADR-004 through ADR-008 in `system_design.md`) into a concrete, sequential build order. No code is written in this document — each stage below describes _what_ gets built and _how it's verified_, not the implementation itself.
 
 **Rule for every stage:** the gate at the end of a stage must pass before the next stage begins. A stage is not "mostly done" — it is done, gate-verified, or not started. If a gate fails, work stays in that stage until it passes; nothing downstream gets touched in the meantime.
 

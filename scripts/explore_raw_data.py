@@ -844,7 +844,13 @@ def generate_markdown_report(
         f"exposure > 1.0 (max {anomalies['max_exposure_observed']:.2f}). Cap at 1.0.",
         f"2. **Loss Capping**: Top claim takes {sev_res.top_1_loss_pct:.2f}% of losses and "
         f"{anomalies['claims_exceeding_100k_count']} claims exceed €100k. Apply loss truncation.",
-        "3. **Negative Binomial**: Overdispersion confirms Negative Binomial frequency.",
+        "3. **Frequency Model**: "
+        f"dispersion ratio {freq_res.dispersion_ratio:.4f} — "
+        + (
+            "overdispersed; Negative Binomial indicated."
+            if freq_res.dispersion_ratio > 1.05
+            else "near Poisson; Poisson viable."
+        ),
         "4. **Log-Transform Density**: Log-density yields linear risk scaling.\n",
     ])
     return "\n".join(md_lines)

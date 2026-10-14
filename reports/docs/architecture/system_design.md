@@ -228,7 +228,7 @@ the completed phase.
 
 **Rationale:** A code listing cannot communicate that the system is _governed_, not merely agentic — an evaluator needs to see an escalation trigger or a fallback engage to register that distinction. FastAPI + Jinja2 was chosen over Streamlit/Gradio to remain consistent with established portfolio precedent and to avoid the "quick model demo" association those frameworks carry, which risks undercutting the production-engineering positioning this project is built around. Incremental delivery avoids concentrating UI risk at the end of the roadmap, when schedule pressure is highest and scope quietly erodes. Curated scenarios over free-form input were chosen because INV-10 means there is no live data source for genuinely free-form input to query against — and because showing only successful approvals would hide the actual differentiator (the governance layer), which is the entire point of exposing this to the secondary audience in the first place.
 
-**Consequences:** `canvas.md` §4, `prd.md` §12, and `technical_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
+**Consequences:** `scoping_doc.md`, `prd.md` §12, and `implementation_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
 
 ### ADR-010: Compliance Agent evaluation refined to a four-metric diagnostic matrix (INV-6 amendment)
 
@@ -333,11 +333,11 @@ the completed phase.
 
 **Context:** ADR-009 mandates a glass-box showcase interface slice for Phase 2. Serving infrastructure must be separated from internal agent tools, and the Roadmap's Phase 2 deliverable line must accurately reflect Phase 2 scope.
 
-**Decision:** Establish `src/aegis/api/` for the FastAPI serving application and Jinja2 showcase templates. Correct `technical_roadmap.md` to specify elasticity output (omitting premature bandit references). Configure preset risk scenarios ("Young Urban Commuter", "Experienced Rural Driver", "High-Mileage Commercial Driver") to demonstrate segment-varying elasticity.
+**Decision:** Establish `src/aegis/api/` for the FastAPI serving application and Jinja2 showcase templates. Correct `../implementation_roadmap.md` to specify elasticity output (omitting premature bandit references). Configure preset risk scenarios ("Young Urban Commuter", "Experienced Rural Driver", "High-Mileage Commercial Driver") to demonstrate segment-varying elasticity.
 
 **Rationale:** Separating `src/aegis/api/` from `src/aegis/tools/` maintains clean architectural boundaries. Preset scenarios showcase the core value proposition of Double-ML heterogeneous treatment effect estimation.
 
-**Consequences:** `src/aegis/api/` is introduced into the codebase; `technical_roadmap.md` is updated.
+**Consequences:** `src/aegis/api/` is introduced into the codebase; `../implementation_roadmap.md` is updated.
 
 ### ADR-018: Visualization stack — Matplotlib for static reports & Chart.js CDN for interactive showcase UI
 
@@ -382,7 +382,7 @@ The Phase 2 remediation established explicit engineering practices that govern a
 
 ## 8. Update Protocol
 
-At the close of each phase in `../references/technical_roadmap.md`:
+At the close of each phase in `../implementation_roadmap.md`:
 
 1. Update "Current Implementation Status" to reflect what was actually built.
 2. Mark each relevant ADR's status as **Validated** (implementation matched the decision) or **Amended** (implementation diverged, the amendment must be logged as a new dated entry under the original ADR, not a silent edit).

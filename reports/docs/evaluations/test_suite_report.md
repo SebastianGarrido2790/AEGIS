@@ -5,7 +5,7 @@
 > **Status:** 🟢 34 / 34 Tests Passing (0 Warnings)  
 > **Coverage:** 94% Total Code Coverage (100% Core Config, Expectations, Schemas & Utils)  
 > **Maintained By:** Agentic System Architect & MLOps Engineering Team  
-> **Reference Documents:** [technical_roadmap.md](../references/technical_roadmap.md), [phase_1_execution_workflow.md](../workflows/phase_1_execution_workflow.md), [phase_1_evaluation_report.md](phase_1_evaluation_report.md), [phase_1_architecture_report.md](../architecture/phase_1_architecture_report.md), [system_design.md](../architecture/system_design.md)
+> **Reference Documents:** [implementation_roadmap.md](../implementation_roadmap.md), [execution_plan.md](../phases/phase_1/execution_plan.md), [phase_1_evaluation_report.md](phase_1_evaluation_report.md), [phase_1_architecture_report.md](../architecture/phase_1_architecture_report.md), [system_design.md](../architecture/system_design.md)
 
 ---
 

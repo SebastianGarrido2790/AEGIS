@@ -76,7 +76,7 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 ## Downstream Document Updates — Completed
 
-- **`canvas.md` §4 (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
+- **`scoping_doc.md` (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
 - **`prd.md` §12 (Out of Scope):** clarified that "full production UI" refers to a real underwriting console, distinct from this demo interface.
-- **`technical_roadmap.md`:** incremental UI slice added as a deliverable and exit-criterion item at the close of Phases 2, 6, and 7.
+- **`../implementation_roadmap.md`:** incremental UI slice added as a deliverable and exit-criterion item at the close of Phases 2, 6, and 7.
 - **`system_design.md`:** recorded as ADR-009.

@@ -84,7 +84,7 @@ This is the master engineering procedures and troubleshooting manual for AEGIS. 
 | Challenge Domain | Configuration Management (Stage 2) |
 | Problem / Symptom | Forward-declaring sections for unbuilt tiers (`gateway:`, `tier1_ml:`, `tier2_agents:`, `governance:`) with required fields forced premature vendor and model selections in `params.yaml` three phases ahead of their implementation. |
 | Root Cause | Pydantic schema declared required fields without default factories for unbuilt stages. |
-| Implemented Solution | Configured `default_factory` on root `AEGISConfig` and explicit defaults on tier models so unbuilt tiers remain optional at startup, while keeping `DataContractsConfig` strictly required. Explicitly recorded this rationale in `phase_1_implementation_plan.md` (Part E). |
+| Implemented Solution | Configured `default_factory` on root `AEGISConfig` and explicit defaults on tier models so unbuilt tiers remain optional at startup, while keeping `DataContractsConfig` strictly required. Explicitly recorded this rationale in `../phases/phase_1/implementation_plan.md` (Part E). |
 | Governing Authority | ADR-005 (`system_design.md`); Phase 1 Implementation Plan (Part E) |
 
 ### Entry 1.3 — Decorative DVC Configuration Cleanup (R-3)

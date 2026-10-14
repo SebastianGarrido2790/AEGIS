@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from aegis.api.app import app
@@ -8,7 +9,12 @@ from aegis.api.scenarios import SCENARIOS
 
 client = TestClient(app)
 
+requires_registered_model = pytest.mark.skip(
+    reason="Phase 2 reset: no registered model in MLflow until the EDA-first redo re-trains."
+)
 
+
+@requires_registered_model
 def test_showcase_renders_default_registered_model_scenario() -> None:
     """The default preset exposes registered-model metrics and demo labeling."""
     clear_model_cache()
@@ -23,6 +29,7 @@ def test_showcase_renders_default_registered_model_scenario() -> None:
     assert "cdn.jsdelivr.net/npm/chart.js" in response.text
 
 
+@requires_registered_model
 def test_showcase_renders_each_curated_preset() -> None:
     """Every approved segment preset renders a distinct scenario heading."""
     payload = load_registered_model_payload()
