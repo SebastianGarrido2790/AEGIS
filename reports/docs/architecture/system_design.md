@@ -2,7 +2,7 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 2 Implemented and Validated.** Phase 1 foundations remain validated; Phase 2 adds the DVC-gated freMTPL2 path, deterministic feature pipeline, Tweedie GLM baseline, synthetic-treatment causal validation, MLflow tracking/registry, evaluation artifacts, and a read-only showcase interface. Tier 2 agent orchestration and Tier 3 governance remain future phases.
+**Status: Phase 1 Validated; Phase 2 reset for EDA-first redo.** Phase 1 foundations remain validated. Tier 1 deterministic work (DVC-gated freMTPL2 path, feature pipeline, GLM baseline, causal validation, MLflow registry, showcase slice) was removed from `main` pending a fresh EDA-first implementation; the removed design, including ADR-011 through ADR-019, is preserved in branch `archive/phase2-attempt-1`. Tier 2 agent orchestration and Tier 3 governance remain future phases.
 
 ---
 
@@ -64,57 +64,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 | Observability                  | Tracing, cost, drift, and evaluation                                                                                        | OTel, LLM-as-judge regression suite                 |
 | CI/CD                          | Reproducibility, coverage, and data-contract gating                                                                         | GitHub Actions                                      |
 
-## 3. Phase 2 implemented architecture
-
-Phase 2 implements the Tier 1 deterministic branch of the architecture above.
-The current runtime and artifact path is:
-
-```mermaid
-flowchart TD
-    SOURCE["OpenML freMTPL2freq/freMTPL2sev"] --> INGEST["feature/ingest.py"]
-    INGEST --> GX["Great Expectations contract"]
-    GX --> DVC["DVC versioned dataset"]
-    DVC --> FEATURES["Shared feature pipeline"]
-    FEATURES --> GLM["Tweedie GLM baseline"]
-    FEATURES --> CAUSAL["CausalForestDML\nsynthetic treatment"]
-    GLM --> MLFLOW["MLflow tracking + registry"]
-    CAUSAL --> MLFLOW
-    MLFLOW --> SERVICE["Registered metadata service"]
-    SERVICE --> SHOWCASE["FastAPI/Jinja2 showcase"]
-```
-
-The implementation has three hard boundaries:
-
-1. **Data boundary:** Great Expectations must pass before DVC promotion.
-2. **Model boundary:** GLM and causal training consume the same deterministic,
-   policy-grouped feature matrix and emit JSON artifacts plus MLflow records.
-3. **Serving boundary:** the showcase reads a complete registered causal
-   metadata payload; it does not retrain or publish rates.
-
-The causal output is advisory estimator-validation evidence. It is not yet
-combined with compliance retrieval, revenue/loss-ratio impact, HITL escalation,
-or structured audit persistence. Those are downstream Tier 2 and Tier 3
-responsibilities.
-
-### Phase 2 implementation inventory
-
-| Concern | Implemented location | Primary output |
-| --- | --- | --- |
-| freMTPL2 ingestion and mapping | `src/aegis/pipelines/feature/ingest.py` | `data/raw/elasticity_fremtpl2.csv` |
-| Blocking data validation | `src/aegis/pipelines/data_contracts.py`, `data_contracts/` | GX validation reports |
-| Reproducible orchestration | `dvc.yaml`, `dvc.lock` | Versioned data and model stages |
-| Shared features and split | `src/aegis/pipelines/feature/pipeline.py` | `data/versioned/feature_matrix.csv` |
-| Predictive baseline | `src/aegis/pipelines/training/glm_baseline.py` | `glm_baseline.json` |
-| Causal validation | `src/aegis/pipelines/training/causal_elasticity.py` | `causal_elasticity.json` |
-| Experiment provenance | `src/aegis/pipelines/training/mlflow_tracking.py` | Runs and registered models |
-| Read-only presentation | `src/aegis/api/` | Curated demo showcase |
-
-This implementation inventory is the concrete Phase 2 subset of the broader
-architecture. It intentionally leaves the LLM Gateway, LangGraph agents,
-Redis-backed regulatory RAG, governance fallback, HITL, and audit log outside
-the completed phase.
-
-## 4. Data Flow (Target Architecture)
+## 3. Data Flow (Target Architecture)
 
 1. A segment/policy is submitted to the FastAPI layer.
 2. Tier 1 returns a causal elasticity estimate and a bandit-bounded proposed adjustment.
@@ -124,7 +74,7 @@ the completed phase.
 6. The Governance layer evaluates the combined output: within-bounds-and-compliant proposals are marked ready for routine underwriter sign-off; anything else is escalated with full state attached.
 7. A structured audit record is persisted regardless of outcome.
 
-## 5. Architectural Decision Records
+## 4. Architectural Decision Records
 
 ### ADR-001: LLM Gateway — LiteLLM (in-process) over a standalone proxy
 
@@ -242,136 +192,13 @@ the completed phase.
 
 **Consequences:** INV-6 and its new §9 (Evaluation, Calibration & Monitoring) are updated to reflect this. Phase 5/6 must expand `Tier2AgentsConfig` beyond its current two placeholder threshold fields before the Compliance Agent can ship — tracked as known, not silent, scope.
 
-### ADR-011: Elasticity dataset source & ingestion — OpenML/Kaggle freMTPL2 with local DVC tracking
-
-**Status:** Validated (Phase 2)
-
-**Context:** Phase 1 established data contracts and deferred raw dataset acquisition to Phase 2 (P1-D4c). Phase 2 modeling requires motor third-party liability exposure, claim frequency, and claim amount data.
-
-**Decision:** Acquire freMTPL2 (`freMTPL2freq` and `freMTPL2sev`) via `sklearn.datasets.fetch_openml` (with Kaggle ODbL public dataset mirror as verified source, `https://www.kaggle.com/datasets/karansarpal/fremtpl2-french-motor-tpl-insurance-claims`), persist the joined table into `data/raw/`, and DVC-track the resulting file.
-
-**Rationale:** `fetch_openml` eliminates extra download tools, while local DVC tracking ensures all subsequent DVC reproductions (`dvc repro`) and CI runs remain 100% offline, reproducible, and compliant with INV-10 (no live external network dependency).
-
-**Consequences:** `data/raw/elasticity_fremtpl2.csv` is versioned via DVC and validated against `elasticity_training_suite.json` (INV-3).
-
-### ADR-012: Feature engineering architecture — Decomposed transformers, grouped policy split & shared transformation function
-
-**Status:** Validated (Phase 2)
-
-**Context:** Raw insurance claims data requires transformations across multiple domains (exposure offset, driver risk profile, vehicle specs, geographic/bonus-malus features). Training and inference require strict parity without heavyweight feature-store infrastructure.
-
-**Decision:** Decompose feature transformers by domain under `src/aegis/pipelines/feature/`, implement a grouped train/test split by `policy_id`, and expose a single, deterministic, versioned transformation function imported identically by offline training pipelines and online FastAPI inference.
-
-**Rationale:** Modular transformers adhere to the INV-8 design ceiling and isolate unit-testable components. Grouped train/test splitting prevents policyholder leakage across evaluation folds. A single transformation function guarantees training-serving parity without external feature store overhead.
-
-**Consequences:** Feature logic is centralized and tested in `src/aegis/pipelines/feature/` and shared directly with `src/aegis/api/`.
-
-### ADR-013: Actuarial GLM baseline — Single Tweedie GLM on pure premium with statsmodels confidence intervals
-
-**Status:** Validated (Phase 2)
-
-**Context:** Phase 2 exit criteria mandate that the causal model outperforms an actuarial-standard GLM baseline with defensible confidence intervals.
-
-**Decision:** Fit a single Tweedie compound Poisson-Gamma GLM ($1 < p < 2$) on pure premium (loss cost = claim amount / exposure) with log link and exposure log-offset using `statsmodels.api.GLM`.
-
-**Rationale:** The Tweedie compound Poisson-Gamma distribution models zero-inflated continuous claim costs in a single unified loss-cost formulation matching the causal elasticity target. `statsmodels` provides closed-form asymptotic standard errors and parameter confidence intervals without computationally intensive bootstrapping.
-
-**Consequences:** `statsmodels` is added as a declared dependency in `pyproject.toml`.
-
-### ADR-014: Causal elasticity model — CausalForestDML with synthetic treatment validation & DoWhy refutation suite
-
-**Status:** Amended (2026-09-17; originally Validated in Phase 2)
-
-**Context:** Observational auto insurance data lacks randomized price experiments. Estimator recovery must be scientifically verifiable, and confounding robustness must be provable.
-
-**Decision:** Train EconML's `CausalForestDML` on an engineered synthetic rate-change treatment with a known segment-varying elasticity ground truth function. Perform confounding sensitivity analysis using DoWhy's refutation suite (placebo treatment, random common cause, data subset refuters) and log refutation outputs to MLflow.
-
-**Rationale:** Synthetic treatment injection provides an exact ground truth to rigorously validate treatment effect recovery, parameter bias, and confidence interval coverage. DoWhy refutation tests provide standardized, reproducible confounding sensitivity checks.
-
-**Consequences:** Causal models and sensitivity results are logged to MLflow; the evaluation report explicitly documents this as estimator recovery validation.
-
-**Amendment (2026-09-17) — Causal Validation, Point-Estimate/CI Alignment, and Refutation Recovery:**
-
-- **Audit Findings & Root Causes:**
-  1. *Weak Treatment Identification (Fix #1):* Treatment assignment was originally generated as a deterministic function of `risk_index` ($T = 0.05 + 0.10 \times \text{risk\_index}$), leaving $0\%$ residual identifying variation post-orthogonalization in Double-ML.
-  2. *Ground-Truth Drift (Fix #2):* Estimated effects were validated against the treatment assignment proxy formula rather than the true outcome response derivative $\tau(X) = \frac{\partial Y}{\partial T} = 2.0 + 1.5 \times \text{risk\_index}$.
-  3. *Point Estimate / Confidence Interval Divergence (Fix #3):* An artificial post-hoc clipping shift was applied exclusively to the point estimate (`clip(raw_effect - min(raw_effect), ...)`), resulting in an ATE of $283.05$ falling completely outside its reported 95% confidence interval $[-188.00, 220.24]$.
-  4. *Silent DoWhy Exception Swallowing (Fix #4):* DoWhy refuters failed with `ValueError: This estimator does not support X=None!` because `effect_modifiers` and `common_causes` were omitted from `CausalModel`, which was swallowed by a bare `except` handler that emitted static placeholder dictionaries (`p_value: 0.42`, `status: ok`).
-- **Amended Decision:**
-  1. Inject independent Gaussian noise ($\mathcal{N}(0, 0.05)$) into synthetic treatment assignment, guaranteeing $42.69\%$ identifying residual variance ($1 - R^2$) on the 2,000-row test sample ($36.25\%$ on the 5,000-row pipeline sample, strictly bounded in $[0.20, 0.70]$) and raw residual variance $0.0025$ ($\sigma=0.05$) recorded for data provenance, while retaining `risk_index`, driver/vehicle risk scores, and exposure in $X$ for segment heterogeneity modeling.
-  2. Define validation ground truth and outcome response programmatically via the single analytic derivative function `compute_true_causal_effect`.
-  3. Derive both point estimate and confidence interval directly from the identical untransformed model effect array without clipping, enforced by an in-code containment assertion (`ci_lower <= ATE <= ci_upper`).
-  4. Explicitly map feature columns as `effect_modifiers` and `common_causes` in DoWhy's `CausalModel` and eliminate the fallback handler so refuters execute live against `CausalForestDML` or fail loudly (with data subset refuter stability reporting $p < 0.001$ alongside placebo $p = 0.489$ and random common cause $p = 0.487$).
-
-### ADR-015: MLflow tracking & model registry — Local SQLite backend with structured refutation artifacts
-
-**Status:** Validated (Phase 2)
-
-**Context:** The Roadmap requires MLflow experiment tracking and Model Registry integration. MLflow's default local file store (`./mlruns`) does not support the Model Registry.
-
-**Decision:** Configure MLflow with a local SQLite backend URI (`sqlite:///mlflow.db`) and local artifact directory (`./artifacts/mlflow/`). Register distinct models (`aegis-glm-baseline` and `aegis-causal-elasticity`) and log DoWhy refutation summaries as structured JSON run artifacts.
-
-**Rationale:** SQLite enables full MLflow Model Registry capabilities (model versioning, staging, aliases) without requiring a persistent standalone server process, adhering to the local-first zero-cost development posture.
-
-**Consequences:** `mlflow.db` is local and gitignored; MLflow UI is launched locally via `uv run mlflow ui`.
-
-### ADR-016: Evaluation documentation — Versioned Markdown report with MLflow run mirroring
-
-**Status:** Validated (Phase 2)
-
-**Context:** The Technical Roadmap requires an evaluation report on calibration, treatment-effect confidence intervals, and confounding analysis.
-
-**Decision:** Author a versioned Markdown evaluation report in `reports/docs/evaluations/phase_2_evaluation_report.md` (populating the "Evaluations" documentation pillar) and attach an identical copy as an MLflow run artifact.
-
-**Rationale:** Markdown reports provide durable, diffable documentation in git, while MLflow run artifacts maintain provenance coupling with specific trained model versions.
-
-**Consequences:** `reports/docs/evaluations/` receives its first comprehensive evaluation report.
-
-### ADR-017: Serving layer & showcase interface — Dedicated `src/aegis/api/` package with segment-varying preset scenarios
-
-**Status:** Validated (Phase 2)
-
-**Context:** ADR-009 mandates a glass-box showcase interface slice for Phase 2. Serving infrastructure must be separated from internal agent tools, and the Roadmap's Phase 2 deliverable line must accurately reflect Phase 2 scope.
-
-**Decision:** Establish `src/aegis/api/` for the FastAPI serving application and Jinja2 showcase templates. Correct `../implementation_roadmap.md` to specify elasticity output (omitting premature bandit references). Configure preset risk scenarios ("Young Urban Commuter", "Experienced Rural Driver", "High-Mileage Commercial Driver") to demonstrate segment-varying elasticity.
-
-**Rationale:** Separating `src/aegis/api/` from `src/aegis/tools/` maintains clean architectural boundaries. Preset scenarios showcase the core value proposition of Double-ML heterogeneous treatment effect estimation.
-
-**Consequences:** `src/aegis/api/` is introduced into the codebase; `../implementation_roadmap.md` is updated.
-
-### ADR-018: Visualization stack — Matplotlib for static reports & Chart.js CDN for interactive showcase UI
-
-**Status:** Validated (Phase 2)
-
-**Context:** Visualizations are required for both static evaluation reports and the interactive showcase demo interface.
-
-**Decision:** Use `matplotlib` to render static figures for the Markdown evaluation report, and use Chart.js (via CDN) for dynamic, interactive elasticity curves and confidence interval bands in the Jinja2 showcase UI.
-
-**Rationale:** Split tooling provides self-contained static figures for git-based documentation and rich, responsive client-side interactivity for the demo interface without server-side rendering overhead.
-
-### ADR-019: freMTPL2 Schema Mapping & Elasticity Data Contract Amendment
-
-**Status:** Validated (Phase 2, Stage 0)
-
-**Context:** freMTPL2's published column structure (`IDpol`, `ClaimNb`, `Exposure`, `Area`, `VehPower`, `VehAge`, `DrivAge`, `BonusMalus`, `VehBrand`, `VehGas`, `Density`, `Region`, `ClaimAmount`) diverges from the initial schema field names assumed in Phase 1 planning. Additionally, `annual_mileage` is unobserved in freMTPL2 (and cannot be substituted with population density without distorting domain semantics), while charged `premium` is not directly recorded in the public benchmark claims dataset.
-
-**Decision:**
-1. Apply canonical column renaming at ingestion: `IDpol` $\rightarrow$ `policy_id`, `DrivAge` $\rightarrow$ `driver_age`, `VehAge` $\rightarrow$ `veh_age`, `ClaimNb` $\rightarrow$ `claim_count`, `Exposure` $\rightarrow$ `exposure`, `ClaimAmount` $\rightarrow$ `claim_amount`.
-2. Retain all auxiliary predictor features (`Area`, `VehPower`, `VehBrand`, `VehGas`, `Density`, `Region`, `BonusMalus`) as permitted columns (`exact_match=false`) for feature engineering and Double-ML heterogeneity modeling.
-3. Formally amend `data_contracts/elasticity_training_suite.json` to remove the `annual_mileage` column requirement.
-4. Derive `premium` during data preparation / feature engineering (Stage 2) as baseline actuarial rating pure premium ($LossCost = ClaimAmount / Exposure$ compound rate).
-
-**Rationale:** Explicit schema mapping provides a transparent bridge between the public freMTPL2 benchmark and the AEGIS pipeline. Formally amending the data contract via a recorded ADR preserves invariant integrity (INV-3) rather than burying an ad-hoc proxy in ingestion code.
-
-**Consequences:** `elasticity_training_suite.json` validates real-world freMTPL2 data intake while maintaining blocking data contract guarantees.
-
-## 6. Open Implementation Notes
+## 5. Open Implementation Notes
 
 - The specific persistence layer for the Tier 3 audit log is deferred to Phase 7 and not yet decided.
 - The minimal HITL review interface (Phase 7) is scoped as an endpoint, not a full dashboard, consistent with PRD §12 (out of scope: full production UI).
-- This document will be updated at the close of each phase in the Technical Roadmap to reflect the actual implemented state.
+- This document will be updated at the close of each phase in the Implementation Roadmap to reflect the actual implemented state.
 
-## 7. Engineering Practices & Quality Standards (Remediation Lessons)
+## 6. Engineering Practices & Quality Standards (Remediation Lessons)
 
 The Phase 2 remediation established explicit engineering practices that govern all subsequent phases:
 
@@ -380,7 +207,7 @@ The Phase 2 remediation established explicit engineering practices that govern a
 - **Zero Silent Fallbacks:** Bare `except` handlers that catch and convert pipeline errors into successful return payloads are prohibited. Refuters and estimators must execute live or fail loudly with typed exceptions.
 - **Scientific Reporting Conventions:** P-values resulting from finite simulation or permutation tests that yield zero empirical rejections are reported as $p < 0.001$ rather than absolute zero. Diagnostic variance fractions ($1 - R^2$) and raw noise variances are logged together for full data provenance.
 
-## 8. Update Protocol
+## 7. Update Protocol
 
 At the close of each phase in `../implementation_roadmap.md`:
 

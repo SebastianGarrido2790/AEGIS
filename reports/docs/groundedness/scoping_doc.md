@@ -52,7 +52,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 
 ## 6. Prior Work
 
-- **Domain precedent:** frequency-severity GLM decomposition on the freMTPL2 benchmark is a well-established actuarial case-study convention; Tier 1's baseline follows this precedent (as amended during Phase 2 remediation toward a single Tweedie model on pure premium, ADR-013).
+- **Domain precedent:** frequency-severity GLM decomposition on the freMTPL2 benchmark is a well-established actuarial case-study convention; the Tier 1 baseline for the redo follows this precedent.
 - **Portfolio precedent:** ACRAS (Agentic Credit Risk Assessment System), a sibling project in this same portfolio, applies the same deterministic-ML-plus-agentic-orchestration thesis to a different regulated domain (credit risk) via a relay-agent pattern. AEGIS extends the thesis with a heavier emphasis on RAG-grounded regulatory compliance and a three-agent (not relay) orchestration topology.
 - **No existing system** addresses this specific problem — a governed, auditable link between causal elasticity, regulatory compliance, and financial impact — directly; today's heuristic solution is the disconnected manual review chain described in §1.
 
@@ -84,7 +84,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 - [x] Evidence an agentic approach is the right tool — closed by the companion Pre-Build Validation Gates (`../evaluations/capability_profile_gates.md`): Level 3 Bounded Agent, three-agent parallel-branch design validated, open gaps recorded there.
 - [x] Goals and metrics align with stakeholder priorities — aligned with the sole practitioner's stated career-positioning goal (governed agentic systems engineering in regulated domains).
 - [x] Scope shared with relevant stakeholders — limited in practice to the sole practitioner and the academic stakeholder; noted honestly rather than skipped.
-- [x] Decisions and trade-offs recorded in the decision log — `system_design.md`'s ADR-001 through ADR-019 (and counting), plus the `decisions/` and `workflows/` pillars.
+- [x] Decisions and trade-offs recorded in the decision log — `system_design.md`'s ADR-001 through ADR-010 (and counting), plus the `decisions/` and `phases/` pillars.
 
 ## 11. What Could Go Wrong Along the Way
 

@@ -129,7 +129,7 @@ Author: Sebastián Garrido Arévalo | Date: August 15, 2026
 
 - CI is green end-to-end on a clean push.
 - A one-time, deliberate falsification pass: independently introduce one failure per gate — a lint violation, a type error, a dummy file padded past 1,000 lines, a malformed fixture swapped into the DVC-tracked data, a broken assertion in the one pytest test — and confirm each one independently turns CI red. Then revert each and confirm CI returns to green. This is the concrete proof that every gate in the pipeline is load-bearing, not decorative — a green CI that's never actually seen a failure hasn't demonstrated anything yet.
-- Once this falsification pass is complete and reverted, Phase 1 is done. `system_design.md`'s per-phase update protocol (§6) applies: mark ADR-004 through ADR-008 as **Validated** if implementation matched the decision as written, or **Amended** with a dated entry if anything diverged during the build.
+- Once this falsification pass is complete and reverted, Phase 1 is done. `system_design.md`'s per-phase update protocol (§7) applies: mark ADR-004 through ADR-008 as **Validated** if implementation matched the decision as written, or **Amended** with a dated entry if anything diverged during the build.
 
 ---
 
