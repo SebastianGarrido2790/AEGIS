@@ -56,3 +56,4 @@ mlflow.db
 # Agent Customizations
 .agents/
 AGENTS.md
+.opencode/
