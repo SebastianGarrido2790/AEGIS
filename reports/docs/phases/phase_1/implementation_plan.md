@@ -135,7 +135,7 @@ A note on **latency**: it isn't a live factor in any Phase 1 decision. Nothing i
 **Confidence note, per the project's 80% confidence rule:** Great Expectations' API surface (the "Fluent" datasource/expectation API vs. older patterns, and the split between open-source "GX Core" and "GX Cloud") has moved fast enough in recent releases that I'm not at ≥80% confidence on the exact current-recommended pattern as of today. Rather than guess and risk baking in a soon-to-be-deprecated pattern, I'm flagging this explicitly: **before writing any suite, verify the current stable API against GX's own documentation at implementation time**, rather than relying on my training-data recollection of the API shape.
 
 - **Option A — Current stable GX Core (open-source), file-based expectation suites (APPROVED).** No GX Cloud account, no external service dependency — suites stored as version-controlled files in the repo.
-- **Option B — GX Cloud.** Adds an external hosted dependency and, likely, an account/credential — which conflicts with the Local-First, zero-cost-during-development posture this project has held to since Phase 0 (Charter §6), and arguably brushes against the spirit of INV-10 (no live external system dependency in v1) even though INV-10 technically scopes only the carrier core system.
+- **Option B — GX Cloud.** Adds an external hosted dependency and, likely, an account/credential — which conflicts with the Local-First, zero-cost-during-development posture this project has held to since Phase 0 (INV-10; PRD §13), and arguably brushes against the spirit of INV-10 (no live external system dependency in v1) even though INV-10 technically scopes only the carrier core system.
 
 **Trade-off:** Option A, unambiguously — GX Cloud has no upside for a solo, cost-conscious, local-first project and a real downside (external dependency, likely credentials to manage). The only genuinely open question is the exact current API syntax within GX Core, which I'll verify against current docs before implementation rather than asserting here.
 
@@ -152,7 +152,7 @@ A note on **latency**: it isn't a live factor in any Phase 1 decision. Nothing i
 
 **Trade-off:** Option A is GX's own default serialization and diffs reasonably cleanly in git; Option B gives more flexibility for programmatically generated expectations (useful if the leakage check in the elasticity suite ends up needing custom logic beyond GX's built-in expectation types) at the cost of being slightly less declarative/scannable.
 
-**Recommendation:** Option A for the regulatory corpus suite (its checks — non-empty chunks, required metadata, duplicates — are all standard, declarative expectation types with no custom logic needed). Option B for the elasticity training suite specifically, since the post-treatment leakage check (Charter §9, PRD FR) is domain-specific logic unlikely to map cleanly onto a built-in GX expectation type and will likely need a custom expectation function. This is the one place in this document I'm recommending a genuine split rather than one answer for both suites — flag if you'd rather keep both suites in the same format for consistency, even at the cost of forcing the leakage check into a less natural shape.
+**Recommendation:** Option A for the regulatory corpus suite (its checks — non-empty chunks, required metadata, duplicates — are all standard, declarative expectation types with no custom logic needed). Option B for the elasticity training suite specifically, since the post-treatment leakage check (`../../groundedness/scoping_doc.md` §11; PRD §6) is domain-specific logic unlikely to map cleanly onto a built-in GX expectation type and will likely need a custom expectation function. This is the one place in this document I'm recommending a genuine split rather than one answer for both suites — flag if you'd rather keep both suites in the same format for consistency, even at the cost of forcing the leakage check into a less natural shape.
 
 **Outcome:** **RESOLVED — Option A.** Native JSON expectation-suite files committed to `data_contracts/` for both data pipelines (recorded in ADR-006).
 
@@ -175,7 +175,7 @@ A note on **latency**: it isn't a live factor in any Phase 1 decision. Nothing i
 
 #### P1-D4a — Remote storage backend _[RESOLVED — Invariant / No user input required]_
 
-A local filesystem remote (a local directory outside the repo, or the DVC default cache) is the only correct choice for Phase 1. This follows from three independent constraints all pointing the same direction: INV-10 (no live external system integration in v1), the zero-cost posture established in Charter §6, and the Local-First development principle already established as a standard across this portfolio. A cloud remote (S3, GCS, Azure Blob) introduces credentials, cost, and an external dependency for no benefit at this phase — there's no team to share data with yet and no CI runner that needs remote access, since Phase 1's fixtures are tiny and can live in the repo's own DVC cache. Recorded for completeness; revisit only if/when a genuine multi-environment or team-sharing need arises, which is not a Phase 1 concern.
+A local filesystem remote (a local directory outside the repo, or the DVC default cache) is the only correct choice for Phase 1. This follows from three independent constraints all pointing the same direction: INV-10 (no live external system integration in v1), the zero-cost posture established in Phase 0 (INV-10; ADR-007; PRD §13), and the Local-First development principle already established as a standard across this portfolio. A cloud remote (S3, GCS, Azure Blob) introduces credentials, cost, and an external dependency for no benefit at this phase — there's no team to share data with yet and no CI runner that needs remote access, since Phase 1's fixtures are tiny and can live in the repo's own DVC cache. Recorded for completeness; revisit only if/when a genuine multi-environment or team-sharing need arises, which is not a Phase 1 concern.
 
 **Outcome:** **RESOLVED.** Local filesystem cache/remote configured (recorded in ADR-007).
 
@@ -249,7 +249,7 @@ Phase 1's CI needs zero API keys or secrets. No agent, LLM call, or Gateway path
 
 All Phase 1 architectural decisions are now finalized and approved:
 
-1. `system_design.md` has been updated with ADR-004 through ADR-008 per its stated update discipline — decisions/ documents like this one are the deliberation trail; `system_design.md` is where the outcome becomes load-bearing record.
+1. `../../architecture/system_design.md` has been updated with ADR-004 through ADR-008 per its stated update discipline — decisions/ documents like this one are the deliberation trail; `../../architecture/system_design.md` is where the outcome becomes load-bearing record.
 2. This document's entries remain marked `RESOLVED` in place, preserving the trade-off reasoning for future reference.
 3. Phase 1 implementation begins on this approved foundation.
 

@@ -1,4 +1,4 @@
-# User Story & Problem Framing — AEGIS _(working title)_
+# User Story & Problem Framing — AEGIS
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026 | Phase 0 — Planning

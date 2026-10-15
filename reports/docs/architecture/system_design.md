@@ -2,65 +2,77 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 1 Validated; Phase 2 reset for EDA-first redo.** Phase 1 foundations remain validated. Tier 1 deterministic work (DVC-gated freMTPL2 path, feature pipeline, GLM baseline, causal validation, MLflow registry, showcase slice) was removed from `main` pending a fresh EDA-first implementation; the removed design, including ADR-011 through ADR-019, is preserved in branch `archive/phase2-attempt-1`. Tier 2 agent orchestration and Tier 3 governance remain future phases.
+**Status: Phase 1 Validated; Phase 2 reset for EDA-first redo.** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes the Option C governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
 
 ---
 
 ## 1. Architecture Overview
 
-```
-                    ┌──────────────────────────────┐
-                    │   FastAPI Serving Layer       │
-                    │ (Underwriting/Pricing Client)│
-                    └───────────────┬────────────────┘
-                                    │
-                                    ▼
-                    ┌──────────────────────────────┐
-                    │  LangGraph Orchestrator        │
-                    │  (Tier 2 — Agentic, Brain)     │
-                    │                                │
-                    │  Pricing Strategy Agent         │
-                    │        │                       │
-                    │        ▼                       │
-                    │  Regulatory Compliance Agent    │◄──── Redis Stack
-                    │        │        (RAG, RedisVL)  │      (RegVL/HNSW index)
-                    │        ▼                       │
-                    │  Revenue/Loss-Ratio Impact Agent│
-                    └───────────────┬────────────────┘
-                                    │
-                          ┌─────────┴─────────┐
-                          ▼                   ▼
-                ┌──────────────────┐  ┌──────────────────────┐
-                │   LLM Gateway      │  │  Tier 1 — Deterministic│
-                │   (LiteLLM)        │  │  ML (Brawn)            │
-                │                    │  │  GLM → Causal Elasticity│
-                │  Fallback / Router │  │  → Contextual Bandit    │
-                │  Cache (Redis      │  └───────────┬────────────┘
-                │  Stack, shared)    │              │
-                │  Guardrails        │              ▼
-                │  Cost/Trace Export │      MLflow + DVC (+ GX gates)
-                │  Cost/Trace Export │
-                └────────────────────┘
-                                    │
-                                    ▼
-                    ┌──────────────────────────────┐
-                    │  Tier 3 — Governance            │
-                    │  HITL Gate │ Deterministic       │
-                    │  Fallback │ Structured Audit Log │
-                    └──────────────────────────────┘
+```text
+                     ┌──────────────────────────────┐
+                     │   FastAPI Serving Layer       │
+                     │ (Underwriting/Pricing Client)│
+                     └───────────────┬──────────────┘
+                                     │
+                                     ▼
+                     ┌──────────────────────────────┐
+                     │   LangGraph Orchestrator     │
+                     │  (Tier 2 — Governed Workflow)│
+                     │                              │
+                     │  [Pricing Strategy] (Det.)   │
+                     │         │                    │
+                     │    ┌────┴────────────────┐   │
+                     │    ▼                     ▼   │
+                     │[Compliance Agent]  [Revenue  │◄──── Redis Stack
+                     │   (RAG, LLM)        Impact]  │      (RegVL/HNSW index)
+                     │    │                (Det.)   │
+                     │    └────┬────────────────┘   │
+                     │         ▼                    │
+                     │  [Governance Node] (Det.)    │
+                     │  (Corridor & Compliance Gate)│
+                     │         │                    │
+                     │         ▼                    │
+                     │  [Underwriter Briefing] (LLM)│
+                     │  (Non-decisional Narrative)  │
+                     │         │                    │
+                     │         ▼                    │
+                     │  [Narrative Validator] (Det.)│
+                     │  (Template Fallback)         │
+                     └───────────────┬──────────────┘
+                                     │
+                           ┌─────────┴─────────┐
+                           ▼                   ▼
+                 ┌──────────────────┐  ┌──────────────────────┐
+                 │   LLM Gateway      │  │  Tier 1 — Deterministic│
+                 │   (LiteLLM)        │  │  ML (Brawn)            │
+                 │                    │  │  GLM → Causal Elasticity│
+                 │  Fallback / Router │  │  → Contextual Bandit    │
+                 │  Cache (Redis      │  └───────────┬────────────┘
+                 │  Stack, shared)    │              │
+                 │  Guardrails        │              ▼
+                 │  Cost/Trace Export │      MLflow + DVC (+ GX gates)
+                 └────────────────────┘
+                                     │
+                                     ▼
+                     ┌──────────────────────────────┐
+                     │  Tier 3 — Governance & Audit │
+                     │  HITL Review Endpoint        │
+                     │  Deterministic Rate Fallback │
+                     │  Structured Audit Log (DB)   │
+                     └──────────────────────────────┘
 ```
 
 ## 2. Components (Planned)
 
 | Component                      | Responsibility                                                                                                              | Key technology                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Serving layer                  | Exposes the recommendation flow and glass-box showcase interface to underwriting/pricing clients | FastAPI, Jinja2, Chart.js, Docker                   |
-| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity model, contextual bandit                                                                    | scikit-learn, statsmodels, EconML/DoWhy, MLflow, DVC |
+| Serving layer                  | Exposes recommendation flow and glass-box showcase demo interface to underwriting/pricing clients                            | FastAPI, Jinja2, Chart.js, Docker                   |
+| Tier 1 — Deterministic ML      | GLM baseline, causal elasticity estimator (semi-synthetic benchmark), contextual bandit exploration corridor                | scikit-learn, statsmodels, EconML/DoWhy, MLflow, DVC |
 | Data contracts                 | CI-blocking validation of both data intake paths                                                                            | Great Expectations                                  |
 | LLM Gateway                    | Single enforcement boundary for every provider call: abstraction, fallback, routing, caching, guardrails, cost/trace export | LiteLLM (in-process)                                |
-| Regulatory RAG index           | Backing store for the Compliance Agent's retrieval and the Gateway's semantic cache                                         | Redis Stack (RedisVL/HNSW)                          |
-| Tier 2 — Agentic orchestration | Pricing Strategy, Regulatory Compliance, Revenue/Loss-Ratio Impact agents on shared state                                   | LangGraph, Pydantic                                 |
-| Tier 3 — Governance            | HITL escalation, deterministic fallback, structured audit log                                                               | Custom, backed by a persistence layer (TBD Phase 7) |
+| Regulatory RAG index           | Backing store for Compliance Agent retrieval and Gateway semantic prompt cache                                              | Redis Stack (RedisVL/HNSW)                          |
+| Tier 2 — Governed orchestration| Compliance reasoning agent, deterministic Pricing & Impact nodes, post-governance Briefing narrative & deterministic validator | LangGraph, Pydantic, LiteLLM                        |
+| Tier 3 — Governance & Audit    | HITL escalation gate, deterministic fallback rate table, structured immutable audit log                                     | Custom, backed by SQLite (dev) / DB (Phase 7)       |
 | Observability                  | Tracing, cost, drift, and evaluation                                                                                        | OTel, LLM-as-judge regression suite                 |
 | CI/CD                          | Reproducibility, coverage, and data-contract gating                                                                         | GitHub Actions                                      |
 
@@ -68,11 +80,15 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 1. A segment/policy is submitted to the FastAPI layer.
 2. Tier 1 returns a causal elasticity estimate and a bandit-bounded proposed adjustment.
-3. The LangGraph orchestrator invokes the Pricing Strategy Agent, which formats the proposal.
-4. The Regulatory Compliance Agent retrieves grounding evidence from the Redis Stack index (via the Gateway) and returns a pass/flag verdict.
-5. The Revenue/Loss-Ratio Impact Agent projects the financial effect.
-6. The Governance layer evaluates the combined output: within-bounds-and-compliant proposals are marked ready for routine underwriter sign-off; anything else is escalated with full state attached.
-7. A structured audit record is persisted regardless of outcome.
+3. The **Pricing Strategy deterministic node** validates inputs and constructs the typed rate adjustment proposal.
+4. Parallel execution fan-out:
+   - The **Regulatory Compliance Agent (LLM)** retrieves grounding evidence from Redis Stack (via the Gateway) and evaluates statutory compliance, returning a pass/flag verdict with citations.
+   - The **Revenue/Loss-Ratio Impact deterministic node** calculates projected financial effects ($LossCost$, $\Delta Rev$, $LossRatio$) using exact formulas without LLM involvement (INV-5).
+5. The **Governance deterministic node** evaluates corridor bounds and the compliance verdict, assigning a terminal disposition: `SUCCESS` (auto-approved-for-review) or `ESCALATE` (HITL underwriter review).
+6. Post-governance briefing:
+   - The **Underwriter Briefing LLM node** generates a qualitative natural-language briefing narrative explaining the proposal, citations, and financials for underwriters (`user_story.md` Story 2.1). This node has zero decision authority and runs after disposition is fixed.
+   - The **Deterministic Narrative Validator** parses the briefing to confirm every number, percentage, and citation matches the structured record. Any discrepancy or model failure falls back immediately to a deterministic Jinja2 template.
+7. An immutable structured audit record (proposal, compliance evidence, financial projection, disposition, briefing narrative, validation outcome) is persisted to storage.
 
 ## 4. Architectural Decision Records
 
@@ -82,7 +98,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Decision:** Use LiteLLM as an in-process library.
 
-**Rationale:** No additional service to deploy or operate, which matters directly for a solo-practitioner scope (Charter §9 risk register). LiteLLM is already a stack dependency for the `@observe` tracing integration, so this extends an existing dependency rather than introducing a new one.
+**Rationale:** No additional service to deploy or operate, which matters directly for a solo-practitioner scope (`../groundedness/scoping_doc.md` §11 risk register). LiteLLM is already a stack dependency for the `@observe` tracing integration, so this extends an existing dependency rather than introducing a new one.
 
 **Consequences:** The Gateway's resiliency and guardrail logic runs in-process with the orchestrator rather than as an independently scalable service; acceptable for the project's non-production scope (PRD §13 — no live deployment in v1).
 
@@ -94,7 +110,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Decision:** Use Redis Stack (RedisVL/HNSW) as the regulatory RAG index, sharing the same instance that backs the Gateway's prompt cache, rather than introducing ChromaDB as a second, separate vector store.
 
-**Rationale:** One platform serving both roles directly reduces the infrastructure footprint and the scope risk named in Charter §9, and mirrors a pattern already proven in prior work (Medical AI Assistant's Redis Stack HNSW implementation) rather than introducing an unproven combination.
+**Rationale:** One platform serving both roles directly reduces the infrastructure footprint and the scope risk named in `../groundedness/scoping_doc.md` §11, and mirrors a pattern already proven in prior work (Medical AI Assistant's Redis Stack HNSW implementation) rather than introducing an unproven combination.
 
 **Consequences:** The regulatory corpus, being small and infrequently updated, is somewhat over-served by Redis Stack's capacity relative to its actual scale — an accepted tradeoff in exchange for infrastructure consolidation.
 
@@ -104,7 +120,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Decision:** Two Great Expectations suites — one for elasticity training data (schema, value ranges, post-treatment leakage check), one for regulatory corpus ingestion (non-empty chunks, required metadata, duplicate detection) — both enforced as CI-blocking gates ahead of DVC versioning, not as advisory warnings.
 
-**Rationale:** The regulatory corpus suite in particular is a direct upstream mitigation for the system's highest-severity failure mode (RAG-grounded compliance hallucination, Charter §9) — malformed or duplicated chunks are rejected before indexing, not caught after the fact.
+**Rationale:** The regulatory corpus suite in particular is a direct upstream mitigation for the system's highest-severity failure mode (RAG-grounded compliance hallucination, `../groundedness/scoping_doc.md` §11) — malformed or duplicated chunks are rejected before indexing, not caught after the fact.
 
 **Consequences:** Adds a validation step ahead of every data pipeline run; accepted as necessary given the severity of the failure mode it mitigates.
 
@@ -140,7 +156,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Decision:** Use open-source GX Core file-based expectation suites serialized as native JSON files in `data_contracts/`, verified during CI using minimal, hand-crafted valid and malformed fixtures in `data_contracts/fixtures/` (P1-D3).
 
-**Rationale:** Avoids external cloud service dependencies (GX Cloud), aligning with the local-first zero-cost development posture (Charter §6, INV-10). Native JSON files provide declarative, cleanly version-controlled definitions. Hand-crafted fixtures verify specific failure modes (e.g., negative exposure, post-treatment leakage, missing chunk metadata) in milliseconds without pulling real dataset dependencies into Phase 1.
+**Rationale:** Avoids external cloud service dependencies (GX Cloud), aligning with the local-first zero-cost development posture (INV-10; PRD §13 — no live deployment in v1). Native JSON files provide declarative, cleanly version-controlled definitions. Hand-crafted fixtures verify specific failure modes (e.g., negative exposure, post-treatment leakage, missing chunk metadata) in milliseconds without pulling real dataset dependencies into Phase 1.
 
 **Consequences:** Expectation suites are versioned directly in git; custom expectation functions (e.g., elasticity leakage checks) are integrated through GX Core compatible definitions.
 
@@ -178,7 +194,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 **Rationale:** A code listing cannot communicate that the system is _governed_, not merely agentic — an evaluator needs to see an escalation trigger or a fallback engage to register that distinction. FastAPI + Jinja2 was chosen over Streamlit/Gradio to remain consistent with established portfolio precedent and to avoid the "quick model demo" association those frameworks carry, which risks undercutting the production-engineering positioning this project is built around. Incremental delivery avoids concentrating UI risk at the end of the roadmap, when schedule pressure is highest and scope quietly erodes. Curated scenarios over free-form input were chosen because INV-10 means there is no live data source for genuinely free-form input to query against — and because showing only successful approvals would hide the actual differentiator (the governance layer), which is the entire point of exposing this to the secondary audience in the first place.
 
-**Consequences:** `scoping_doc.md`, `prd.md` §12, and `implementation_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
+**Consequences:** `../groundedness/scoping_doc.md`, `../groundedness/prd.md` §12, and `../implementation_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
 
 ### ADR-010: Compliance Agent evaluation refined to a four-metric diagnostic matrix (INV-6 amendment)
 
@@ -191,6 +207,42 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 **Rationale:** A retrieval-recall collapse is invisible to a Faithfulness-only or Answer-Relevancy-only check, since the model can still generate a fluent, internally-consistent answer from whatever — possibly wrong — context it did retrieve. Reading all four metrics jointly is the only way to distinguish "the answer is wrong because retrieval failed" from "the answer is wrong because generation ignored good context" — two failure modes with different fixes, indistinguishable from a single aggregate score.
 
 **Consequences:** INV-6 and its new §9 (Evaluation, Calibration & Monitoring) are updated to reflect this. Phase 5/6 must expand `Tier2AgentsConfig` beyond its current two placeholder threshold fields before the Compliance Agent can ship — tracked as known, not silent, scope.
+
+### ADR-011: Governed Decision Topology — Single Compliance Agent with Deterministic Specialist Nodes and Post-Governance Briefing Narrative
+
+**Status:** Approved (October 2026; supersedes initial three-agent framing in ADR-009, PRD §8, and `system_design.md` §1/§3)
+
+**Context:**
+The initial architecture assumed a three-agent LangGraph topology (`Pricing Strategy Agent → [Regulatory Compliance Agent ‖ Revenue/Loss-Ratio Impact Agent] → Governance`). A critical review of this design against INV-5, cost/latency realities, and `capability_profile_gates.md` surfaced three structural defects:
+
+1. **Category Error on Node Selection:** The original "merging test" evaluated whether Pricing, Compliance, and Impact could be collapsed into one node, concluding they should not because their responsibilities differed. It never asked the prior, load-bearing question: *Does each node need an LLM at all?*
+2. **Deterministic Violations & Hallucination Surface:** 
+   - Pricing Strategy merely extracts Tier 1 numerical outputs and packages them into a typed Pydantic contract. An LLM call here is pure waste (latency, token spend, parsing-failure risk) for zero reasoning value.
+   - Revenue/Loss-Ratio Impact computes portfolio financial effects ($LossCost$, $\Delta Rev$, $LossRatio$). INV-5 strictly prohibits LLM financial arithmetic. Having an LLM generate or wrap numbers it did not compute creates a dangerous failure mode where the model misstates or hallucinates deterministic figures.
+   - Governance evaluates corridor bounds and the compliance pass/flag verdict to assign `SUCCESS` or `ESCALATE`. This is a deterministic conditional rule, not an LLM judgment.
+3. **Topology and Data Flow Contradiction:** `system_design.md` §1 and §3 previously rendered a sequential pipeline (Pricing → Compliance → Impact), directly contradicting the parallel fan-out specified in `AGENTS.md` and `capability_profile_gates.md`.
+
+**Decision:**
+Adopt **Option C (Single Decision Agent + Deterministic Specialist Nodes + Bounded Post-Governance Briefing)**:
+
+1. **Pricing Strategy Node (Deterministic):** Pure Python/Pydantic graph node that constructs the typed rate adjustment proposal from Tier 1 causal and bandit outputs.
+2. **Parallel Decision Fan-Out:**
+   - **Compliance Agent (Probabilistic LLM Agent):** The *only* agent in the decision path. It retrieves regulatory evidence from Redis Stack and reasons over statutory text to return a pass/flag verdict with citations. (Whether retrieval is model-driven or deterministic query-built is an open Phase 5 evaluation question; see Consequence 1).
+   - **Revenue/Loss-Ratio Impact Node (Deterministic):** Pure Python/Pydantic tool executing exact financial impact calculations ($Exposure \times Premium \times \Delta Rate$). Zero LLM involvement.
+3. **Governance Node (Deterministic):** Evaluates corridor bounds and the compliance verdict, assigning a terminal disposition: `SUCCESS` (auto-approved-for-review) or `ESCALATE` (HITL underwriter review).
+4. **Underwriter Briefing Generator (Bounded Post-Governance LLM Node):** Runs *after* the disposition is fixed. Generates a qualitative, executive-grade briefing narrative for Marco/Elena (`user_story.md` Story 2.1). Crucially, this node has **zero decision authority**: it cannot modify the proposed adjustment, the compliance verdict, the financial projections, or the disposition.
+5. **Deterministic Narrative Validator & Fallback:** A deterministic validator checks that every number, percentage, and citation in the briefing narrative strictly matches the structured decision record. On mismatch or parsing failure, the system falls back immediately to a deterministic Jinja2 template.
+6. **INV-5 Enforcement Relocation:** The schema requirement enforcing non-null Compliance and Impact fields is moved from Pricing Strategy's output schema (which runs first and cannot know them) to the **Governance output schema / recommendation record boundary** leaving Tier 2.
+
+**Rationale:**
+- **Brain vs. Brawn Alignment:** Restricts probabilistic reasoning strictly to where free-text understanding is required (statutory interpretation) and non-decisional executive briefing.
+- **Resilience & Cost:** Eliminates two LLM calls from the critical decision path, reducing failure surfaces and token costs while eliminating the risk of LLM-hallucinated financial figures.
+- **Underwriter Usability:** Preserves rich, human-readable briefing narratives for underwriters without allowing narrative generation to compromise decision integrity.
+
+**Consequences:**
+- The system is positioned as a **governed-by-construction agentic workflow with a single compliance reasoning agent**, not "three agents."
+- `capability_profile_gates.md` is amended to reflect the node-level LLM test and Phase 5 retrieval-mode evaluation.
+- `PRD.md`, `scoping_doc.md`, `implementation_roadmap.md`, `system_design.md`, and `README.md` are reconciled in lockstep.
 
 ## 5. Open Implementation Notes
 

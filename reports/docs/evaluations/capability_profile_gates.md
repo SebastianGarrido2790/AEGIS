@@ -1,10 +1,32 @@
 # Capability Profile Gates — AEGIS Tier 2 (Agentic Orchestration Layer)
 
-**What this document is:** the Pre-Build Validation Gates and Complexity Diagnostic for AEGIS's Tier 2 agentic layer (the LangGraph three-agent orchestration) — the record of whether an agent is justified here at all, and at what complexity level.
+**What this document is:** the Pre-Build Validation Gates and Complexity Diagnostic for AEGIS's Tier 2 agentic layer — the record of whether an agent is justified here at all, and at what complexity level.
 **Why it exists:** these questions are meant to be answered before planning documents specify how to build the agent — to decide whether an agent is justified at all and at what complexity level.
 **How to use it:** as the record of that decision. Where this exercise finds AEGIS already correctly scoped, it says so and moves on. Where it finds a gap, the gap is stated plainly and left open — not quietly fixed by this document.
 
-**Honest sequencing note, stated rather than glossed over:** this gate exercise is being completed *after* AEGIS's Tier 2 architecture already exists in `system_design.md` and `prd.md` — not before, as the gate sequencing intends. That's out of order. The value of doing it now is that it can check the *existing* design against the gate's questions honestly, including finding real gaps the original build didn't surface — which is what happened here (see Part 1, Gate 5, and Part 3, Alignment). It is not, and should not be read as, a claim that this was done in the right order the first time.
+**Honest sequencing note, stated rather than glossed over:** this gate exercise is being completed *after* AEGIS's Tier 2 architecture already exists in `../architecture/system_design.md` and `../groundedness/prd.md` — not before, as the gate sequencing intends. That's out of order. The value of doing it now is that it can check the *existing* design against the gate's questions honestly, including finding real gaps the original build didn't surface — which is what happened here (see Part 1, Gate 5, and Part 3, Alignment). It is not, and should not be read as, a claim that this was done in the right order the first time.
+
+---
+
+## Amendment (October 2026) — Node-Level LLM Necessity & Topology Realignment (ADR-011)
+
+**Context of this amendment:**
+The original Part 2 and Part 3 evaluations applied the "Merging Test" across three candidate agents (Pricing Strategy, Compliance, Revenue Impact) and concluded that Level 3 (Bounded Agent) was justified because merging them would lose separation of authority, specialization, and risk isolation.
+
+**The Retrospective Finding:**
+The Merging Test answered the wrong question first. It asked *whether three agents should be merged*, but never asked *whether Pricing Strategy and Revenue Impact required an LLM at all*.
+
+Evaluating each node against the Brain/Brawn separation and INV-5 surfaces the following corrections:
+1. **Pricing Strategy is Deterministic:** It consumes Tier 1 outputs and validates them into a Pydantic schema. Wrapping this in an LLM call adds token spend, latency, and parsing fragility for zero reasoning benefit.
+2. **Revenue/Loss-Ratio Impact is Deterministic:** INV-5 strictly prohibits LLM financial arithmetic. Financial projections must be computed by deterministic formulas. Having an LLM generate or narrate these numbers during the decision path creates a dangerous hallucination surface.
+3. **Governance is Deterministic:** Routing between `SUCCESS` and `ESCALATE` is a fixed boolean rule over numerical bounds and compliance pass/flag flags.
+4. **Compliance is the Sole Decision Agent:** Retrieving and evaluating unstructured regulatory statutes against pricing proposals is the only node in the decision path that genuinely requires natural-language reasoning.
+5. **Briefing Narrative is Post-Governance:** To satisfy underwriter usability (`user_story.md` Story 2.1) without corrupting numbers, a single bounded LLM call generates a briefing narrative *after* Governance fixes the disposition. A deterministic validator verifies every figure against the structured record, falling back to a deterministic template upon any discrepancy.
+
+**Compliance Complexity Level (Level 3 vs. Level 2 Open Evaluation):**
+Part 2 classified Compliance as Level 3 (Bounded Agent) under the premise that the LLM performs model-driven tool selection over regulatory chunks.
+- *The Caveat:* If a deterministic query generator (built programmatically from proposal segment, rating factors, and rate delta) matches or outperforms model-driven retrieval on the Phase 5 evaluation harness, the Compliance node simplifies to a **Level 2 Deterministic Workflow with an LLM Evaluation Step** (deterministic retrieval → LLM judgment).
+- *Phase 5 Evaluation Gate:* Whether Compliance remains a Level 3 Bounded Agent or is refactored to a Level 2 Workflow is an empirical evaluation question for Phase 5, not a settled architectural premise.
 
 ---
 
@@ -12,15 +34,15 @@
 
 ### 1. Measurable Success
 
-The Primary Scenario (`prd.md` §10) runs end-to-end on both branches — auto-approved-for-review and escalated — each producing a complete audit record (INV-7, target: 100% completeness). Supporting metrics: HITL escalation rate reflecting genuine ambiguity rather than over- or under-triggering; the Compliance Agent's four-metric diagnostic matrix (ADR-010) meeting its threshold once Phase 5/6 ships.
+The Primary Scenario (`../groundedness/prd.md` §10) runs end-to-end on both branches — auto-approved-for-review and escalated — each producing a complete audit record (INV-7, target: 100% completeness). Supporting metrics: HITL escalation rate reflecting genuine ambiguity rather than over- or under-triggering; the Compliance Agent's four-metric diagnostic matrix (ADR-010) meeting its threshold once Phase 5/6 ships.
 
 ### 2. Blast Radius / Worst-Case Failure
 
-Worst case: the system recommends a regulatorily non-compliant or financially unsound premium adjustment, and that recommendation reaches a published state without human review. This is structurally bounded two ways already on record: INV-4 (the governance output schema has no "published" state at all — publication is a manual, out-of-system action) and INV-6 (a grounding failure below threshold triggers fallback and escalation, never a guess). The single highest-severity variant of this failure — a hallucinated compliance citation producing a false "pass" — is already named as the system's worst failure mode in the risk register (see `scoping_doc.md` §11) and ADR-010.
+Worst case: the system recommends a regulatorily non-compliant or financially unsound premium adjustment, and that recommendation reaches a published state without human review. This is structurally bounded two ways already on record: INV-4 (the governance output schema has no "published" state at all — publication is a manual, out-of-system action) and INV-6 (a grounding failure below threshold triggers fallback and escalation, never a guess). The single highest-severity variant of this failure — a hallucinated compliance citation producing a false "pass" — is already named as the system's worst failure mode in the risk register (see `../groundedness/scoping_doc.md` §11) and ADR-010.
 
 ### 3. Session Economics & Cost Ceiling
 
-**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
+**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `../groundedness/scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
 
 ### 4. Evaluation Harness
 
@@ -28,7 +50,7 @@ Specified, not yet built. The golden dataset schema (`FailureMode` taxonomy, `Go
 
 ### 5. Graceful Off-Switch
 
-**Not addressed anywhere in AEGIS's current documentation.** This is the first genuine, previously-undocumented gap this exercise surfaces, not a restatement of something already known. Neither `system_design.md` nor any other current project document specifies who can halt Tier 2 agent invocations, how fast, with what in-flight-state preservation, or what re-enabling requires. INV-4 and the HITL gate bound what the system can *decide*; neither says anything about stopping the system from running at all. Recommendation: this needs a dated ADR before Phase 6 ships Tier 2 for real, not a silent fix folded into this document.
+**Not addressed anywhere in AEGIS's current documentation.** This is the first genuine, previously-undocumented gap this exercise surfaces, not a restatement of something already known. Neither `../architecture/system_design.md` nor any other current project document specifies who can halt Tier 2 agent invocations, how fast, with what in-flight-state preservation, or what re-enabling requires. INV-4 and the HITL gate bound what the system can *decide*; neither says anything about stopping the system from running at all. Recommendation: this needs a dated ADR before Phase 6 ships Tier 2 for real, not a silent fix folded into this document.
 
 ---
 
@@ -36,14 +58,14 @@ Specified, not yet built. The golden dataset schema (`FailureMode` taxonomy, `Go
 
 **Classification: Level 3 — Bounded Agent.**
 
-Walking the criteria directly, against the actual design already committed in `system_design.md`:
+Walking the criteria directly, against the actual design already committed in `../architecture/system_design.md`:
 
-- **Level 1 (Static Prompt):** doesn't fit — three agents, multi-step synthesis; no single call produces the output.
-- **Level 2 (Deterministic Workflow):** close, but doesn't fully fit — the *inter-node* topology is fixed (Pricing Strategy → [Compliance ‖ Revenue Impact] → Governance), but *within* the Compliance node, the model itself decides which regulatory chunks to retrieve. That's model-driven tool selection, which Level 2 explicitly excludes ("the model produces intermediate text but has no say in routing or tool choice").
-- **Level 3 (Bounded Agent):** fits on every criterion. The right next step (auto-approve vs. escalate) depends strictly on what Compliance and Impact returned. The toolset is small and constrained (a retrieval tool, a financial-calculation tool — nowhere near 15). The step budget is small and fixed (three to four nodes, not an open-ended loop). Wrong actions are low-stakes *by construction* — INV-4 means a wrong recommendation can never reach a live rate table; it can only ever reach HITL review.
+- **Level 1 (Static Prompt):** doesn't fit — multi-step synthesis and statutory reasoning; no single prompt produces the recommendation.
+- **Level 2 (Deterministic Workflow):** the overall topology is a deterministic pipeline with parallel fan-out (Pricing [Det.] → [Compliance ‖ Impact [Det.]] → Governance [Det.] → Briefing [LLM]). Whether the Compliance node itself qualifies as Level 3 (Bounded Agent) depends on whether regulatory chunk retrieval requires model-driven tool selection or can be executed as a deterministic structured query followed by LLM statutory judgment. This is an empirical Phase 5 evaluation question (see Amendment above).
+- **Level 3 (Bounded Agent):** current baseline classification for the Compliance Agent under model-driven retrieval. The toolset is small and constrained (retrieval tool), the step budget is small and fixed, and wrong actions are low-stakes *by construction* — INV-4 prevents any recommendation from reaching a live rate table without human review.
 - **Level 4 (Full Autonomous Agent):** doesn't fit and was never claimed — no 30+ step horizons, no persistent cross-session memory (each review is explicitly single-shot by design), no large or dynamic toolset.
 
-**What this retroactively validates:** the three-agent, parallel-branch design already built is the correct complexity level for this problem — not an over-engineered multi-agent system reaching for sophistication it doesn't need. That's a genuine finding, not a foregone conclusion; a project this deep into a regulated-domain, governance-heavy build was a real candidate for `Level 4` over-scoping, and it didn't happen.
+**What this retroactively validates (as amended by ADR-011):** the architecture avoids multi-agent theater by restricting LLM calls strictly to where free-text reasoning is required (statutory interpretation and post-governance briefing narrative), keeping calculation and routing deterministic.
 
 ---
 
@@ -60,13 +82,13 @@ Filled in against AEGIS's actual Tier 2 design. Blank rows are stated as deliber
 | **5. Tool Use** | **Tool Selector**, **Side-Effect Auditor** | The Compliance Agent selects which regulatory chunks to retrieve. Every recommendation producing a complete, structured audit record (INV-7) is functionally what a Side-Effect Auditor does — wrapping the decision with pre/post state capture. |
 | **6. Coordination** | **Pipeline Orchestrator**, **HITL Liaison** | The LangGraph coordinator is a fixed pipeline with a parallel fan-out/fan-in, not a dynamic Supervisor-Worker delegation. The Governance node's escalation gate is a direct HITL liaison. |
 | **7. Learning** | **Feedback Loop** *(planned, not built)* | Matches the Phase 8 production harvest loop that routes sub-threshold traces to a human-reviewed golden-dataset candidate queue. Selected here as the target architecture; not yet implemented, and not claimed to be. |
-| **8. Alignment** | **Constitution-Bound**, **Provenance Tracker**, **Explainer Agent**, **Drift-Detector** *(planned)* | Constitution-Bound maps directly to the Non-Negotiable Invariants (see `system_design.md` ADR log) acting as a hard, un-negotiable constraint set. Provenance Tracker maps to INV-7 and the Compliance Agent's evidence citations. Explainer Agent maps to INV-5 — the causal justification, compliance evidence, and financial impact bundle attached to every recommendation. Drift-Detector matches the planned Phase 8 feature-distribution monitoring. |
+| **8. Alignment** | **Constitution-Bound**, **Provenance Tracker**, **Explainer Agent**, **Drift-Detector** *(planned)* | Constitution-Bound maps directly to the Non-Negotiable Invariants (see `../architecture/system_design.md` ADR log) acting as a hard, un-negotiable constraint set. Provenance Tracker maps to INV-7 and the Compliance Agent's evidence citations. Explainer Agent maps to INV-5 — the causal justification, compliance evidence, and financial impact bundle attached to every recommendation. Drift-Detector matches the planned Phase 8 feature-distribution monitoring. |
 
-**Two deliberate non-selections in Alignment, surfaced as gaps rather than silently omitted:**
+**Three unselected Alignment patterns — two gaps and one deliberate non-selection — surfaced explicitly rather than silently omitted:**
 
-- **Off-Switch-Compatible — not selected, and this is the same gap Part 1 Gate 5 already found.** Two independent parts of this exercise landing on the same missing piece is a stronger signal than either alone — it's a real, load-bearing absence.
-- **Red-Team Auditor — not selected.** No adversarial test suite exists for AEGIS's Compliance Agent yet (the kind of 20–50-attack corpus a production safety review calls for) — recorded here as a tracked open item, not fixed here.
-- **Privacy-Preserving — not selected, and deliberately so rather than a gap.** AEGIS's current scope operates on rating-factor and segment data, not named-individual PII — this capability isn't yet a modeled concern. Worth revisiting explicitly if the project ever moves beyond synthetic/benchmark data toward anything resembling real customer records.
+- **Off-Switch-Compatible — not selected (gap — the same gap Part 1 Gate 5 already found).** Two independent parts of this exercise landing on the same missing piece is a stronger signal than either alone — it's a real, load-bearing absence.
+- **Red-Team Auditor — not selected (gap).** No adversarial test suite exists for AEGIS's Compliance Agent yet (the kind of 20–50-attack corpus a production safety review calls for) — recorded here as a tracked open item, not fixed here.
+- **Privacy-Preserving — not selected (deliberate non-selection, not a gap).** AEGIS's current scope operates on rating-factor and segment data, not named-individual PII — this capability isn't yet a modeled concern. Worth revisiting explicitly if the project ever moves beyond synthetic/benchmark data toward anything resembling real customer records.
 
 ---
 
@@ -74,7 +96,7 @@ Filled in against AEGIS's actual Tier 2 design. Blank rows are stated as deliber
 
 ### 4.1 The Validator Sandwich
 
-Already implemented, not re-specified here: the Top Bun is `src/utils/sanitization.py` (prompt-injection defense); the Bottom Bun is two-layer validation — Pydantic schema first, then a semantic/business-rule guardrail — applied to every agent output before it reaches Governance or a caller.
+Already implemented, not re-specified here: the Top Bun is the planned sanitization module at `src/aegis/utils/sanitization.py` (prompt-injection defense, Phase 4/5 — not yet built); the Bottom Bun is two-layer validation — Pydantic schema first, then a semantic/business-rule guardrail — applied to every agent output before it reaches Governance or a caller.
 
 ### 4.2 Reversibility and Rollback
 
@@ -92,23 +114,23 @@ The golden dataset schema, stated here in full so this document stands alone:
 - **`FailureMode` taxonomy (closed set):** hallucination, retrieval miss, context ignored, multi-hop failure, safety violation, tool misuse, reasoning incoherence, format failure, latency failure.
 - **`GoldenCase` fields:** stable `id`; `query`; `expected_context` (documents that should be retrieved — required for the Context Recall check); `ideal_answer` and/or `answer_criteria`; `must_not_include` negative constraints; the `failure_modes` it targets; and a non-empty `added_reason` recording why the case exists.
 
-The authoritative implementation lives in the planned `src/evaluation/golden_schema.py` (Phase 5/8); this section is the specification that implementation must satisfy.
+The authoritative implementation lives in the planned `src/aegis/evaluation/golden_schema.py` (Phase 5/8); this section is the specification that implementation must satisfy.
 
 ---
 
 ## Part 6 — System Blueprint Comparison
 
-AEGIS's safety layering nests, outermost to innermost: Off-Switch-Compatible → Constitution-Bound → Deterministic Harness. AEGIS's actual design has the inner two layers solidly in place — Constitution-Bound (the Non-Negotiable Invariants, see `system_design.md`) wrapping a Deterministic Harness (the compiled LangGraph). **The outermost layer, Off-Switch-Compatible, is missing entirely** — the same finding as Part 1 Gate 5 and Part 3's Alignment row, surfaced a third time from a third angle. Three independent parts of this exercise converging on the same gap is the clearest single conclusion this document reaches.
+AEGIS's safety layering nests, outermost to innermost: Off-Switch-Compatible → Constitution-Bound → Deterministic Harness. AEGIS's actual design has the inner two layers solidly in place — Constitution-Bound (the Non-Negotiable Invariants, see `../architecture/system_design.md`) wrapping a Deterministic Harness (the compiled LangGraph). **The outermost layer, Off-Switch-Compatible, is missing entirely** — the same finding as Part 1 Gate 5 and Part 3's Alignment row, surfaced a third time from a third angle. Three independent parts of this exercise converging on the same gap is the clearest single conclusion this document reaches.
 
 ---
 
 ## Summary
 
-**What this exercise confirms was already right:** the three-agent, parallel-branch Tier 2 design is correctly scoped at Level 3 (Bounded Agent) — not multi-agent theater (merging any two agents would lose something real: retrieval vs. calculation specialization, distinct Compliance/Governance authority, independently-retrieved evidence, parallel execution, and isolated grounding-failure fallback), and not over-built toward Level 4 capabilities the problem doesn't need.
+**What this exercise confirms (as amended by ADR-011):** Tier 2 is correctly scoped as a governed workflow with a single probabilistic compliance reasoning agent, deterministic specialist nodes, and a bounded post-governance briefing narrative (Option C) — not an over-engineered multi-agent system calling LLMs where deterministic code belongs, nor a Level 4 autonomous system.
 
 **What this exercise found that wasn't previously documented:**
 1. No off-switch/kill-switch mechanism exists for Tier 2 (found three separate ways — Part 1 Gate 5, Part 3, Part 6).
-2. No per-session or per-request cost ceiling has been set (Part 1 Gate 3) — consistent with, not new beyond, the gap already on record in `scoping_doc.md` §8.
+2. No per-session or per-request cost ceiling has been set (Part 1 Gate 3) — consistent with, not new beyond, the gap already on record in `../groundedness/scoping_doc.md` §8.
 3. No adversarial/red-team test suite exists for the Compliance Agent (Part 3) — tracked here as an open item.
 
 None of these three are resolved by this document. They're recorded here as findings, to be picked up as their own dated decisions — consistent with how every other gap this project has surfaced has been handled.

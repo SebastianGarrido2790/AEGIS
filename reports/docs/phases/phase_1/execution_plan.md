@@ -1,6 +1,6 @@
 # Phase 1 — Execution Workflow
 
-**Purpose:** translate the approved Phase 1 decisions (`implementation_plan.md`, recorded as ADR-004 through ADR-008 in `system_design.md`) into a concrete, sequential build order. No code is written in this document — each stage below describes _what_ gets built and _how it's verified_, not the implementation itself.
+**Purpose:** translate the approved Phase 1 decisions (`implementation_plan.md`, recorded as ADR-004 through ADR-008 in `../../architecture/system_design.md`) into a concrete, sequential build order. No code is written in this document — each stage below describes _what_ gets built and _how it's verified_, not the implementation itself.
 
 **Rule for every stage:** the gate at the end of a stage must pass before the next stage begins. A stage is not "mostly done" — it is done, gate-verified, or not started. If a gate fails, work stays in that stage until it passes; nothing downstream gets touched in the meantime.
 
@@ -129,7 +129,7 @@ Author: Sebastián Garrido Arévalo | Date: August 15, 2026
 
 - CI is green end-to-end on a clean push.
 - A one-time, deliberate falsification pass: independently introduce one failure per gate — a lint violation, a type error, a dummy file padded past 1,000 lines, a malformed fixture swapped into the DVC-tracked data, a broken assertion in the one pytest test — and confirm each one independently turns CI red. Then revert each and confirm CI returns to green. This is the concrete proof that every gate in the pipeline is load-bearing, not decorative — a green CI that's never actually seen a failure hasn't demonstrated anything yet.
-- Once this falsification pass is complete and reverted, Phase 1 is done. `system_design.md`'s per-phase update protocol (§7) applies: mark ADR-004 through ADR-008 as **Validated** if implementation matched the decision as written, or **Amended** with a dated entry if anything diverged during the build.
+- Once this falsification pass is complete and reverted, Phase 1 is done. `../../architecture/system_design.md`'s per-phase update protocol (§7) applies: mark ADR-004 through ADR-008 as **Validated** if implementation matched the decision as written, or **Amended** with a dated entry if anything diverged during the build.
 
 ---
 

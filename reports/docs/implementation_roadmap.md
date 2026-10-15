@@ -1,6 +1,6 @@
 # Implementation Roadmap — AEGIS
 
-Non-authoritative, high-level delivery map. Its only job: major capabilities in dependency order, and the evidence unlocking each next stage. No technical specifications, no task lists, no decisions — those live in feature specs, phase plans, and `system_design.md`.
+Non-authoritative, high-level delivery map. Its only job: major capabilities in dependency order, and the evidence unlocking each next stage. No technical specifications, no task lists, no decisions — those live in feature specs, phase plans, and `architecture/system_design.md`.
 
 Durations are best-effort and flexible; no phase begins before the prior phase's exit criteria are demonstrated, not merely coded.
 
@@ -53,8 +53,12 @@ Capabilities:
 - MLflow tracking and registry; showcase slice exposing elasticity output for preset scenarios
 
 Exit criteria:
-- causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`scoping_doc.md` §0, §2)
+- causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`groundedness/scoping_doc.md` §0, §2)
 - showcase slice renders correctly, clearly labeled demo rather than production view
+
+Carryover into the redo — the confirmed Phase 2 findings stand and constrain the new design:
+- heavy-tailed feature/loss distribution (re-confirmed on raw data by the EDA run, `../../artifacts/eda_summary.json`: max claim €2.04M ≈ 5.91% of portfolio losses) — loss capping and robust validation are mandatory, not optional
+- aggregate correlation-to-ground-truth is sample-size- and outlier-sensitive — no single aggregate Pearson gate; per-segment and Spearman metrics only
 
 Dependencies:
 Phase 1 (data contracts).
@@ -108,7 +112,7 @@ Capabilities:
 - retrieval-quality harness: the four-metric diagnostic matrix (ADR-010) on curated compliant/violating scenarios
 
 Exit criteria:
-- harness meets the defined four-metric thresholds on the curated set — highest-priority gate in this roadmap, since RAG grounding is the system's highest-severity failure mode (`scoping_doc.md` §11)
+- harness meets the defined four-metric thresholds on the curated set — highest-priority gate in this roadmap, since RAG grounding is the system's highest-severity failure mode (`groundedness/scoping_doc.md` §11)
 
 Dependencies:
 Phase 1 (corpus gate), Phase 4 (Gateway/Redis).
@@ -118,14 +122,15 @@ Phase 1 (corpus gate), Phase 4 (Gateway/Redis).
 ## Phase 6 — Agentic Orchestration Layer
 
 Goal:
-Assemble Pricing Strategy → [Compliance ‖ Revenue Impact] → Governance into one LangGraph orchestrator over shared typed state.
+Assemble the Option C governed LangGraph workflow (ADR-011): deterministic Pricing Strategy → [Compliance Agent (LLM) ‖ Revenue Impact (deterministic)] → Governance (deterministic) → post-governance Underwriter Briefing generator (LLM) & narrative validator.
 
 Capabilities:
-- `AgentState` schema; agent nodes; application-level circuit breaking alongside Gateway fallback
-- structured-output validation per node boundary; showcase trace-panel slice with an escalation scenario
+- `AgentState` schema; deterministic Pricing and Impact nodes; Compliance reasoning agent; deterministic Governance node
+- post-governance Underwriter Briefing LLM node with deterministic narrative validator (template fallback on discrepancy)
+- application-level circuit breaking alongside Gateway fallback; structured-output validation per node boundary; showcase trace-panel slice with an escalation scenario
 
 Exit criteria:
-- Primary Scenario (`groundedness/prd.md` §10) runs end-to-end on both auto-approved and escalated branches, each with a complete audit record
+- Primary Scenario (`groundedness/prd.md` §10) runs end-to-end on both auto-approved and escalated branches, each producing a complete audit record with validated briefing narrative
 - trace panel visibly distinguishes the two branches
 
 Dependencies:
@@ -177,10 +182,10 @@ Production-shape packaging; documentation reflecting the as-built state.
 
 Capabilities:
 - multi-stage Docker; Compose wiring FastAPI, Redis Stack, Gateway
-- full GitHub Actions pipeline; as-built `system_design.md`; runbook populated with actually-encountered challenges
+- full GitHub Actions pipeline; as-built `architecture/system_design.md`; runbook populated with actually-encountered challenges
 
 Exit criteria:
-- `scoping_doc.md` §3 definition of done fully satisfied
+- `groundedness/scoping_doc.md` §3 definition of done fully satisfied
 - system runs end-to-end via `docker-compose up`
 
 Dependencies:

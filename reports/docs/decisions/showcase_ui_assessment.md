@@ -1,6 +1,6 @@
 # Showcase UI — Scope Assessment & Decision
 
-**Status: APPROVED (Aug 16, 2026).** Recorded as ADR-009 in `system_design.md`. This is a cross-cutting scope decision, not part of any single roadmap phase — it belongs in `decisions/` per its actual purpose: an assessment of something new we decided.
+**Status: APPROVED (Aug 16, 2026).** Recorded as ADR-009 in `../architecture/system_design.md`. This is a cross-cutting scope decision, not part of any single roadmap phase — it belongs in `decisions/` per its actual purpose: an assessment of something new we decided.
 
 Author: Sebastián Garrido Arévalo | Date: August 16, 2026
 
@@ -22,9 +22,9 @@ This is a different question from one already settled. PRD §12 excludes a "full
 
 **Trade-offs:**
 
-Option A costs nothing further but has a real weakness for exactly the audience being asked about: a non-technical recruiter doing an initial screen is not going to read `system_design.md` before deciding whether to move a candidate forward. The system's actual differentiator — that it's _governed_, not just agentic — is invisible in a code listing. You can't see an escalation trigger fire, or a fallback engage, or an audit record assemble, by reading a schema definition.
+Option A costs nothing further but has a real weakness for exactly the audience being asked about: a non-technical recruiter doing an initial screen is not going to read `../architecture/system_design.md` before deciding whether to move a candidate forward. The system's actual differentiator — that it's _governed_, not just agentic — is invisible in a code listing. You can't see an escalation trigger fire, or a fallback engage, or an audit record assemble, by reading a schema definition.
 
-Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly _against_ being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since Charter §9, for a component that doesn't strengthen the technical story more than a much cheaper option would.
+Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly _against_ being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since the risk register (`../groundedness/scoping_doc.md` §11), for a component that doesn't strengthen the technical story more than a much cheaper option would.
 
 Option B is the one that actually serves the stated goal: making the governance mechanics — the parts that are genuinely differentiated — visible, without pretending to be a production interface or competing for engineering time against Phases 2–9's real work.
 
@@ -76,7 +76,7 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 ## Downstream Document Updates — Completed
 
-- **`scoping_doc.md` (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
+- **`../groundedness/scoping_doc.md` (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
 - **`prd.md` §12 (Out of Scope):** clarified that "full production UI" refers to a real underwriting console, distinct from this demo interface.
 - **`../implementation_roadmap.md`:** incremental UI slice added as a deliverable and exit-criterion item at the close of Phases 2, 6, and 7.
-- **`system_design.md`:** recorded as ADR-009.
+- **`../architecture/system_design.md`:** recorded as ADR-009.

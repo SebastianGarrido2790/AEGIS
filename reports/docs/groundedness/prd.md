@@ -7,17 +7,17 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026 | Phase 0 — Planni
 
 ## 1. Executive Summary
 
-AEGIS is a three-tier agentic AI platform that recommends personal auto insurance premium adjustments by combining a causal elasticity model with a RAG-grounded regulatory compliance check, a financial impact projection, and a human-in-the-loop (HITL) escalation gate. It replaces the current disconnected, multi-week actuarial-legal review cycle with a single, auditable decision loop: every recommendation carries its causal justification, its compliance-evidence citation, and its projected revenue/loss-ratio impact, and never reaches deployment without either falling inside pre-approved bounds or being explicitly reviewed by a human underwriter.
+AEGIS is a governed-by-construction agentic platform built to production engineering and actuarial standards that recommends personal auto insurance premium adjustments by combining causal elasticity estimation with a RAG-grounded regulatory compliance check, a financial impact projection, and a human-in-the-loop (HITL) escalation gate. Under statutory rate-filing regimes, personal auto rate revisions occur on cycles often lasting many months, leaving pricing teams with stale rates or manual, disconnected review cycles. AEGIS replaces the current disconnected actuarial-legal review cycle with a single, auditable decision loop: every recommendation carries its causal justification, its compliance-evidence citation, and its projected revenue/loss-ratio impact, and never reaches deployment without either falling inside pre-approved bounds or being explicitly reviewed by a human underwriter.
 
 ## 2. Project Analogy
 
 Imagine a pricing team at an insurer as three separate departments that rarely talk to each other in real time: the actuaries who know the numbers, the compliance lawyers who know the rules, and the finance team who knows the P&L impact. Today, a single rate change has to travel physically between these three desks, in sequence, each one waiting on the last — a process that takes weeks.
 
-AEGIS is like putting all three specialists in one room with a shared whiteboard, where each one does their part of the analysis simultaneously and the room's supervisor (a human underwriter) only needs to step in when the three specialists don't agree, or when the proposed change is unusually large. The specialists never make the final call alone — they prepare a fully documented recommendation, and a person always signs off before anything goes live.
+AEGIS is like putting all three specialists in one room with a shared whiteboard, where each one does their part of the analysis simultaneously and the room's supervisor (a human underwriter) only needs to step in when the specialists don't agree, or when the proposed change is unusually large. The specialists never make the final call alone — they prepare a fully documented recommendation, and a person always signs off before anything goes live.
 
 ## 3. Problem Statement (Stakeholder Perspective)
 
-From the perspective of a pricing/actuarial leader: "I have the data to know our rates are stale within months of filing, but by the time my team's elasticity analysis clears legal review, the market has already moved again. I can't tell whether the bottleneck is analytical or procedural, and I have no single record showing why a given rate change was approved or rejected — which makes both regulatory audits and my own retrospectives slower than they should be."
+From the perspective of a pricing/actuarial leader: "I have the data to know our rates decay in accuracy over filing cycles often lasting many months, but by the time my team's elasticity analysis clears legal review, the market has already moved again. I can't tell whether the bottleneck is analytical or procedural, and I have no single record showing why a given rate change was approved or rejected — which makes both regulatory audits and my own retrospectives slower than they should be."
 
 The stakeholder problem is not "we lack a pricing model." It is the absence of a shared, auditable process that lets causal analysis, compliance validation, and financial sign-off happen as one traceable decision rather than three sequential, loosely coupled ones.
 
@@ -51,10 +51,10 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 ## 6. Functional Requirements
 
-1. The system SHALL ingest historical policy exposure, claim frequency, and risk-factor data, and produce a causal elasticity/retention estimate per segment.
+1. The system SHALL ingest empirical policy exposure, claim frequency, and rating factors from the public freMTPL2 benchmark, and evaluate causal elasticity estimation against a semi-synthetic price-treatment experiment with known ground truth per segment.
 2. The system SHALL constrain any live rate exploration to a bounded corridor via contextual bandit exploration; it SHALL NOT recommend adjustments outside that corridor without explicit escalation.
 3. The system SHALL retrieve and cite relevant regulatory/actuarial-fairness source material for every proposed rate change via the Compliance Agent, backed by the Redis Stack (RedisVL) index.
-4. The system SHALL project revenue and loss-ratio impact for every proposed change via the Revenue/Loss-Ratio Impact Agent.
+4. The system SHALL project revenue and loss-ratio impact for every proposed change via the Revenue/Loss-Ratio Impact deterministic tool node (INV-5).
 5. The system SHALL escalate to a human underwriter (HITL gate) whenever a recommendation falls outside pre-approved bounds or the Compliance Agent flags a potential violation.
 6. The system SHALL fall back deterministically to the last compliance-approved rate table if any agent or retrieval component degrades or fails.
 7. The system SHALL log a complete, structured audit record (inputs, agent outputs, evidence citations, financial projection, HITL decision) for every recommendation.
@@ -68,27 +68,28 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - **Latency:** end-to-end recommendation latency for a single segment/policy review should remain within an interactive range suitable for same-session use by an underwriter (target: low single-digit seconds for the agentic path, excluding scheduled batch retraining).
 - **Cost governance:** token/cost per recommendation must be tracked and attributable per agent via the Gateway's cost/trace export.
 - **Reproducibility:** the full pipeline (data → model → agent outputs) must be reproducible bit-for-bit under a fixed seed and CI-gated.
-- **Modularity:** no module in `src/` exceeds 1,000 lines; each of the three agents, the Gateway integration, and the governance layer are independently testable.
+- **Modularity:** no module in `src/` exceeds 1,000 lines; the Compliance Agent, deterministic tool nodes, Gateway integration, and governance layer are independently testable.
 
 ## 8. System Architecture
 
-**Tier 1 — Deterministic ML (Brawn):** GLM baseline → causal elasticity/uplift model (double machine learning) → contextual bandit exploration engine, all governed by `params.yaml`, tracked via MLflow, versioned via DVC, and gated on ingestion by Great Expectations.
+**Tier 1 — Deterministic ML (Brawn):** GLM baseline → causal elasticity/uplift model (double machine learning over semi-synthetic benchmark) → contextual bandit exploration engine, all governed by `params.yaml`, tracked via MLflow, versioned via DVC, and gated on ingestion by Great Expectations.
 
-**Tier 2 — Agentic Orchestration (Brain), LangGraph:**
+**Tier 2 — Governed Agentic Workflow, LangGraph (ADR-011):**
 
-- _Pricing Strategy Agent_ — consumes Tier 1 output, proposes a segment-level premium adjustment.
-- _Regulatory Compliance Agent_ — RAG-grounded over the Redis Stack (RedisVL/HNSW) regulatory index; validates the proposal and returns evidence citations.
-- _Revenue/Loss-Ratio Impact Agent_ — projects the financial effect of the proposal.
+- _Pricing Strategy (Deterministic Node)_ — consumes Tier 1 output, validates inputs, and constructs the typed segment-level rate proposal.
+- _Regulatory Compliance Agent (LLM)_ — RAG-grounded over the Redis Stack (RedisVL/HNSW) regulatory index; evaluates statutory compliance and returns evidence citations.
+- _Revenue/Loss-Ratio Impact (Deterministic Node)_ — computes projected portfolio financial effects ($LossCost$, $\Delta Rev$, $LossRatio$) via exact formulas without LLM involvement (INV-5).
+- _Underwriter Briefing (Post-Governance LLM Node) & Deterministic Validator_ — generates an executive narrative for underwriters from the fixed decision record, verified by a deterministic validator with template fallback on any discrepancy.
 
 **Middleware — LLM Gateway (LiteLLM):** unified provider abstraction, fallback/resiliency, smart routing, exact/semantic caching (shared Redis Stack instance), pre-flight input guardrails, and cost/trace export — sits between every agent and the external LLM providers.
 
-**Tier 3 — Governance:** HITL escalation gate; deterministic fallback to the last compliance-approved rate table; structured audit logging.
+**Tier 3 — Governance & Audit:** HITL escalation gate; deterministic fallback to the last compliance-approved rate table; structured audit logging.
 
 **Serving:** FastAPI service, containerized via Docker/Docker Compose, consumed by an underwriting/pricing dashboard. GitHub Actions CI enforces reproducibility and coverage gates; OTel provides tracing and observability across both the Gateway and the LangGraph orchestrator.
 
 ## 9. Data Sources
 
-- Public P&C pricing dataset (e.g., French Motor Third-Party Liability / freMTPL2) for elasticity/retention training.
+- Public P&C benchmark dataset (French Motor Third-Party Liability / freMTPL2) providing realistic empirical driver/vehicle rating covariates and loss frequencies. Because observational claims datasets lack randomized price variation and renewal records, price variation and price elasticity are modeled via a semi-synthetic data-generating process (DGP) over freMTPL2 covariates to benchmark causal recovery against known ground truth.
 - Public regulatory and actuarial-fairness source material (NAIC model laws, state Unfair Trade Practices Act excerpts, relevant ASOPs) for the Compliance Agent's RAG index.
 - Synthetic policy/segment stream for bandit exploration and end-to-end testing, standing in for a live production feed.
 
@@ -97,16 +98,19 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 **Scenario:** Elena submits a mid-sized urban driver segment showing declining retention for Compliance and Financial review.
 
 1. Tier 1 returns a causal elasticity estimate and a bandit-proposed adjustment within the bounded corridor.
-2. The Pricing Strategy Agent formats a proposed premium adjustment.
-3. The Compliance Agent retrieves and cites relevant regulatory material, returning a pass/flag verdict with evidence.
-4. The Revenue/Loss-Ratio Impact Agent projects the financial effect.
-5. **If** the proposal is within bounds and Compliance passes: the system logs the full record and marks it auto-approved-for-review, ready for Marco's routine sign-off.
-   **If** the proposal exceeds bounds or Compliance flags a concern: the system escalates directly to Marco with full state attached and withholds any "approved" status.
-6. **Acceptance criteria:** the audit record for either path is complete (causal justification, evidence citation, financial projection, and final disposition), reconstructable without live re-querying, and the Compliance Agent's citation is independently verifiable against the source corpus.
+2. The Pricing Strategy deterministic node validates inputs and constructs the typed rate adjustment proposal.
+3. In parallel:
+   - The Compliance Agent retrieves and cites relevant regulatory material, returning a pass/flag verdict with evidence.
+   - The Revenue/Loss-Ratio Impact deterministic node computes the exact financial projection (INV-5).
+4. The Governance deterministic node evaluates corridor bounds and compliance status:
+   - **If** the proposal is within bounds and Compliance passes: marked auto-approved-for-review, ready for Marco's routine sign-off.
+   - **If** the proposal exceeds bounds or Compliance flags a concern: escalated directly to Marco with full state attached, withholding any "approved" status.
+5. The post-governance Underwriter Briefing generator synthesizes a qualitative narrative, validated against the structured record (falling back to a deterministic template on any mismatch).
+6. **Acceptance criteria:** the audit record for either path is complete (causal justification, evidence citation, financial projection, final disposition, briefing narrative, validation outcome), reconstructable without live re-querying, and the Compliance Agent's citation is independently verifiable against the source corpus.
 
 ## 11. Success Metrics & KPIs
 
-- Elasticity model: calibration and treatment-effect confidence interval width, vs. GLM baseline.
+- Elasticity model: recovery of the known segment-varying synthetic treatment effect — per-segment and rank-based (Spearman) correlation, robust to heavy-tailed leverage points — with self-consistent, finite confidence intervals (point estimate contained in its own interval); GLM baseline calibration (MAE/RMSE) as reference.
 - Bandit: cumulative regret vs. static-price baseline (simulated).
 - Compliance Agent: four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision), read jointly per ADR-010 — no single metric gates alone; LLM-as-judge agreement rate.
 - Governance: HITL escalation rate (should reflect genuine ambiguity, not over- or under-triggering).
@@ -118,13 +122,13 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Multi-jurisdiction, multi-state simultaneous filing logic.
 - Live carrier core system integration (API contracts modeled, not connected).
 - Autonomous rate publication without human sign-off.
-- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009, Canvas §4): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. The showcase interface's existence does not reopen this exclusion.
+- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. The showcase interface's existence does not reopen this exclusion.
 
 ## 13. Dependencies & Constraints
 
 - Depends on public dataset and regulatory corpus availability and quality; no proprietary carrier data is used.
 - Depends on LLM provider availability, mediated through the Gateway's fallback chain.
-- Solo-practitioner build capacity constrains scope; phase gating (Rule 9) and the `src/` line-count ceiling are the primary controls.
+- Solo-practitioner build capacity constrains scope; phase gating (`scoping_doc.md` §2) and the `src/` line-count ceiling are the primary controls.
 - No live production deployment is in scope; all "production-grade" claims refer to architecture and engineering discipline, not live operational status.
 
 ## 14. Open Questions / Risks (To Be Revisited After Implementation)
@@ -132,4 +136,4 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - How sensitive is the causal elasticity estimate to unmeasured confounding in the public dataset, and does the sensitivity analysis hold up under adversarial review?
 - Are the four diagnostic-matrix thresholds (Faithfulness, Answer Relevancy, Context Recall, Context Precision) for the Compliance Agent strict enough, individually and jointly, to catch subtle regulatory misapplications — not just obviously ungrounded citations?
 - Does the HITL escalation rate, once measured against the synthetic stream, suggest the bounded corridor is calibrated correctly, or does it need tightening/loosening?
-- Will the HITL escalation rate metric remain meaningful once real (not synthetic) production data is introduced, given the synthetic stream's known generalization limits (Charter §9)?
+- Will the HITL escalation rate metric remain meaningful once real (not synthetic) production data is introduced, given the synthetic stream's known generalization limits (see `scoping_doc.md` §11)?
