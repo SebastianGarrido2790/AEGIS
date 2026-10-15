@@ -21,7 +21,7 @@ Author: Sebastián Garrido Arévalo | Date: September 28, 2026
 **Primary users:** actuarial/pricing analysts and underwriting/compliance reviewers (in-universe personas Elena, Marco, Renata — `user_story.md`).
 **Secondary users:** hiring managers, technical evaluators, and academic reviewers assessing this as portfolio evidence (`prd.md` §5; ADR-009's showcase interface exists specifically for this audience).
 
-**Pain point:** a rate change justified by the data still has to travel physically between an actuarial desk, a compliance/legal desk, and a finance desk, in sequence, each waiting on the last — a process that takes weeks, and produces no single record of why a given change was approved or rejected.
+**Pain point:** under statutory rate-filing regimes with review cycles often lasting many months, a rate change justified by the data still has to travel physically between an actuarial desk, a compliance/legal desk, and a finance desk, in sequence, each waiting on the last — a process that takes weeks, and produces no single record of why a given change was approved or rejected.
 
 **Why an agentic approach, not traditional software or classical ML alone:** the task requires synthesizing three distinct domains of judgment — actuarial, regulatory, financial — into one governed decision before a human acts on it, where the regulatory piece specifically requires reasoning over free-text source material a fixed rule engine cannot generalize over. **This question is now resolved:** the companion Pre-Build Validation Gates (`../evaluations/capability_profile_gates.md`, amended by ADR-011) confirm that probabilistic reasoning is required strictly at the Compliance node for free-text statutory interpretation, while Pricing Strategy and Financial Impact are deterministic code nodes (Option C), completed by a post-governance underwriter briefing narrative.
 
@@ -42,7 +42,7 @@ AEGIS is a governed, three-tier agentic platform that recommends personal auto i
 
 ## 4. Stakeholders
 
-- **Sebastián Garrido Arévalo** — sole practitioner, acting as architect, ML engineer, and agentic systems engineer. No PM, design, data, or legal function exists on this project, by design — this is itself a standing scope constraint (§12), not an oversight.
+- **Sebastián Garrido Arévalo** — sole practitioner, acting as architect, ML engineer, and agentic systems engineer. No PM, design, data, or legal function exists on this project, by design — this is itself a standing scope constraint (§11), not an oversight.
 - **Academic stakeholder:** the certificate instructor evaluating this project as coursework-adjacent portfolio evidence.
 - **Portfolio/hiring stakeholder:** the secondary audience named in §1 — technical evaluators and recruiters, served directly by the ADR-009 showcase interface.
 
@@ -59,7 +59,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 ## 7. Input and Output
 
 - **Input:** a policy/segment submitted for pricing review (driver age, vehicle age/power, bonus-malus, exposure, region, and related rating factors); regulatory corpus documents (jurisdiction, section, effective date, chunk text) feeding the Compliance Agent's retrieval index (Phase 5, not yet built).
-- **Output:** a structured recommendation record — proposed premium adjustment, causal justification with confidence interval, compliance verdict with evidence citation, financial impact projection, post-governance briefing narrative, and final disposition (auto-approved-for-review or escalated). The system never outputs a published rate directly (INV-4).
+- **Output:** a structured recommendation record — proposed premium adjustment, causal justification with confidence interval, compliance verdict with evidence citation, first-order financial impact projection (assuming homogeneous retention risk), validated underwriter briefing narrative, and final disposition (`AUTO_APPROVED` or `ESCALATED`, with operational fallback flagged if active). The system never outputs a published rate directly (INV-4).
 - **Storage:** DVC-versioned training and regulatory data; MLflow-tracked and registered models; a SQLite-backed structured audit log (Tier 3, Phase 7); a Redis Stack-backed regulatory vector index (Phase 5).
 
 ## 8. Constraints
@@ -67,9 +67,9 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 | Constraint | Target | Notes |
 |---|---|---|
 | Latency (p50 / p99) | **Not yet set** | `prd.md` §7 states a qualitative target only ("low single-digit seconds for the agentic path"); no hard p50/p99 SLA has been formally set. Open item for Phase 4+ NFR refinement — not invented here to fill the table. |
-| Cost per request | **Not yet set** | Zero marginal cost today by construction — Tier 1 makes no LLM calls. Once the Gateway exists (Phase 4), cost is tracked via its OTel cost export, but no target $/request ceiling has been decided. |
+| Cost per request | **Not yet set** | Zero marginal cost today by construction — Tier 1 makes no LLM calls. Once the Gateway exists (Phase 4), cost is tracked via its OTel cost export, covering both Compliance and Briefing. |
 | Quality bar | Tier 1: calibrated per-segment/Spearman recovery threshold (in progress). Tier 2 (future): four-metric diagnostic-matrix threshold, Faithfulness/Answer Relevancy/Context Recall/Context Precision (ADR-010) | Threshold values themselves are Phase 5/6 work, not yet set. |
-| Privacy / compliance | Zero committed secrets (INV-1); single-jurisdiction disclaimer on every Compliance verdict (INV-9); no live carrier-system integration (INV-10) | All three already enforced as standing invariants, not aspirational. |
+| Privacy / compliance | Zero committed secrets (INV-1); single-jurisdiction disclaimer on every Compliance verdict (INV-9); no live carrier-system integration (INV-10); INV-5 binds recommendations (Phase 2 demo showcase has explicit diagnostic-only exemption; ADR-011) | Enforced as standing invariants. |
 | Availability / uptime | **Not applicable** | No live production deployment is in scope (`prd.md` §13) — this is a portfolio system, not a service with an uptime SLA. |
 
 ## 9. Success Metrics

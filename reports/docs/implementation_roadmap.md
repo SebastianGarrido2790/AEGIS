@@ -54,7 +54,7 @@ Capabilities:
 
 Exit criteria:
 - causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`groundedness/scoping_doc.md` §0, §2)
-- showcase slice renders correctly, clearly labeled demo rather than production view
+- showcase slice renders correctly, clearly labeled demo rather than production view (carries an explicit developer-diagnostic exemption from INV-5, which strictly binds pricing recommendations)
 
 Carryover into the redo — the confirmed Phase 2 findings stand and constrain the new design:
 - heavy-tailed feature/loss distribution (re-confirmed on raw data by the EDA run, `../../artifacts/eda_summary.json`: max claim €2.04M ≈ 5.91% of portfolio losses) — loss capping and robust validation are mandatory, not optional
@@ -122,33 +122,36 @@ Phase 1 (corpus gate), Phase 4 (Gateway/Redis).
 ## Phase 6 — Agentic Orchestration Layer
 
 Goal:
-Assemble the Option C governed LangGraph workflow (ADR-011): deterministic Pricing Strategy → [Compliance Agent (LLM) ‖ Revenue Impact (deterministic)] → Governance (deterministic) → post-governance Underwriter Briefing generator (LLM) & narrative validator.
+Assemble the Option C decision loop (ADR-011): deterministic Pricing Strategy → [Compliance Agent (LLM) ‖ Revenue Impact (deterministic)] → Governance disposition node (`AUTO_APPROVED` vs. `ESCALATED`), with a deterministic Jinja2 templated underwriter briefing.
 
 Capabilities:
-- `AgentState` schema; deterministic Pricing and Impact nodes; Compliance reasoning agent; deterministic Governance node
-- post-governance Underwriter Briefing LLM node with deterministic narrative validator (template fallback on discrepancy)
-- application-level circuit breaking alongside Gateway fallback; structured-output validation per node boundary; showcase trace-panel slice with an escalation scenario
+- `AgentState` schema; deterministic Pricing and Impact nodes (first-order elasticity volume approximation); Compliance reasoning agent (RAG over Redis Stack)
+- deterministic Governance disposition node (`AUTO_APPROVED` vs. `ESCALATED`)
+- deterministic Jinja2 underwriter briefing template satisfying Story 2.1 without adding LLM complexity to Phase 6
+- application-level circuit breaking alongside Gateway fallback; structured-output validation per node boundary; showcase trace-panel slice (ADR-009)
 
 Exit criteria:
-- Primary Scenario (`groundedness/prd.md` §10) runs end-to-end on both auto-approved and escalated branches, each producing a complete audit record with validated briefing narrative
-- trace panel visibly distinguishes the two branches
+- Primary Scenario (`groundedness/prd.md` §10) runs end-to-end on both auto-approved and escalated branches
+- trace panel visibly distinguishes the branches
 
 Dependencies:
 Phases 2, 3 (Tier 1 outputs), 4 (Gateway), 5 (RAG).
 
 ---
 
-## Phase 7 — Governance Layer
+## Phase 7 — Governance Layer & Audit Persistence
 
 Goal:
-Make every recommendation traceable and safely bounded.
+Make every recommendation traceable, fail-safe, and safely bounded.
 
 Capabilities:
-- HITL escalation gate; deterministic fallback to last compliance-approved rate table
-- audit log schema and persistence; minimal review endpoint; showcase audit/HITL slice with a fallback scenario
+- full immutable audit log persistence (schema validation, replayability, INV-7 blocking response gate)
+- deterministic operational fallback engine (INV-6) safely reverting to the last compliance-approved rate table ($Rate_{approved}$) with `fallback_active = True`
+- formal HITL review endpoint for human sign-off
+- showcase audit/HITL slice with a fallback scenario demonstrating fail-safe reversion
 
 Exit criteria:
-- 100% audit-record completeness across a batch spanning both branches
+- 100% audit-record completeness across a batch spanning both branches (INV-7)
 - fallback triggers correctly under simulated agent failure, demonstrated in the showcase
 
 Dependencies:
@@ -156,12 +159,14 @@ Phase 6.
 
 ---
 
-## Phase 8 — Evaluation & Observability Hardening
+## Phase 8 — Evaluation, Observability & Narrative Hardening
 
 Goal:
-Make the system's own reliability measurable, not assumed.
+Make the system's own reliability measurable, and introduce the post-governance LLM Briefing Generator.
 
 Capabilities:
+- post-governance LLM Underwriter Briefing generator with prompt isolation (reads only structured fields) and multi-layer deterministic validator (numeric match, citation ID lookup, disposition consistency, immediate template fallback)
+- briefing validation metrics: tracking validator-pass rate and template-fallback rate (`briefing.validation.pass_rate`, `briefing.fallback.count`)
 - CI-gated LLM-as-judge regression suite (absolute + baseline-relative blocking)
 - continuous-score judge calibration; labeled golden dataset with coverage queries
 - Stage 3 production monitoring with HITL-gated harvest loop; drift monitoring; OTel spans and cost/trace dashboard
@@ -169,6 +174,7 @@ Capabilities:
 Exit criteria:
 - regression suite blocks on a deliberately regressed version and on an above-floor baseline-relative regression
 - mis-calibrated judge fails calibration; drift monitor flags an injected shift; sub-threshold traces route to harvest without auto-promotion
+- briefing validator telemetry confirms pass and fallback tracking operational
 
 Dependencies:
 Phases 6, 7.

@@ -18,10 +18,18 @@ The Merging Test answered the wrong question first. It asked *whether three agen
 
 Evaluating each node against the Brain/Brawn separation and INV-5 surfaces the following corrections:
 1. **Pricing Strategy is Deterministic:** It consumes Tier 1 outputs and validates them into a Pydantic schema. Wrapping this in an LLM call adds token spend, latency, and parsing fragility for zero reasoning benefit.
-2. **Revenue/Loss-Ratio Impact is Deterministic:** INV-5 strictly prohibits LLM financial arithmetic. Financial projections must be computed by deterministic formulas. Having an LLM generate or narrate these numbers during the decision path creates a dangerous hallucination surface.
-3. **Governance is Deterministic:** Routing between `SUCCESS` and `ESCALATE` is a fixed boolean rule over numerical bounds and compliance pass/flag flags.
+2. **Revenue/Loss-Ratio Impact is Deterministic:** INV-5 strictly prohibits LLM financial arithmetic. Financial projections must account for the causal demand elasticity response ($Q_{new} = Q_0 \times (1 + \epsilon \cdot \Delta)$, $\Delta Rev \approx Rev_0 \cdot [(1+\Delta)(1+\epsilon \Delta) - 1]$, $LossRatio_{new}$) computed by exact deterministic actuarial formulas. Having an LLM generate or narrate these numbers during the decision path creates a dangerous hallucination surface.
+3. **Governance is Deterministic & Dispositions are Clarified:** Review routing evaluates corridor bounds and the compliance pass/flag verdict to assign `AUTO_APPROVED` or `ESCALATED`. Operational Fallback (INV-6) is an emergency fail-safe route rather than a third review destination: upon grounding failure or technical breakdown, the system reverts the rate proposal to the baseline approved table ($Rate_{approved}$) and emits disposition `ESCALATED` with `fallback_active = True`.
 4. **Compliance is the Sole Decision Agent:** Retrieving and evaluating unstructured regulatory statutes against pricing proposals is the only node in the decision path that genuinely requires natural-language reasoning.
-5. **Briefing Narrative is Post-Governance:** To satisfy underwriter usability (`user_story.md` Story 2.1) without corrupting numbers, a single bounded LLM call generates a briefing narrative *after* Governance fixes the disposition. A deterministic validator verifies every figure against the structured record, falling back to a deterministic template upon any discrepancy.
+5. **Briefing Narrative & Phase Sequencing (INV-7 Compliant):** To keep Phase 6 bounded and protect solo build capacity, Phase 6 generates the underwriter briefing narrative via a deterministic Jinja2 template. When the LLM Briefing Generator is introduced post-Phase 7 (Phase 8), it executes synchronously under a bounded timeout ($\le 2\text{s}$), ensuring the audit record is 100% complete before API response per INV-7 (no unverified async state).
+6. **Robust Multi-Layer Narrative Validator & Prompt Isolation:**
+   - *Prompt isolation (AGENTS.md §2):* The briefing LLM receives strictly non-free-text structured fields (proposal parameters, numerical deltas, citation IDs, disposition enum). It never ingests raw corpus text or un-sanitized LLM rationales (preventing direct and second-order prompt injection). Statutory quotes are inserted deterministically via citation ID lookup.
+   - *Mechanical checks:* Numbers, currency values, percentages, and citation IDs are mechanically verified against the structured record.
+   - *Semantic consistency:* The validator enforces that the narrative contains zero disposition-contradicting language (no approving phrasing on an `ESCALATED` record with or without `fallback_active = True`; no violation phrasing on an `AUTO_APPROVED` record).
+   - *Fallback & telemetry:* On any validation mismatch, parsing failure, or timeout, the system reverts immediately to a deterministic template. The briefing's validator-pass rate and template-fallback rate are tracked in Phase 8 metrics (`briefing.validation.pass_rate`, `briefing.fallback.count`).
+7. **Accurate Cost & Latency Profile:**
+   - Total pipeline LLM calls: **1 call** in Phase 6 (Compliance only); **2 calls** when the post-Phase 7 LLM briefing is enabled (Compliance + Briefing), down from 3 in the initial framing (net reduction of **one call** overall).
+   - Synchronous critical decision path LLM calls: strictly **1 call** (Compliance only), eliminating 2 LLM calls from the decision loop and removing the risk of LLM-hallucinated financial figures.
 
 **Compliance Complexity Level (Level 3 vs. Level 2 Open Evaluation):**
 Part 2 classified Compliance as Level 3 (Bounded Agent) under the premise that the LLM performs model-driven tool selection over regulatory chunks.
@@ -42,11 +50,11 @@ Worst case: the system recommends a regulatorily non-compliant or financially un
 
 ### 3. Session Economics & Cost Ceiling
 
-**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `../groundedness/scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
+**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `../groundedness/scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), covering both the Compliance Agent and (when enabled post-Phase 7) the Briefing Generator, using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
 
 ### 4. Evaluation Harness
 
-Specified, not yet built. The golden dataset schema (`FailureMode` taxonomy, `GoldenCase` dataclass) is already architecturally committed — see Part 5 below and the planned `src/evaluation/golden_schema.py` — but Phase 5/8 is where it's actually implemented. This gate is satisfied at the specification level; implementation status is tracked honestly as pending, not implied complete.
+Specified, not yet built. The golden dataset schema (`FailureMode` taxonomy, `GoldenCase` dataclass) is already architecturally committed — see Part 5 below and the planned `src/aegis/evaluation/golden_schema.py` — but Phase 5/8 is where it's actually implemented. This gate is satisfied at the specification level; implementation status is tracked honestly as pending, not implied complete.
 
 ### 5. Graceful Off-Switch
 
@@ -56,7 +64,7 @@ Specified, not yet built. The golden dataset schema (`FailureMode` taxonomy, `Go
 
 ## Part 2 — The Four-Level Complexity Diagnostic
 
-**Classification: Level 3 — Bounded Agent.**
+**Classification: Level 3 — Bounded Agent (Provisional — pending Phase 5 evaluation).**
 
 Walking the criteria directly, against the actual design already committed in `../architecture/system_design.md`:
 
@@ -79,7 +87,7 @@ Filled in against AEGIS's actual Tier 2 design. Blank rows are stated as deliber
 | **2. Reasoning** | **CoT Auditor** *(adapted)* | AEGIS doesn't implement a literal chain-of-thought trace audit — it implements the four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision; ADR-010) as its auditable-reasoning mechanism for the Compliance Agent. Named here as the closest-fit pattern, not a literal off-the-shelf match. |
 | **3. Planning** | **Plan-Then-Execute** | The topology is fixed at design time, not discovered at runtime — no ReAct loop, no adaptive replanning. |
 | **4. Memory** | *(none selected)* | Deliberate, not an oversight: each review is single-shot (no session continuity needed), and the persistent audit log (INV-7) is a write-once compliance record, not memory fed back into future reasoning. |
-| **5. Tool Use** | **Tool Selector**, **Side-Effect Auditor** | The Compliance Agent selects which regulatory chunks to retrieve. Every recommendation producing a complete, structured audit record (INV-7) is functionally what a Side-Effect Auditor does — wrapping the decision with pre/post state capture. |
+| **5. Tool Use** | **Tool Selector**, **Side-Effect Auditor** | The Compliance Agent selects which regulatory chunks to retrieve (Tool Selector — provisionally assumes model-driven retrieval tool use, subject to Phase 5 empirical comparison against deterministic query construction). Every recommendation producing a complete, structured audit record (INV-7) is functionally what a Side-Effect Auditor does — wrapping the decision with pre/post state capture. |
 | **6. Coordination** | **Pipeline Orchestrator**, **HITL Liaison** | The LangGraph coordinator is a fixed pipeline with a parallel fan-out/fan-in, not a dynamic Supervisor-Worker delegation. The Governance node's escalation gate is a direct HITL liaison. |
 | **7. Learning** | **Feedback Loop** *(planned, not built)* | Matches the Phase 8 production harvest loop that routes sub-threshold traces to a human-reviewed golden-dataset candidate queue. Selected here as the target architecture; not yet implemented, and not claimed to be. |
 | **8. Alignment** | **Constitution-Bound**, **Provenance Tracker**, **Explainer Agent**, **Drift-Detector** *(planned)* | Constitution-Bound maps directly to the Non-Negotiable Invariants (see `../architecture/system_design.md` ADR log) acting as a hard, un-negotiable constraint set. Provenance Tracker maps to INV-7 and the Compliance Agent's evidence citations. Explainer Agent maps to INV-5 — the causal justification, compliance evidence, and financial impact bundle attached to every recommendation. Drift-Detector matches the planned Phase 8 feature-distribution monitoring. |
@@ -87,7 +95,7 @@ Filled in against AEGIS's actual Tier 2 design. Blank rows are stated as deliber
 **Three unselected Alignment patterns — two gaps and one deliberate non-selection — surfaced explicitly rather than silently omitted:**
 
 - **Off-Switch-Compatible — not selected (gap — the same gap Part 1 Gate 5 already found).** Two independent parts of this exercise landing on the same missing piece is a stronger signal than either alone — it's a real, load-bearing absence.
-- **Red-Team Auditor — not selected (gap).** No adversarial test suite exists for AEGIS's Compliance Agent yet (the kind of 20–50-attack corpus a production safety review calls for) — recorded here as a tracked open item, not fixed here.
+- **Red-Team Auditor — not selected (gap).** No adversarial test suite exists for AEGIS's Compliance Agent yet (the kind of 20–50-attack corpus a production safety review calls for). When the post-Phase 7 LLM Briefing Generator is introduced, it represents an additional prompt-injection/hallucination surface requiring adversarial testing alongside Compliance — recorded here as a tracked open item, not fixed here.
 - **Privacy-Preserving — not selected (deliberate non-selection, not a gap).** AEGIS's current scope operates on rating-factor and segment data, not named-individual PII — this capability isn't yet a modeled concern. Worth revisiting explicitly if the project ever moves beyond synthetic/benchmark data toward anything resembling real customer records.
 
 ---
@@ -126,7 +134,7 @@ AEGIS's safety layering nests, outermost to innermost: Off-Switch-Compatible →
 
 ## Summary
 
-**What this exercise confirms (as amended by ADR-011):** Tier 2 is correctly scoped as a governed workflow with a single probabilistic compliance reasoning agent, deterministic specialist nodes, and a bounded post-governance briefing narrative (Option C) — not an over-engineered multi-agent system calling LLMs where deterministic code belongs, nor a Level 4 autonomous system.
+**What this exercise confirms (as amended by ADR-011):** Tier 2 is correctly scoped as a governed workflow with a single probabilistic compliance reasoning agent (provisionally Level 3 Bounded Agent, pending Phase 5 evaluation), deterministic specialist nodes, and a bounded post-governance briefing narrative (Option C) — not an over-engineered multi-agent system calling LLMs where deterministic code belongs, nor a Level 4 autonomous system.
 
 **What this exercise found that wasn't previously documented:**
 1. No off-switch/kill-switch mechanism exists for Tier 2 (found three separate ways — Part 1 Gate 5, Part 3, Part 6).

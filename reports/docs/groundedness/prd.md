@@ -54,10 +54,10 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 1. The system SHALL ingest empirical policy exposure, claim frequency, and rating factors from the public freMTPL2 benchmark, and evaluate causal elasticity estimation against a semi-synthetic price-treatment experiment with known ground truth per segment.
 2. The system SHALL constrain any live rate exploration to a bounded corridor via contextual bandit exploration; it SHALL NOT recommend adjustments outside that corridor without explicit escalation.
 3. The system SHALL retrieve and cite relevant regulatory/actuarial-fairness source material for every proposed rate change via the Compliance Agent, backed by the Redis Stack (RedisVL) index.
-4. The system SHALL project revenue and loss-ratio impact for every proposed change via the Revenue/Loss-Ratio Impact deterministic tool node (INV-5).
+4. The system SHALL project revenue and loss-ratio impact for every proposed change via the Revenue/Loss-Ratio Impact deterministic tool node (INV-5), using a first-order demand elasticity volume approximation rather than static premium multiplication, assuming homogeneous retention risk within segment.
 5. The system SHALL escalate to a human underwriter (HITL gate) whenever a recommendation falls outside pre-approved bounds or the Compliance Agent flags a potential violation.
-6. The system SHALL fall back deterministically to the last compliance-approved rate table if any agent or retrieval component degrades or fails.
-7. The system SHALL log a complete, structured audit record (inputs, agent outputs, evidence citations, financial projection, HITL decision) for every recommendation.
+6. The system SHALL fall back deterministically to the last compliance-approved rate table if compliance retrieval groundedness drops below threshold or a component degrades (INV-6), emitting an escalated disposition with operational fallback flagged (`fallback_active = True`).
+7. The system SHALL log a complete, structured audit record (inputs, agent outputs, evidence citations, financial projection, HITL decision) for every recommendation before emitting an API response (INV-7).
 8. All LLM calls SHALL route through the LLM Gateway (LiteLLM) — no agent may hold a raw provider client or key.
 9. All data entering the training pipeline or the regulatory corpus SHALL pass its respective Great Expectations suite as a CI-blocking gate before being versioned by DVC.
 
@@ -78,8 +78,8 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 - _Pricing Strategy (Deterministic Node)_ — consumes Tier 1 output, validates inputs, and constructs the typed segment-level rate proposal.
 - _Regulatory Compliance Agent (LLM)_ — RAG-grounded over the Redis Stack (RedisVL/HNSW) regulatory index; evaluates statutory compliance and returns evidence citations.
-- _Revenue/Loss-Ratio Impact (Deterministic Node)_ — computes projected portfolio financial effects ($LossCost$, $\Delta Rev$, $LossRatio$) via exact formulas without LLM involvement (INV-5).
-- _Underwriter Briefing (Post-Governance LLM Node) & Deterministic Validator_ — generates an executive narrative for underwriters from the fixed decision record, verified by a deterministic validator with template fallback on any discrepancy.
+- _Revenue/Loss-Ratio Impact (Deterministic Node)_ — computes projected portfolio financial effects ($LossCost$, $\Delta Rev$, $LossRatio$) accounting for demand elasticity ($Q_{new} = Q_0 \times (1 + \epsilon \cdot \Delta)$, $\Delta Rev \approx Rev_0 \cdot [(1+\Delta)(1+\epsilon \Delta) - 1]$) via first-order actuarial approximations assuming homogeneous retention risk within segment (no adverse selection in lapse behavior), without LLM involvement (INV-5).
+- _Underwriter Briefing & Deterministic Validator_ — in Phase 6, generates an executive narrative via a deterministic Jinja2 template. When enhanced with an LLM Briefing Generator post-Phase 7 (Phase 8), it executes synchronously under a bounded timeout ($\le 2\text{s}$), ingesting strictly structured non-free-text fields (never raw corpus text or un-sanitized LLM rationales, per AGENTS.md §2 prompt isolation) with statutory quotes inserted deterministically by citation ID lookup. Verified by a deterministic validator (numeric match, citation ID match, and disposition consistency rule) with template fallback on any discrepancy, ensuring 100% complete audit records before API response per INV-7.
 
 **Middleware — LLM Gateway (LiteLLM):** unified provider abstraction, fallback/resiliency, smart routing, exact/semantic caching (shared Redis Stack instance), pre-flight input guardrails, and cost/trace export — sits between every agent and the external LLM providers.
 
@@ -97,15 +97,15 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 **Scenario:** Elena submits a mid-sized urban driver segment showing declining retention for Compliance and Financial review.
 
-1. Tier 1 returns a causal elasticity estimate and a bandit-proposed adjustment within the bounded corridor.
+1. Tier 1 returns a causal elasticity estimate $\epsilon(X)$ and a bandit-proposed adjustment within the bounded corridor.
 2. The Pricing Strategy deterministic node validates inputs and constructs the typed rate adjustment proposal.
 3. In parallel:
    - The Compliance Agent retrieves and cites relevant regulatory material, returning a pass/flag verdict with evidence.
-   - The Revenue/Loss-Ratio Impact deterministic node computes the exact financial projection (INV-5).
+   - The Revenue/Loss-Ratio Impact deterministic node computes the financial projection accounting for volume elasticity (INV-5).
 4. The Governance deterministic node evaluates corridor bounds and compliance status:
-   - **If** the proposal is within bounds and Compliance passes: marked auto-approved-for-review, ready for Marco's routine sign-off.
-   - **If** the proposal exceeds bounds or Compliance flags a concern: escalated directly to Marco with full state attached, withholding any "approved" status.
-5. The post-governance Underwriter Briefing generator synthesizes a qualitative narrative, validated against the structured record (falling back to a deterministic template on any mismatch).
+   - **If** the proposal is within bounds and Compliance passes: marked `AUTO_APPROVED`, ready for Marco's routine sign-off.
+   - **If** the proposal exceeds bounds or Compliance flags a concern (or if grounding drops below threshold, triggering the last compliance-approved rate table): marked `ESCALATED` with full state attached, withholding any approved status and flagging operational fallback (`fallback_active = True`) if triggered.
+5. Synchronous Underwriter Briefing: generated via deterministic template (Phase 6) or bounded-timeout LLM with multi-layer validator (post-Phase 7), ensuring a complete narrative before response (INV-7).
 6. **Acceptance criteria:** the audit record for either path is complete (causal justification, evidence citation, financial projection, final disposition, briefing narrative, validation outcome), reconstructable without live re-querying, and the Compliance Agent's citation is independently verifiable against the source corpus.
 
 ## 11. Success Metrics & KPIs
@@ -114,6 +114,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Bandit: cumulative regret vs. static-price baseline (simulated).
 - Compliance Agent: four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision), read jointly per ADR-010 — no single metric gates alone; LLM-as-judge agreement rate.
 - Governance: HITL escalation rate (should reflect genuine ambiguity, not over- or under-triggering).
+- Briefing generation: validator-pass rate and template-fallback rate (tracked in evaluation and OTel telemetry).
 - System: end-to-end decision latency; audit-record completeness rate (target: 100%).
 
 ## 12. Out of Scope (Future Iterations)
@@ -122,7 +123,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Multi-jurisdiction, multi-state simultaneous filing logic.
 - Live carrier core system integration (API contracts modeled, not connected).
 - Autonomous rate publication without human sign-off.
-- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. The showcase interface's existence does not reopen this exclusion.
+- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. Under INV-5, the standalone Phase 2 developer showcase / model diagnostic UI is explicitly exempted from requiring Compliance and Impact context, provided the UI is labeled as a raw model validation demo and not a pricing recommendation. INV-5 strictly binds any rate recommendation or decision output.
 
 ## 13. Dependencies & Constraints
 

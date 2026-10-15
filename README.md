@@ -4,7 +4,7 @@ A governed-by-construction agentic platform built to production engineering and 
 
 Designed for actuarial and pricing analysts, underwriting teams, and compliance reviewers as a governed, auditable decision loop — never as an autonomous rate publisher.
 
-> **Differentiator:** LLMs are used only where free-text reasoning is required — interpreting regulatory text (Compliance Agent) and drafting the post-governance underwriter briefing. Everything else is deterministic, schema-validated code: causal estimation, financial projections, governance routing, and narrative validation (ADR-011).
+> **Differentiator:** LLMs are used only where free-text reasoning is required — interpreting regulatory text (Compliance Agent) and drafting the post-governance underwriter briefing. Everything else is deterministic, schema-validated code: causal estimation, financial projections (accounting for volume elasticity), governance routing, and multi-layer narrative validation (ADR-011).
 
 ---
 
@@ -18,9 +18,9 @@ Designed for actuarial and pricing analysts, underwriting teams, and compliance 
 | **Phase 3 — Contextual Bandit Exploration Engine** | Bounded Thompson Sampling exploration corridor, synthetic production stream simulator, regret evaluation        | ⬜ Scheduled   |
 | **Phase 4 — LLM Gateway Integration**              | In-process LiteLLM Gateway, Redis Stack cache, pre-flight guardrails (PII/injection), OTel cost/trace emission  | ⬜ Scheduled   |
 | **Phase 5 — Regulatory RAG Foundation**            | RedisVL/HNSW vector index, regulatory corpus ingestion, retrieval-quality evaluation harness                    | ⬜ Scheduled   |
-| **Phase 6 — Agentic Orchestration Layer**          | Option C LangGraph workflow: deterministic Pricing/Impact nodes, Compliance Agent, post-governance Briefing & validator (ADR-011) | ⬜ Scheduled   |
-| **Phase 7 — Governance Layer**                     | Human-in-the-loop (HITL) escalation gate, deterministic fallback to approved rate tables, structured audit log  | ⬜ Scheduled   |
-| **Phase 8 — Evaluation & Observability Hardening** | CI-blocking LLM-as-judge regression suite, drift monitoring on segment features, OpenTelemetry tracing          | ⬜ Scheduled   |
+| **Phase 6 — Agentic Orchestration Layer**          | Option C LangGraph decision loop: deterministic Pricing/Impact nodes, Compliance Agent, templated briefing (ADR-011) | ⬜ Scheduled   |
+| **Phase 7 — Governance & Audit Layer**             | Full immutable audit log persistence, formal HITL review endpoint, deterministic rate fallback                  | ⬜ Scheduled   |
+| **Phase 8 — Evaluation & Narrative Hardening**     | Post-governance LLM Briefing & validator, CI-blocking LLM-as-judge regression suite, drift monitoring, OTel tracing | ⬜ Scheduled   |
 | **Phase 9 — Containerization & CI/CD Close-Out**   | Multi-stage Docker packaging, Docker Compose orchestration, full GitHub Actions pipeline                        | ⬜ Scheduled   |
 
 ---
@@ -35,7 +35,7 @@ AEGIS is built upon strict architectural guardrails and engineering invariants:
 | **INV-2** | **Single vector store.** Redis Stack (RedisVL) is the only vector store. No second vector database without a superseding ADR. | ADR-002 | CI dependency audit flags any new vector-store package in `pyproject.toml`. |
 | **INV-3** | **Data contracts are blocking.** No dataset or corpus document is DVC-versioned or indexed without first passing its Great Expectations suite. A failed suite halts the pipeline. | ADR-003 | GX validation is a hard upstream dependency of every downstream DVC stage. |
 | **INV-4** | **No autonomous publication.** The system recommends a premium adjustment; it never publishes one. Every recommendation terminates at auto-approved-for-review or HITL escalation. | PRD §4; `scoping_doc.md` §§3,7 | Governance output schema has no "published" state; publication is manual, out-of-system. |
-| **INV-5** | **Causal output is advisory, not authoritative.** Elasticity/bandit output is never surfaced without accompanying Compliance and Revenue/Loss-Ratio Impact context. | PRD §6; `scoping_doc.md` §11 | Governance output schema and final recommendation record require non-null Compliance and Impact fields. |
+| **INV-5** | **Causal output is advisory, not authoritative.** Elasticity/bandit output is never surfaced without accompanying Compliance and Revenue/Loss-Ratio Impact context. | PRD §6; `scoping_doc.md` §11 | Governance output schema and recommendation record require non-null Compliance and Impact fields. (Phase 2 model diagnostic showcase carries an explicit developer-only exemption; ADR-011). |
 | **INV-6** | **Grounding failure triggers fallback, not guessing.** Groundedness is a joint read across Faithfulness, Answer Relevancy, Context Recall, Context Precision — never a single score. Below threshold: fall back to the last compliance-approved rate table and escalate. | ADR-003 rationale; `scoping_doc.md` §11; refined by ADR-010 | Threshold check raises a typed exception in the Compliance node, caught by the governance fallback handler. |
 | **INV-7** | **Complete audit record, no exceptions.** Every recommendation produces one complete, structured, independently reconstructable audit record. | PRD FR-7, PRD §11 | Audit schema validation is the last gate before any API response; failure raises. |
 | **INV-8** | **Module size ceiling.** No file under `src/` exceeds 1,000 lines. Decompose, don't extend. | Project router (Phase 1) | `uv run python scripts/check_module_size.py`; over-limit fails the build. |
