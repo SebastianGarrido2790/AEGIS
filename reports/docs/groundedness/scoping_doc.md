@@ -28,7 +28,7 @@ Author: Sebastián Garrido Arévalo | Date: September 28, 2026
 ## 2. Goal
 
 1. **Tier 1:** the causal elasticity estimator recovers a known synthetic treatment effect with defensible per-segment correlation and Spearman rank-correlation metrics, and self-consistent, finite confidence intervals (point estimate contained in its own reported interval).
-2. **Tier 2 (Phase 6):** the LangGraph orchestration produces a complete, auditable recommendation trace for the Primary Scenario (`prd.md` §10) on both the auto-approved and escalated branches.
+2. **Tier 2 (Phase 6):** the LangGraph orchestration produces a complete, auditable in-memory recommendation trace for the Primary Scenario (`prd.md` §10) on both the auto-approved and escalated branches (persisted from Phase 7).
 3. **Tier 3 (Phase 7):** 100% audit-record completeness across a test batch spanning both escalated and auto-approved scenarios.
 4. **Showcase (ADR-009, incremental across Phases 2/6/7):** a glass-box demo interface that visibly distinguishes a governed outcome — an approval, an escalation, a fallback — for the secondary audience, never presented as a production interface.
 
@@ -59,7 +59,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 ## 7. Input and Output
 
 - **Input:** a policy/segment submitted for pricing review (driver age, vehicle age/power, bonus-malus, exposure, region, and related rating factors); regulatory corpus documents (jurisdiction, section, effective date, chunk text) feeding the Compliance Agent's retrieval index (Phase 5, not yet built).
-- **Output:** a structured recommendation record — proposed premium adjustment, causal justification with confidence interval, compliance verdict with evidence citation, first-order financial impact projection (assuming homogeneous retention risk), validated underwriter briefing narrative, and final disposition (`AUTO_APPROVED` or `ESCALATED`, with operational fallback flagged if active). The system never outputs a published rate directly (INV-4).
+- **Output:** a structured recommendation record — proposed premium adjustment, causal justification with confidence interval, compliance verdict with evidence citation, first-order financial impact projection (assuming homogeneous retention risk), validated underwriter briefing narrative, and final disposition (`READY_FOR_REVIEW` or `ESCALATED`, with operational fallback flagged if active). The system never outputs a published rate directly (INV-4).
 - **Storage:** DVC-versioned training and regulatory data; MLflow-tracked and registered models; a SQLite-backed structured audit log (Tier 3, Phase 7); a Redis Stack-backed regulatory vector index (Phase 5).
 
 ## 8. Constraints
@@ -69,7 +69,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 | Latency (p50 / p99) | **Not yet set** | `prd.md` §7 states a qualitative target only ("low single-digit seconds for the agentic path"); no hard p50/p99 SLA has been formally set. Open item for Phase 4+ NFR refinement — not invented here to fill the table. |
 | Cost per request | **Not yet set** | Zero marginal cost today by construction — Tier 1 makes no LLM calls. Once the Gateway exists (Phase 4), cost is tracked via its OTel cost export, covering both Compliance and Briefing. |
 | Quality bar | Tier 1: calibrated per-segment/Spearman recovery threshold (in progress). Tier 2 (future): four-metric diagnostic-matrix threshold, Faithfulness/Answer Relevancy/Context Recall/Context Precision (ADR-010) | Threshold values themselves are Phase 5/6 work, not yet set. |
-| Privacy / compliance | Zero committed secrets (INV-1); single-jurisdiction disclaimer on every Compliance verdict (INV-9); no live carrier-system integration (INV-10); INV-5 binds recommendations (Phase 2 demo showcase has explicit diagnostic-only exemption; ADR-011) | Enforced as standing invariants. |
+| Privacy / compliance | Zero committed secrets (INV-1); single-jurisdiction disclaimer on every Compliance verdict (INV-9); no live carrier-system integration (INV-10); INV-5 binds recommendations ($\epsilon$/recovery metrics only in the Phase 2 demo showcase — never a proposed adjustment; ADR-011) | Enforced as standing invariants. |
 | Availability / uptime | **Not applicable** | No live production deployment is in scope (`prd.md` §13) — this is a portfolio system, not a service with an uptime SLA. |
 
 ## 9. Success Metrics
@@ -88,10 +88,10 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 
 ## 11. What Could Go Wrong Along the Way
 
-Three items below were promoted from hypothetical to **confirmed, evidenced** based on what Phase 2 actually surfaced:
+Four items below were promoted from hypothetical to **confirmed, evidenced** based on what Phase 2 actually surfaced:
 
 - **Confounding in causal estimation on observational data — CONFIRMED, not merely anticipated.** Phase 2's real feature data turned out to be heavily heavy-tailed (`risk_index` kurtosis 222, top 0.1% of rows carrying 19% of its variance), and the causal estimator's correlation-to-ground-truth metric proved unstable and sample-size-sensitive across seeds as a direct consequence. This is no longer a theoretical risk-register line; it happened.
 - **RAG grounding failure** (Tier 2, not yet built) remains the system's designated highest-severity risk (`../architecture/system_design.md`, ADR-010).
 - **Solo-practitioner scope risk — CONFIRMED at real cost.** The Phase 2 remediation cycle ran substantially longer, and through substantially more review rounds, than originally scoped — direct evidence of this constraint, not a hedge.
-- **Synthetic-data generalization limits — CONFIRMED by design, not a residual risk.** The causal validation exercise cannot and does not claim real-world elasticity discovery; this is the entire reason for the Option B amendment to `prd.md` §11 recorded alongside this document.
+- **Synthetic-data generalization limits — CONFIRMED by design, not a residual risk.** The causal validation exercise cannot and does not claim real-world elasticity discovery; this is the entire reason for the amended synthetic-recovery metric now stated in `prd.md` §11.
 - **Governance threshold miscalibration** (Tier 3, not yet built) remains an open, anticipated risk.

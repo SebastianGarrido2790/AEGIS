@@ -13,7 +13,7 @@ AEGIS is a governed-by-construction agentic platform built to production enginee
 
 Imagine a pricing team at an insurer as three separate departments that rarely talk to each other in real time: the actuaries who know the numbers, the compliance lawyers who know the rules, and the finance team who knows the P&L impact. Today, a single rate change has to travel physically between these three desks, in sequence, each one waiting on the last — a process that takes weeks.
 
-AEGIS is like putting all three specialists in one room with a shared whiteboard, where each one does their part of the analysis simultaneously and the room's supervisor (a human underwriter) only needs to step in when the specialists don't agree, or when the proposed change is unusually large. The specialists never make the final call alone — they prepare a fully documented recommendation, and a person always signs off before anything goes live.
+AEGIS is like putting all three specialists in one room with a shared whiteboard, where each one does their part of the analysis simultaneously and the room's supervisor (a human underwriter) only needs to step in when the proposal exceeds pre-approved bounds or compliance flags it, or when the proposed change is unusually large. The specialists never make the final call alone — they prepare a fully documented recommendation, and a person always signs off before anything goes live.
 
 ## 3. Problem Statement (Stakeholder Perspective)
 
@@ -65,7 +65,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 - **Auditability:** every decision record must be reconstructable end-to-end from stored state, without relying on live re-querying of any external system.
 - **Reliability:** provider-level failures must trigger the Gateway's fallback chain; application-level failures (e.g., structured-output validation) must trigger the LangGraph-level circuit breaker; both must be independently observable via OTel metrics.
-- **Latency:** end-to-end recommendation latency for a single segment/policy review should remain within an interactive range suitable for same-session use by an underwriter (target: low single-digit seconds for the agentic path, excluding scheduled batch retraining).
+- **Latency:** end-to-end recommendation latency for a single segment/policy review should remain within an interactive range suitable for same-session use by an underwriter (target: low single-digit seconds for the agentic path, excluding scheduled batch retraining). Aspirational — no SLA is set (see `scoping_doc.md` §8); the Gateway/tool timeouts in `params.yaml` are failure bounds, not latency budgets.
 - **Cost governance:** token/cost per recommendation must be tracked and attributable per agent via the Gateway's cost/trace export.
 - **Reproducibility:** the full pipeline (data → model → agent outputs) must be reproducible bit-for-bit under a fixed seed and CI-gated.
 - **Modularity:** no module in `src/` exceeds 1,000 lines; the Compliance Agent, deterministic tool nodes, Gateway integration, and governance layer are independently testable.
@@ -103,7 +103,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
    - The Compliance Agent retrieves and cites relevant regulatory material, returning a pass/flag verdict with evidence.
    - The Revenue/Loss-Ratio Impact deterministic node computes the financial projection accounting for volume elasticity (INV-5).
 4. The Governance deterministic node evaluates corridor bounds and compliance status:
-   - **If** the proposal is within bounds and Compliance passes: marked `AUTO_APPROVED`, ready for Marco's routine sign-off.
+   - **If** the proposal is within bounds and Compliance passes: marked `READY_FOR_REVIEW`, ready for Marco's routine sign-off.
    - **If** the proposal exceeds bounds or Compliance flags a concern (or if grounding drops below threshold, triggering the last compliance-approved rate table): marked `ESCALATED` with full state attached, withholding any approved status and flagging operational fallback (`fallback_active = True`) if triggered.
 5. Synchronous Underwriter Briefing: generated via deterministic template (Phase 6) or bounded-timeout LLM with multi-layer validator (post-Phase 7), ensuring a complete narrative before response (INV-7).
 6. **Acceptance criteria:** the audit record for either path is complete (causal justification, evidence citation, financial projection, final disposition, briefing narrative, validation outcome), reconstructable without live re-querying, and the Compliance Agent's citation is independently verifiable against the source corpus.
@@ -114,6 +114,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Bandit: cumulative regret vs. static-price baseline (simulated).
 - Compliance Agent: four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision), read jointly per ADR-010 — no single metric gates alone; LLM-as-judge agreement rate.
 - Governance: HITL escalation rate (should reflect genuine ambiguity, not over- or under-triggering).
+- Underwriting result: absolute $Rev - Losses$ as the elasticity-sensitive headline (the loss ratio is $\epsilon$-invariant under the homogeneity assumption).
 - Briefing generation: validator-pass rate and template-fallback rate (tracked in evaluation and OTel telemetry).
 - System: end-to-end decision latency; audit-record completeness rate (target: 100%).
 
@@ -123,7 +124,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - Multi-jurisdiction, multi-state simultaneous filing logic.
 - Live carrier core system integration (API contracts modeled, not connected).
 - Autonomous rate publication without human sign-off.
-- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. Under INV-5, the standalone Phase 2 developer showcase / model diagnostic UI is explicitly exempted from requiring Compliance and Impact context, provided the UI is labeled as a raw model validation demo and not a pricing recommendation. INV-5 strictly binds any rate recommendation or decision output.
+- **A full production underwriting UI** — a real, daily-use console for Marco's persona, with full input validation, arbitrary-policy lookup, and multi-user access control, remains out of scope. This is distinct from the showcase interface (ADR-009): a minimal, explicitly-labeled glass-box demo built for the PRD §5 secondary audience (evaluators, not underwriters), exposing curated preset scenarios rather than production-grade arbitrary input. Under INV-5, the standalone Phase 2 developer showcase / model diagnostic UI is explicitly exempted from requiring Compliance and Impact context, provided the UI is labeled as a raw model validation demo and not a pricing recommendation. The diagnostic view may show $\epsilon$ estimates and recovery metrics, but never a proposed rate adjustment ($\Delta$). INV-5 strictly binds any rate recommendation or decision output.
 
 ## 13. Dependencies & Constraints
 

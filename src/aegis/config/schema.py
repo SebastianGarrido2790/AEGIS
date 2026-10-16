@@ -14,7 +14,7 @@ class GatewayConfig(BaseModel):
 
     model_name: str = Field(default="gpt-4o-mini", description="Primary LLM provider and model")
     fallback_model: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="claude-sonnet-4-6",
         description="Secondary fallback LLM provider and model",
     )
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
@@ -44,6 +44,7 @@ class Tier2AgentsConfig(BaseModel):
     evidence_coverage_threshold: float = Field(default=0.80, ge=0.0, le=1.0)
     max_tool_calls: int = Field(default=5, gt=0)
     execution_timeout_seconds: int = Field(default=60, gt=0)
+    briefing_timeout_seconds: int = Field(default=2, gt=0)
 
 
 class GovernanceConfig(BaseModel):
