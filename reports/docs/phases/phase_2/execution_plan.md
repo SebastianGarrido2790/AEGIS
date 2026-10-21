@@ -3,7 +3,7 @@
 
 **Author:** Sebastián Garrido Arévalo | **Date:** October 21, 2026
 **Status:** ✅ **APPROVED (October 21, 2026)**
-**Implementation authorization:** ⏸️ Pending operator command ("begin Stage 0")
+**Implementation authorization:** ✅ Granted 2026-10-21 (operator authorized: "begin Stage 0") 
 **Planning baseline:** Phase 1 Validated; Phase 2 Implementation Plan v0.3 approved across all four decision batches (2026-10-21); ADR-012 … ADR-015 consolidated in `architecture/system_design.md`.
 
 ---
@@ -30,10 +30,10 @@ The following conditions must be satisfied before Stage 0 implementation begins:
 - [x] Amendments to ADR-003 (two elasticity-side GX suites) and ADR-009 (Phase 2 slice scope excludes bandit/Δ) verified in `system_design.md`.
 - [x] V9 MLflow version and registry alias behavior verified live against SQLite (MLflow 3.15.2 supports mutable `candidate`/`approved` aliases; tested 2026-10-21).
 - [x] Project documents (PRD FR-1/§4/§7/§9/§11/§12, Scoping Doc §0/§6/§7/§9, Roadmap, README, Capability Profile Gates) reconciled with approved dataset identity (original French MTPL, 7 factors, no BonusMalus/Area) and Tweedie baseline scope.
-- [ ] Working tree clean and ready for Stage 0 baseline capture.
-- [ ] Stage 0 baseline audit and V1–V8 verification executed and recorded.
-- [ ] Stage 0 blocking clarification (Q2 sample sizes vs. 20% test-split) resolved with operator before Stage 7.
-- [ ] Formal implementation authorization granted by operator ("begin Stage 0").
+- [x] Working tree clean and ready for Stage 0 baseline capture.
+- [x] Stage 0 baseline audit and V1–V8 verification executed and recorded.
+- [x] Stage 0 blocking clarification (Q2 sample sizes vs. 20% test-split) resolved with operator before Stage 7.
+- [x] Formal implementation authorization granted by operator ("begin Stage 0").
 
 ---
 
@@ -65,7 +65,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 
 | Stage | Name | Primary Deliverable | ADR Implements | Falsification | Hard Gate (One-Line Summary) |
 |---|---|---|---|---|---|
-| **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | All V-checks recorded; EDA gaps closed/accepted; Q2 ambiguity resolved |
+| **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
 | **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | Valid data passes; malformed fixtures fail named rules; tamper fails |
 | **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | Identical output on identical input; clips counted; no composite/claims leakage |
 | **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | Parameterized GLM fits; deviance + A/E deciles produced; power justified |
@@ -154,39 +154,23 @@ For each feature folder in `reports/docs/phases/phase_2/`:
 
 ## 5. Implementation Stages
 
-### Stage 0 — Pre-Implementation Verification & Dependency Check
+### Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **PASSED**
 
 **Goal:** Establish that the baseline repository state is verified, all preconditions are satisfied, open EDA gaps are closed or formally accepted, and the Q2 sample-size ambiguity is resolved before any code is written.
 
-**Actions:**
-1. Verify git repository status on `main`; record starting commit hash and confirm working tree is clean of untracked implementation files.
-2. Execute V1: Run full verification suite (`uv run pytest -q`, `uv run ruff check .`, `uv run pyright`, `uv run python scripts/check_module_size.py`, `uv run dvc repro`). Record exact results against baseline (42 passed, 2 skipped).
-3. Execute V2: Inspect `src/aegis/pipelines`, `tools`, `schemas`, `api`, `bandit`. Confirm no Tier 1 training logic exists on `main`; inventory retained showcase presentation files (`api/app.py`, `templates/`, `static/`).
-4. Execute V3: Compare existing Phase 1 elasticity GX suite (`data_contracts/elasticity_training_suite.json`) and fixtures against the empirical freMTPL schema. Record required schema adjustments.
-5. Execute V4: Inspect `dvc.yaml` stages; remove confirmed-unused placeholder files (`data/raw/elasticity_fremtpl2.csv`, `data/raw/elasticity_raw.csv`) so `freMTPLfreq.csv.zip` and `freMTPLsev.csv` remain the sole raw inputs.
-6. Execute V5: Confirm `pyproject.toml` dependencies (EconML, scikit-learn, statsmodels, MLflow, FastAPI, Jinja2) resolve cleanly on Python 3.12 under Windows via `uv run python -c "import econml, statsmodels, mlflow, fastapi, jinja2"`.
-7. Execute V6: Re-run `scripts/explore_raw_data.py` to regenerate `artifacts/eda_summary.json`; verify checksum consistency with reported EDA findings; resolve `.gitignore` tracking per §2.7.
-8. Execute V7: Confirm reference branch `archive/phase2-attempt-1` is accessible for audit purposes (read-only reference; zero code copy-paste).
-9. Execute V8: Measure and record development machine resources (available CPU cores, physical RAM) to establish the memory ceiling for the Stage 7 (Q2) budget.
-10. Confirm V9: Record live SQLite test of MLflow 3.15.2 model alias operations (`set_registered_model_alias`, `get_model_version_by_alias`).
-11. Close the open EDA gaps (`implementation_plan.md` §2.4):
-    - Compute raw unbinned distributions for DriverAge, CarAge, Density, Power (min, max, P01, P25, P50, P75, P99).
-    - Identify which segment holds the €2.04M claim and compute each candidate segment's share of excess losses above candidate caps.
-    - Measure pairwise Spearman rank correlations among rating factors.
-    - Document exposure shortfall analysis (confirm observed exposure reflects observation-window truncation rather than lapse).
-12. Resolve the Stage 0 blocking clarification with operator: confirm whether Q2 sample sizes {25k, 100k, 250k, 413k} are total dataset slices (with the 20% test split held out inside each) or pure training rows.
+**Evidence:** Executed outcomes for Stage 0 (V1–V9 outputs, EDA gap closure, Q2 sample-size resolution) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-0--pre-implementation-verification--dependency-check).
 
 **Inputs / Dependencies:**
 - `data/raw/freMTPLfreq.csv.zip` and `data/raw/freMTPLsev.csv` present and checksum-verified.
 - `uv.lock` and Python 3.12 environment.
 
-**ADR Implements:** None new (verification only).
+**ADR Implements:** None new (verification and baseline audit only).
 
 **Falsification:**
-Evidence reconciliation audit: if any reported baseline assumption (clean working tree, dependency resolution, package importability) fails against live command execution, Stage 0 fails.
+Evidence reconciliation audit: all live command outputs, checksums, package imports, and hardware metrics were independently captured and reconciled against baseline claims. Zero unverified assertions.
 
-**Gate 0 — Hard Close:**
-All V1–V9 checks executed and documented; EDA gaps resolved and recorded; Q2 sample-size definition locked; baseline test/lint state 100% clean; zero production code modified.
+**Gate 0 — Hard Close: ✅ PASSED (2026-10-21)**
+All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empirical metrics; Q2 sample-size definition locked with operator; baseline test/lint state 100% clean; zero production code modified. Stage 1 is unlocked.
 
 ---
 
@@ -727,7 +711,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 
 | Stage | Name | Primary Deliverable | ADRs | Falsification | Hard Gate Summary | Status |
 |---|---|---|---|---|---|---|
-| **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ⬜ Not started |
+| **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ✅ **PASSED** |
 | **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ⬜ Not started |
 | **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ⬜ Not started |
 | **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ⬜ Not started |

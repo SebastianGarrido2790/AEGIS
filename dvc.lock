@@ -30,8 +30,8 @@ stages:
       size: 325
     - path: data_contracts/elasticity_training_suite.json
       hash: md5
-      md5: 52dfceafa937d459d808e04b5f21ee42
-      size: 3533
+      md5: 2d43e219be443e6243ba4444e1e2ca73
+      size: 3395
     - path: src/aegis/pipelines/cli.py
       hash: md5
       md5: dfddb956b12381c5fa7bcc2827865318
@@ -102,8 +102,8 @@ stages:
       size: 1293
     - path: data_contracts/regulatory_corpus_suite.json
       hash: md5
-      md5: df4b3258e13e52c923b0f910cd0933fe
-      size: 2469
+      md5: 6bebc9fca6e12bb9daeb6462b892a4f0
+      size: 2371
     - path: src/aegis/pipelines/cli.py
       hash: md5
       md5: dfddb956b12381c5fa7bcc2827865318
