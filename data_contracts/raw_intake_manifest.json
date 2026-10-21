@@ -1,0 +1,29 @@
+{
+  "dataset_name": "French Motor Third-Party Liability (freMTPL)",
+  "source_description": "Original French MTPL benchmark observational data (frequency and severity)",
+  "rating_factors": [
+    "Power",
+    "Brand",
+    "Gas",
+    "Region",
+    "DriverAge",
+    "CarAge",
+    "Density"
+  ],
+  "files": [
+    {
+      "path": "data/raw/freMTPLfreq.csv.zip",
+      "sha256": "40ace1e7d8b862fa3e46cbe9fd4ea4f6fdae2b228e0fdf3aa0f8ddf53ada4138",
+      "size_bytes": 4012714,
+      "expected_rows": 413169,
+      "expected_columns": 10
+    },
+    {
+      "path": "data/raw/freMTPLsev.csv",
+      "sha256": "1748e198091c61275315cc11202ddca5362f1f303b34d8b1ec29697f8497a410",
+      "size_bytes": 199180,
+      "expected_rows": 16181,
+      "expected_columns": 2
+    }
+  ]
+}

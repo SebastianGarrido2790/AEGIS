@@ -43,7 +43,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 
 | Feature ID | Folder / Slug | Feature Name | SDD Depth | Primary Stage(s) | Dependencies | Status |
 |---|---|---|---|---|---|---|
-| **P2-F01** | `001_raw-intake-contract` | Raw intake, checksum manifest & raw-table contract | Light | Stage 1 | — | ⬜ Not started |
+| **P2-F01** | `001_raw-intake-contract` | Raw intake, checksum manifest & raw-table contract | Light | Stage 1 | — | ✅ Implemented |
 | **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ⬜ Not started |
 | **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ⬜ Not started |
 | **P2-F04** | `004_semi-synthetic-dgp` | Semi-synthetic DGP, truth sidecar & training contract | Full | Stage 6 | F02, F03 | ⬜ Not started |
@@ -66,7 +66,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | Stage | Name | Primary Deliverable | ADR Implements | Falsification | Hard Gate (One-Line Summary) |
 |---|---|---|---|---|---|
 | **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
-| **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | Valid data passes; malformed fixtures fail named rules; tamper fails |
+| **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails |
 | **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | Identical output on identical input; clips counted; no composite/claims leakage |
 | **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | Parameterized GLM fits; deviance + A/E deciles produced; power justified |
 | **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | 36 cells + merge floor realized; schema rejects Δ; ratio-of-sums tested |
@@ -174,24 +174,11 @@ All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empiric
 
 ---
 
-### Stage 1 — Raw Intake & Raw Data Contract (P2-F01)
+### Stage 1 — Raw Intake & Raw Data Contract (P2-F01) ✅ **PASSED**
 
 **Goal:** Enforce INV-3 at the very first pipeline node: raw observational data cannot be versioned or processed without passing a Great Expectations contract grounded in the empirical EDA findings.
 
-**Actions:**
-1. Create `reports/docs/phases/phase_2/001_raw-intake-contract/tasks.md`.
-2. Build the raw intake manifest module: compute and verify SHA-256 checksums for `freMTPLfreq.csv.zip` and `freMTPLsev.csv`; fail loudly on any checksum mismatch.
-3. Build the raw policy-level joining logic: merge frequency and severity records on `PolicyID`, aggregating multiple claims per policy via **sum of `ClaimAmount`** (accounting for all 757 policies with 2–4 claims).
-4. Define the raw Great Expectations suite (`data_contracts/raw_policy_suite.json`) enforcing:
-   - Unique `PolicyID` (no duplicate policies).
-   - `ClaimNb` integer in [0, 4].
-   - `Exposure` float in (0, 2.0] with a tolerance expectation for policies exceeding 1.0 (0.102%).
-   - `ClaimAmount` > 0 for all claimed records.
-   - Zero orphan severity records (every severity record maps to an existing policy).
-   - Per-policy claim count exactly matches `ClaimNb`.
-   - Zero missing/null values across all 10 frequency columns.
-5. Create valid and malformed fixtures in `data_contracts/fixtures/` exercising each rule independently.
-6. Wire raw ingestion and validation into the DVC DAG (`ingest_raw → validate_raw_gx → version_raw`).
+**Evidence:** Executed outcomes for Stage 1 (checksum verification, policy-level joining, 20 GX expectations pass, 8 malformed fixtures fail, orphan severity falsification) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-1--raw-intake--raw-data-contract).
 
 **Inputs / Dependencies:**
 - Stage 0 baseline accepted.
@@ -202,7 +189,7 @@ All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empiric
 **Falsification:**
 Generate a deliberately malformed raw fixture containing an orphan severity record (a `PolicyID` not present in frequency) and execute `validate_raw_gx`. Confirm that the GX checkpoint fails with a specific referential integrity violation and blocks downstream execution. Revert fixture and confirm green.
 
-**Gate 1 — Hard Close:**
+**Gate 1 — Hard Close: ✅ PASSED (2026-10-21)**
 Raw GX suite passes clean on valid raw data; each malformed fixture fails its specific expectation; checksum verification fails on tampered data; orphan severity falsification halts the pipeline.
 
 ---
@@ -712,7 +699,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | Stage | Name | Primary Deliverable | ADRs | Falsification | Hard Gate Summary | Status |
 |---|---|---|---|---|---|---|
 | **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ✅ **PASSED** |
-| **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ⬜ Not started |
+| **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ✅ **PASSED** |
 | **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ⬜ Not started |
 | **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ⬜ Not started |
 | **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ⬜ Not started |

@@ -15,7 +15,10 @@ import pandas as pd
 from aegis.config.loader import get_config
 
 # Import custom expectations to ensure registration in GX expectation registry
-from aegis.pipelines.expectations import ExpectNoPostTreatmentLeakage  # noqa: F401
+from aegis.pipelines.expectations import (  # noqa: F401
+    ExpectNoPostTreatmentLeakage,
+    ExpectZeroOrphanSeverityRecords,
+)
 from aegis.utils.exceptions import DataContractError
 
 
@@ -248,6 +251,42 @@ def validate_elasticity_data(
     except Exception as exc:
         raise DataContractError(
             f"Failed to load elasticity CSV data into DataFrame: {exc}",
+            details={"data_path": str(target_data_path), "error": str(exc)},
+        ) from exc
+
+    return validate_dataframe(df, target_suite_path, raise_on_failure=raise_on_failure)
+
+
+def validate_raw_policy_data(
+    data_path: Path | str | None = None,
+    suite_path: Path | str | None = None,
+    raise_on_failure: bool = False,
+) -> ContractValidationResult:
+    """Validates raw policy dataset against the raw policy expectation suite (INV-3, ADR-015).
+
+    Args:
+        data_path: Path to raw policy CSV data file. Defaults to params.yaml valid fixture.
+        suite_path: Path to raw policy JSON suite. Defaults to params.yaml suite path.
+        raise_on_failure: If True, raises DataContractError if contract is violated.
+
+    Returns:
+        ContractValidationResult: Structured validation outcome.
+    """
+    config = get_config()
+    target_data_path = Path(data_path or config.data_contracts.raw_policy_valid_fixture)
+    target_suite_path = Path(suite_path or config.data_contracts.raw_policy_suite_path)
+
+    if not target_data_path.is_file():
+        raise DataContractError(
+            f"Raw policy data file not found: {target_data_path}",
+            details={"data_path": str(target_data_path)},
+        )
+
+    try:
+        df = pd.read_csv(target_data_path)
+    except Exception as exc:
+        raise DataContractError(
+            f"Failed to load raw policy CSV data into DataFrame: {exc}",
             details={"data_path": str(target_data_path), "error": str(exc)},
         ) from exc
 

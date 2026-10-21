@@ -83,8 +83,8 @@ stages:
       size: 1293
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: dfddb956b12381c5fa7bcc2827865318
-      size: 7781
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
     outs:
     - path: data/raw/regulatory_raw.json
       hash: md5
@@ -106,12 +106,12 @@ stages:
       size: 2371
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: dfddb956b12381c5fa7bcc2827865318
-      size: 7781
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
-      md5: e1220c967cea1d5d66281435a356ecaa
-      size: 9005
+      md5: 570c220013ca4ae8b9adb9f891384772
+      size: 10474
     outs:
     - path: data/validated/regulatory_validation_report.json
       hash: md5
@@ -133,10 +133,94 @@ stages:
       size: 182
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: dfddb956b12381c5fa7bcc2827865318
-      size: 7781
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
     outs:
     - path: data/versioned/regulatory_corpus.json
       hash: md5
       md5: 3a02c0dca847271da71d6b678761f5be
       size: 1293
+  ingest_raw:
+    cmd: uv run python -m aegis.pipelines.cli ingest-raw --freq-path 
+      data/raw/freMTPLfreq.csv.zip --sev-path data/raw/freMTPLsev.csv 
+      --output-path data/raw/raw_policy_data.csv
+    deps:
+    - path: data/raw/freMTPLfreq.csv.zip
+      hash: md5
+      md5: f4235b82f0204b0ccf9da0486faa58cd
+      size: 4012714
+    - path: data/raw/freMTPLsev.csv
+      hash: md5
+      md5: f16e9df4cae12c97a571e6d91af72e89
+      size: 199180
+    - path: data_contracts/raw_intake_manifest.json
+      hash: md5
+      md5: ad388d389214cc6be456c1831e985eca
+      size: 767
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
+    - path: src/aegis/pipelines/raw_intake.py
+      hash: md5
+      md5: 61e7ee2dca4a366c7ca24ce3bfac6553
+      size: 9702
+    outs:
+    - path: data/raw/raw_policy_data.csv
+      hash: md5
+      md5: d86f37c37bc172dff59f8b0307a6798e
+      size: 35473759
+  validate_raw_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-raw --data-path 
+      data/raw/raw_policy_data.csv --suite-path 
+      data_contracts/raw_policy_suite.json --report-path 
+      data/validated/raw_policy_validation_report.json
+    deps:
+    - path: data/raw/raw_policy_data.csv
+      hash: md5
+      md5: d86f37c37bc172dff59f8b0307a6798e
+      size: 35473759
+    - path: data_contracts/raw_policy_suite.json
+      hash: md5
+      md5: aaea4a0923c119a519ad63443e9b20a3
+      size: 5414
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
+    - path: src/aegis/pipelines/data_contracts.py
+      hash: md5
+      md5: 570c220013ca4ae8b9adb9f891384772
+      size: 10474
+    - path: src/aegis/pipelines/expectations.py
+      hash: md5
+      md5: 461d052d3834d5cc97c6d3b3f4f78ee3
+      size: 3659
+    outs:
+    - path: data/validated/raw_policy_validation_report.json
+      hash: md5
+      md5: 3200dc1eb6f46b84713910bb3075e5f8
+      size: 177
+  version_raw:
+    cmd: uv run python -m aegis.pipelines.cli version-raw --raw-path 
+      data/raw/raw_policy_data.csv --report-path 
+      data/validated/raw_policy_validation_report.json --output-path 
+      data/versioned/raw_policy_data.csv
+    deps:
+    - path: data/raw/raw_policy_data.csv
+      hash: md5
+      md5: d86f37c37bc172dff59f8b0307a6798e
+      size: 35473759
+    - path: data/validated/raw_policy_validation_report.json
+      hash: md5
+      md5: 3200dc1eb6f46b84713910bb3075e5f8
+      size: 177
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: bcc3c3e935f445d2984e7e7f684557c7
+      size: 11387
+    outs:
+    - path: data/versioned/raw_policy_data.csv
+      hash: md5
+      md5: d86f37c37bc172dff59f8b0307a6798e
+      size: 35473759

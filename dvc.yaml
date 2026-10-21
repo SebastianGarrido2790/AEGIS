@@ -1,37 +1,40 @@
-# DVC Pipeline Architecture for AEGIS (INV-3, ADR-007)
+# DVC Pipeline Architecture for AEGIS (INV-3, ADR-007, ADR-015)
 # Fine-grained parallel 3-stage DAG: ingest -> validate_gx -> version
 
 stages:
   # ==========================================
-  # 1. Elasticity Training Data Pipeline Path
+  # 1. Raw MTPL Policy Data Pipeline Path (Phase 2, Stage 1)
   # ==========================================
-  ingest_elasticity:
-    cmd: uv run python -m aegis.pipelines.cli ingest-elasticity --input-path data_contracts/fixtures/elasticity_valid.csv --output-path data/raw/elasticity_raw.csv
+  ingest_raw:
+    cmd: uv run python -m aegis.pipelines.cli ingest-raw --freq-path data/raw/freMTPLfreq.csv.zip --sev-path data/raw/freMTPLsev.csv --output-path data/raw/raw_policy_data.csv
     deps:
-      - data_contracts/fixtures/elasticity_valid.csv
+      - data/raw/freMTPLfreq.csv.zip
+      - data/raw/freMTPLsev.csv
+      - data_contracts/raw_intake_manifest.json
       - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/raw_intake.py
     outs:
-      - data/raw/elasticity_raw.csv
+      - data/raw/raw_policy_data.csv
 
-  validate_elasticity_gx:
-    cmd: uv run python -m aegis.pipelines.cli validate-elasticity --data-path data/raw/elasticity_raw.csv --suite-path data_contracts/elasticity_training_suite.json --report-path data/validated/elasticity_validation_report.json
+  validate_raw_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-raw --data-path data/raw/raw_policy_data.csv --suite-path data_contracts/raw_policy_suite.json --report-path data/validated/raw_policy_validation_report.json
     deps:
-      - data/raw/elasticity_raw.csv
-      - data_contracts/elasticity_training_suite.json
+      - data/raw/raw_policy_data.csv
+      - data_contracts/raw_policy_suite.json
       - src/aegis/pipelines/cli.py
       - src/aegis/pipelines/data_contracts.py
       - src/aegis/pipelines/expectations.py
     outs:
-      - data/validated/elasticity_validation_report.json
+      - data/validated/raw_policy_validation_report.json
 
-  version_elasticity:
-    cmd: uv run python -m aegis.pipelines.cli version-elasticity --raw-path data/raw/elasticity_raw.csv --report-path data/validated/elasticity_validation_report.json --output-path data/versioned/elasticity_training_data.csv
+  version_raw:
+    cmd: uv run python -m aegis.pipelines.cli version-raw --raw-path data/raw/raw_policy_data.csv --report-path data/validated/raw_policy_validation_report.json --output-path data/versioned/raw_policy_data.csv
     deps:
-      - data/raw/elasticity_raw.csv
-      - data/validated/elasticity_validation_report.json
+      - data/raw/raw_policy_data.csv
+      - data/validated/raw_policy_validation_report.json
       - src/aegis/pipelines/cli.py
     outs:
-      - data/versioned/elasticity_training_data.csv
+      - data/versioned/raw_policy_data.csv
 
   # ==========================================
   # 2. Regulatory Corpus Data Pipeline Path
@@ -62,4 +65,3 @@ stages:
       - src/aegis/pipelines/cli.py
     outs:
       - data/versioned/regulatory_corpus.json
-

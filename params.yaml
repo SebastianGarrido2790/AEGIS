@@ -32,6 +32,9 @@ governance:
   enforce_hitl_on_flag: true
 
 data_contracts:
+  raw_policy_suite_path: "data_contracts/raw_policy_suite.json"
+  raw_intake_manifest_path: "data_contracts/raw_intake_manifest.json"
+  raw_policy_valid_fixture: "data_contracts/fixtures/raw_policy_valid.csv"
   elasticity_suite_path: "data_contracts/elasticity_training_suite.json"
   regulatory_corpus_suite_path: "data_contracts/regulatory_corpus_suite.json"
   fixtures_dir: "data_contracts/fixtures"

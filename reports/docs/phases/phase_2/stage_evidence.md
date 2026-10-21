@@ -10,7 +10,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | Stage | Title | Gate | Date | Evidence |
 |---|---|---|---|---|
 | 0 | Pre-Implementation Verification & Dependency Check | ✅ PASSED | 2026-10-21 | §Stage 0 |
-| 1 | Raw Intake & Raw Data Contract | Pending | — | — |
+| 1 | Raw Intake & Raw Data Contract | ✅ PASSED | 2026-10-21 | §Stage 1 |
 | 2 | Deterministic Feature Pipeline | Pending | — | — |
 | 3 | GLM Loss-Cost Baseline & Calibration Reporting | Pending | — | — |
 | 4 | Segment Definition & Tier 1 Output Contract | Pending | — | — |
@@ -115,3 +115,67 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 ### Gate 0 outcome
 
 All V1–V9 checks executed and documented; all four EDA gaps resolved with empirical metrics; Q2 sample-size definition locked with operator; baseline test/lint state clean; zero production code modified. Stage 1 unlocked at commit `04903e6`.
+
+---
+
+## Stage 1 — Raw Intake & Raw Data Contract
+
+**Executed:** 2026-10-21 · **Gate 1:** ✅ PASSED · **Feature:** `P2-F01` (Light SDD)
+
+1. **Light SDD Specification:**
+   - Completed `reports/docs/phases/phase_2/001_raw-intake-contract/tasks.md` with inline specification, schemas, expectation catalog, and task verification.
+2. **Cryptographic Checksum Manifest (`data_contracts/raw_intake_manifest.json`):**
+   - Manifest created and verified against disk with exact hashes and file sizes:
+     - `data/raw/freMTPLfreq.csv.zip`: `40ace1e7d8b862fa3e46cbe9fd4ea4f6fdae2b228e0fdf3aa0f8ddf53ada4138` (size: 4,012,714 bytes; 413,169 rows; 10 columns).
+     - `data/raw/freMTPLsev.csv`: `1748e198091c61275315cc11202ddca5362f1f303b34d8b1ec29697f8497a410` (size: 199,180 bytes; 16,181 rows; 2 columns).
+   - `verify_checksums()` verified live against disk; tampered file test confirmed loud failure with typed `DataContractError`.
+3. **Policy-Level Joining Logic (`src/aegis/pipelines/raw_intake.py`):**
+   - Merged 413,169 frequency policies and 16,181 severity records on `PolicyID`.
+   - Aggregated multiple claims per policy via `sum(ClaimAmount)` across all 757 policies with 2–4 claims.
+   - Non-claiming policies (397,779) initialized with `ClaimAmount = 0.0` and `sev_claim_count = 0`.
+   - Referential integrity confirmed on empirical data: 0 orphan severity records (`is_orphan_severity == False` for all 413,169 rows).
+4. **Great Expectations Raw Policy Contract (`data_contracts/raw_policy_suite.json`):**
+   - Implemented 20 critical expectations:
+     - Table columns match set (10 frequency factors + `ClaimAmount`, `sev_claim_count`, `is_orphan_severity`).
+     - Unique `PolicyID` (0 duplicates).
+     - `ClaimNb` between 0 and 4.
+     - `Exposure` strictly in (0.0, 2.0].
+     - `Exposure` <= 1.0 with `mostly: 0.998` (accommodates 0.102% truncation anomaly).
+     - `ClaimAmount` >= 0.0 across table.
+     - Conditional `ClaimAmount` > 0.0 (`strict_min: true`) when `ClaimNb > 0`.
+     - `ClaimNb` equals `sev_claim_count` for every policy (`expect_column_pair_values_to_be_equal`).
+     - `is_orphan_severity` in `[false]`.
+     - Custom domain expectation: `expect_zero_orphan_severity_records` (`ExpectZeroOrphanSeverityRecords`).
+     - Non-null checks across all 10 frequency columns and metadata.
+   - Evaluated on full empirical data (413,169 rows): **20/20 expectations PASSED in 1.4s**.
+5. **Fixtures Suite (`data_contracts/fixtures/`):**
+   - `raw_policy_valid.csv`: passes 20/20 expectations cleanly.
+   - 8 targeted malformed fixtures independently fail their specific expectation:
+     - `raw_policy_invalid_duplicate_id.csv` -> fails `expect_column_values_to_be_unique on 'PolicyID'`
+     - `raw_policy_invalid_claim_nb_range.csv` -> fails `expect_column_values_to_be_between on 'ClaimNb'`
+     - `raw_policy_invalid_exposure_range.csv` -> fails `expect_column_values_to_be_between on 'Exposure'`
+     - `raw_policy_invalid_exposure_tolerance.csv` -> fails `mostly: 0.998 on 'Exposure'`
+     - `raw_policy_invalid_claim_amount_zero.csv` -> fails conditional `ClaimAmount > 0`
+     - `raw_policy_invalid_claim_count_mismatch.csv` -> fails `expect_column_pair_values_to_be_equal`
+     - `raw_policy_invalid_orphan_severity.csv` -> fails `expect_zero_orphan_severity_records` and `is_orphan_severity`
+     - `raw_policy_invalid_null_frequency.csv` -> fails `expect_column_values_to_not_be_null on 'DriverAge'`
+6. **Selective Falsification Executed:**
+   - Injected orphan severity fixture `data_contracts/fixtures/raw_policy_invalid_orphan_severity.csv` into `validate_raw_gx`.
+   - Checkpoint specifically caught referential integrity violations:
+     `expect_zero_orphan_severity_records on column 'table-level'`,
+     `expect_column_values_to_be_in_set on column 'is_orphan_severity'`,
+     `expect_column_pair_values_to_be_equal on column 'table-level'`.
+   - Pipeline halted with exit code 1; `version_raw` raised `DataContractError: Cannot version unvalidated or failed data (INV-3)`.
+   - Restored valid dataset; re-validated clean pass.
+7. **DVC DAG Wiring (`dvc.yaml`):**
+   - Wired `ingest_raw → validate_raw_gx → version_raw`.
+   - `uv run dvc repro`: All 6 stages reproduced cleanly, promoting validated `data/versioned/raw_policy_data.csv`.
+8. **Verification & Standards:**
+   - `uv run pytest -q`: 56 passed, 2 skipped.
+   - `uv run ruff check .`: clean (0 errors).
+   - `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: 27/27 modules within 1,000-line ceiling.
+
+### Gate 1 outcome
+
+Raw intake manifest verified cryptographically; deterministic policy joining correctly aggregates multiple claims; raw policy GX contract passes 20/20 on empirical data; all 8 malformed fixtures fail specifically; orphan severity falsification halts pipeline; DVC DAG reproduces cleanly. Stage 1 PASSED; Stage 2 is unlocked.

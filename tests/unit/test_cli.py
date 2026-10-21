@@ -40,10 +40,13 @@ def test_cli_parser_commands_structure() -> None:
     expected_commands = [
         "ingest-elasticity",
         "ingest-regulatory",
+        "ingest-raw",
         "validate-elasticity",
         "validate-regulatory",
+        "validate-raw",
         "version-elasticity",
         "version-regulatory",
+        "version-raw",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])

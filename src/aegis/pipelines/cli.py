@@ -14,8 +14,10 @@ from pathlib import Path
 from aegis.config.loader import get_config
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
+    validate_raw_policy_data,
     validate_regulatory_corpus,
 )
+from aegis.pipelines.raw_intake import ingest_raw_data
 from aegis.utils.exceptions import DataContractError
 
 
@@ -44,6 +46,29 @@ def ingest_file(input_path: Path | None, output_path: Path, data_type: str) -> i
     return 0
 
 
+def ingest_raw_policy(
+    freq_path: Path | None,
+    sev_path: Path | None,
+    manifest_path: Path | None,
+    output_path: Path,
+) -> int:
+    """Ingests and validates raw observational data files into joined policy table."""
+    try:
+        ingest_raw_data(
+            freq_path=freq_path,
+            sev_path=sev_path,
+            manifest_path=manifest_path,
+            output_path=output_path,
+        )
+        return 0
+    except DataContractError as exc:
+        print(f"[BLOCK] Raw intake integrity check failed: {exc}")
+        return 1
+    except Exception as exc:
+        print(f"[ERROR] Failed during raw ingestion: {exc}")
+        return 1
+
+
 def validate_file(
     data_type: str,
     data_path: Path | None,
@@ -65,6 +90,12 @@ def validate_file(
             suite_path=suite_path,
             raise_on_failure=False,
         )
+    elif data_type in ("raw", "raw_policy"):
+        result = validate_raw_policy_data(
+            data_path=data_path,
+            suite_path=suite_path,
+            raise_on_failure=False,
+        )
     else:
         print(f"[ERROR] Unknown data type: {data_type}")
         return 1
@@ -79,7 +110,7 @@ def validate_file(
         "failed_expectations": result.failed_expectations,
     }
     with report_path.open("w", encoding="utf-8") as f:
-        json.dump(report_data, f, indent=2)
+        json.dump(report_data, f, indent=2, default=str)
 
     print(result.summary())
 
@@ -109,6 +140,10 @@ def version_file(
             "Cannot version unvalidated or failed data (INV-3).",
             details={"report": report},
         )
+
+    if not raw_path.is_file():
+        print(f"[ERROR] Raw data file not found at {raw_path}. Stage blocked.")
+        return 1
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(raw_path, output_path)
@@ -148,12 +183,39 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/raw/regulatory_raw.json"),
     )
 
+    p_ing_raw = subparsers.add_parser("ingest-raw")
+    p_ing_raw.add_argument(
+        "--freq-path",
+        type=Path,
+        default=Path("data/raw/freMTPLfreq.csv.zip"),
+        help="Path to frequency dataset (default: data/raw/freMTPLfreq.csv.zip)",
+    )
+    p_ing_raw.add_argument(
+        "--sev-path",
+        type=Path,
+        default=Path("data/raw/freMTPLsev.csv"),
+        help="Path to severity dataset (default: data/raw/freMTPLsev.csv)",
+    )
+    p_ing_raw.add_argument(
+        "--manifest-path",
+        type=Path,
+        default=None,
+        help="Path to checksum manifest (defaults to params.yaml)",
+    )
+    p_ing_raw.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("data/raw/raw_policy_data.csv"),
+        help="Destination path for joined raw policy table",
+    )
+
     # Validate commands
     p_val_e = subparsers.add_parser("validate-elasticity")
     p_val_e.add_argument(
         "--data-path",
         type=Path,
-        default=Path("data/raw/elasticity_raw.csv"),
+        default=None,
+        help="Data path (defaults to elasticity_valid_fixture in params.yaml)",
     )
     p_val_e.add_argument(
         "--suite-path",
@@ -183,6 +245,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--report-path",
         type=Path,
         default=Path("data/validated/regulatory_validation_report.json"),
+    )
+
+    p_val_raw = subparsers.add_parser("validate-raw")
+    p_val_raw.add_argument(
+        "--data-path",
+        type=Path,
+        default=Path("data/raw/raw_policy_data.csv"),
+        help="Path to joined raw policy data",
+    )
+    p_val_raw.add_argument(
+        "--suite-path",
+        type=Path,
+        default=None,
+        help="Suite path (defaults to raw_policy_suite_path in params.yaml)",
+    )
+    p_val_raw.add_argument(
+        "--report-path",
+        type=Path,
+        default=Path("data/validated/raw_policy_validation_report.json"),
+        help="Path to write validation report",
     )
 
     # Version commands
@@ -220,6 +302,26 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/versioned/regulatory_corpus.json"),
     )
 
+    p_ver_raw = subparsers.add_parser("version-raw")
+    p_ver_raw.add_argument(
+        "--raw-path",
+        type=Path,
+        default=Path("data/raw/raw_policy_data.csv"),
+        help="Path to raw policy data to version",
+    )
+    p_ver_raw.add_argument(
+        "--report-path",
+        type=Path,
+        default=Path("data/validated/raw_policy_validation_report.json"),
+        help="Path to validation report to verify",
+    )
+    p_ver_raw.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("data/versioned/raw_policy_data.csv"),
+        help="Destination path in versioned storage",
+    )
+
     return parser
 
 
@@ -232,13 +334,21 @@ def main() -> int:
         return ingest_file(args.input_path, args.output_path, "elasticity")
     if args.command == "ingest-regulatory":
         return ingest_file(args.input_path, args.output_path, "regulatory")
+    if args.command == "ingest-raw":
+        return ingest_raw_policy(
+            args.freq_path, args.sev_path, args.manifest_path, args.output_path
+        )
     if args.command == "validate-elasticity":
         return validate_file("elasticity", args.data_path, args.suite_path, args.report_path)
     if args.command == "validate-regulatory":
         return validate_file("regulatory", args.data_path, args.suite_path, args.report_path)
+    if args.command == "validate-raw":
+        return validate_file("raw_policy", args.data_path, args.suite_path, args.report_path)
     if args.command == "version-elasticity":
         return version_file(args.raw_path, args.report_path, args.output_path)
     if args.command == "version-regulatory":
+        return version_file(args.raw_path, args.report_path, args.output_path)
+    if args.command == "version-raw":
         return version_file(args.raw_path, args.report_path, args.output_path)
 
     return 1

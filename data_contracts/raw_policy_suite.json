@@ -1,0 +1,223 @@
+{
+  "name": "raw_policy_suite",
+  "id": "e45a2b10-67c8-4e31-893a-97210e14bf01",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "PolicyID",
+          "ClaimNb",
+          "Exposure",
+          "Power",
+          "CarAge",
+          "DriverAge",
+          "Brand",
+          "Gas",
+          "Region",
+          "Density",
+          "ClaimAmount",
+          "sev_claim_count",
+          "is_orphan_severity"
+        ],
+        "exact_match": false
+      },
+      "meta": {},
+      "id": "a1111111-0001-4000-8000-000000000001",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "PolicyID"
+      },
+      "meta": {},
+      "id": "a1111111-0002-4000-8000-000000000002",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "ClaimNb",
+        "min_value": 0,
+        "max_value": 4
+      },
+      "meta": {},
+      "id": "a1111111-0003-4000-8000-000000000003",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "Exposure",
+        "min_value": 0.0,
+        "max_value": 2.0,
+        "strict_min": true
+      },
+      "meta": {},
+      "id": "a1111111-0004-4000-8000-000000000004",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "Exposure",
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "strict_min": true,
+        "mostly": 0.998
+      },
+      "meta": {},
+      "id": "a1111111-0005-4000-8000-000000000005",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "ClaimAmount",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "id": "a1111111-0006-4000-8000-000000000006",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "ClaimAmount",
+        "min_value": 0.0,
+        "strict_min": true,
+        "row_condition": "ClaimNb > 0",
+        "condition_parser": "pandas"
+      },
+      "meta": {},
+      "id": "a1111111-0007-4000-8000-000000000007",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_pair_values_to_be_equal",
+      "kwargs": {
+        "column_A": "ClaimNb",
+        "column_B": "sev_claim_count"
+      },
+      "meta": {},
+      "id": "a1111111-0008-4000-8000-000000000008",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "is_orphan_severity",
+        "value_set": [
+          false
+        ]
+      },
+      "meta": {},
+      "id": "a1111111-0009-4000-8000-000000000009",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_zero_orphan_severity_records",
+      "kwargs": {
+        "orphan_column": "is_orphan_severity"
+      },
+      "meta": {},
+      "id": "a1111111-0010-4000-8000-000000000010",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "PolicyID"
+      },
+      "meta": {},
+      "id": "a1111111-0011-4000-8000-000000000011",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ClaimNb"
+      },
+      "meta": {},
+      "id": "a1111111-0012-4000-8000-000000000012",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Exposure"
+      },
+      "meta": {},
+      "id": "a1111111-0013-4000-8000-000000000013",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Power"
+      },
+      "meta": {},
+      "id": "a1111111-0014-4000-8000-000000000014",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "CarAge"
+      },
+      "meta": {},
+      "id": "a1111111-0015-4000-8000-000000000015",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "DriverAge"
+      },
+      "meta": {},
+      "id": "a1111111-0016-4000-8000-000000000016",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Brand"
+      },
+      "meta": {},
+      "id": "a1111111-0017-4000-8000-000000000017",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Gas"
+      },
+      "meta": {},
+      "id": "a1111111-0018-4000-8000-000000000018",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Region"
+      },
+      "meta": {},
+      "id": "a1111111-0019-4000-8000-000000000019",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Density"
+      },
+      "meta": {},
+      "id": "a1111111-0020-4000-8000-000000000020",
+      "severity": "critical"
+    }
+  ],
+  "meta": {
+    "great_expectations_version": "1.20.0"
+  },
+  "notes": null
+}

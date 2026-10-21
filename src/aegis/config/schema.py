@@ -59,10 +59,22 @@ class GovernanceConfig(BaseModel):
 
 
 class DataContractsConfig(BaseModel):
-    """Configuration for Great Expectations data contracts and fixtures (Phase 1)."""
+    """Configuration for Great Expectations data contracts and fixtures (Phase 1 & Phase 2)."""
 
     model_config = ConfigDict(extra="forbid")
 
+    raw_policy_suite_path: str = Field(
+        default="data_contracts/raw_policy_suite.json",
+        description="Path to raw policy GX JSON suite",
+    )
+    raw_intake_manifest_path: str = Field(
+        default="data_contracts/raw_intake_manifest.json",
+        description="Path to raw intake checksum manifest",
+    )
+    raw_policy_valid_fixture: str = Field(
+        default="data_contracts/fixtures/raw_policy_valid.csv",
+        description="Path to valid raw policy fixture",
+    )
     elasticity_suite_path: str = Field(..., description="Path to elasticity GX JSON suite")
     regulatory_corpus_suite_path: str = Field(..., description="Path to regulatory GX JSON suite")
     fixtures_dir: str = Field(default="data_contracts/fixtures")
