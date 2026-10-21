@@ -42,15 +42,15 @@ Phase 0.
 
 ---
 
-## Phase 2 — Tier 1: Deterministic ML Baseline _(reset — pending EDA-first redo)_
+## Phase 2 — Tier 1: Deterministic ML Baseline _(reset — decisions approved; EDA-first redo pending)_
 
 Goal:
 Establish the GLM actuarial baseline and the causal elasticity model, with a first showcase slice — preceded this time by exploratory data analysis of the raw data before any training-pipeline code is written.
 
 Capabilities:
-- exposure/frequency/severity feature engineering
-- GLM baseline; `CausalForestDML` elasticity estimator with confounding sensitivity analysis
-- MLflow tracking and registry; showcase slice exposing elasticity output for preset scenarios
+- exposure and capped-loss feature engineering
+- capped-pure-premium Tweedie GLM loss-cost baseline; `CausalForestDML` elasticity estimator with confounding sensitivity analysis
+- MLflow tracking and registry; four-preset validation showcase reading the `approved` segment artifact (no bandit output or proposed adjustment)
 
 Exit criteria:
 - causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`groundedness/scoping_doc.md` §0, §2)

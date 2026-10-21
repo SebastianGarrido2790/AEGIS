@@ -14,7 +14,7 @@ Designed for actuarial and pricing analysts, underwriting teams, and compliance 
 | :------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------- |
 | **Phase 0 — Planning & Design**                    | Scoping, PRD, User Story, Implementation Roadmap, System Design ADRs                              | ✅ Complete    |
 | **Phase 1 — Scaffolding & Data Contracts**         | Repository structure, `uv` toolchain, `params.yaml`, Great Expectations suites (elasticity & regulatory corpus) | ✅ Complete    |
-| **Phase 2 — Tier 1: Deterministic ML Baseline**    | freMTPL2 ingestion, deterministic features, Tweedie GLM, synthetic causal validation, MLflow registry, showcase | 🔄 Reset — EDA-first redo pending |
+| **Phase 2 — Tier 1: Deterministic ML Baseline**    | Original French MTPL ingestion, capped-loss Tweedie GLM, semi-synthetic causal validation, MLflow registry, diagnostic showcase | 🔄 Reset — EDA-first redo pending; decisions approved, qualification tests and implementation pending |
 | **Phase 3 — Contextual Bandit Exploration Engine** | Bounded Thompson Sampling exploration corridor, synthetic production stream simulator, regret evaluation        | ⬜ Scheduled   |
 | **Phase 4 — LLM Gateway Integration**              | In-process LiteLLM Gateway, Redis Stack cache, pre-flight guardrails (PII/injection), OTel cost/trace emission  | ⬜ Scheduled   |
 | **Phase 5 — Regulatory RAG Foundation**            | RedisVL/HNSW vector index, regulatory corpus ingestion, retrieval-quality evaluation harness                    | ⬜ Scheduled   |

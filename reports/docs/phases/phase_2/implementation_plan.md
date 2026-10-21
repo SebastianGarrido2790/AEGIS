@@ -1,12 +1,12 @@
 # Phase 2 — Tier 1: Deterministic ML Baseline
 ## Implementation Plan & Architectural Decisions — AEGIS
 
-Author: Sebastián Garrido Arévalo | Version 0.2 | Date: October 16, 2026
-**Status: DRAFT — awaiting approval.** No decision below is approved. Nothing here authorizes implementation.
+Author: Sebastián Garrido Arévalo | Version 0.3 | Date: October 21, 2026
+**Status: DECISIONS APPROVED — October 21, 2026.** The recommended decisions were approved in the four batches in §5. Qualification-test results Q1–Q3 remain open where specified below. Feature implementation remains subject to the approved SDD workflow and entry gates.
 
 **What this document is:** the phase-level decision record. It answers: before any Phase 2 code is written, what must be decided, why, and what is recommended.
 **Why it exists:** to bridge project intent, the actual current state, architectural decisions, and executable implementation, so that implementation starts from approved constraints and not from assumptions.
-**How to use it:** read §2 and §3 to see what is true and what conflicts; approve decisions in §5/§6 by batch; the Phase Execution Plan then consumes the approved decisions (§7). This document does not sequence implementation stages; the Execution Plan does.
+**How to use it:** §2 and §3 record evidence and conflicts; §5 records the approval batches; §6 records each approved decision and remaining test-gated outcomes. The Phase Execution Plan consumes these constraints and sequences implementation stages (§7).
 
 Each decision carries one of three tags:
 
@@ -20,10 +20,11 @@ Each decision carries one of three tags:
 |---|---|---|
 | 0.1 | Initial draft | — |
 | 0.2 | Added evidence from the EDA run (§2.2). Corrected dataset identity and column set (R11). Added exposure-semantics finding (R12). Replaced assumed cap candidates, segment factors and Q2 sizes with EDA-grounded ones. Removed manufactured alternatives; aligned decision fields, feature IDs and SDD depth with the phase-plan conventions; moved stage sequencing out to the Execution Plan. | EDA output received; planning-convention review |
+| 0.3 | Recorded approval of recommended decisions in the four §5 batches; added approval highlights without changing rejected alternatives or trade-off text; aligned dependent documents; verified V9 against the locked MLflow version and current registry documentation. Q1–Q3 result-dependent choices remain open. | Human approval, October 21, 2026 |
 
 ### Basis and limits
 
-Sources: the project documents (scoping, PRD, user story, roadmap, system design ADRs, capability-profile gates, invariants register), the phase-plan template, and the console output of `scripts/explore_raw_data.py` supplied with this update. The content of `eda_summary.json` was not visible to this draft; the console output was used, and V6 requires confirming the two agree. The repository itself was not inspected. 
+Sources: project documents (scoping, PRD, user story, roadmap, system design ADRs, capability-profile gates, invariants register), the phase-plan template, repository inspection, and `artifacts/eda_summary.json`. The artifact is present and its dataset identity and principal counts match the plan; full regeneration and consistency verification remain part of V6. V1–V8 remain entry checks; V9 was verified on October 21, 2026 against `uv.lock` (MLflow 3.15.2) and current MLflow registry documentation.
 
 Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R** reported in change reports, not independently verified; **U** unverified, confirm at entry (§2.7).
 
@@ -75,7 +76,7 @@ Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R*
 
 | Finding (E) | Implication | Decision |
 |---|---|---|
-| **Dataset identity:** 413,169 policies, 10 frequency columns, 16,181 severity records. This is the original French MTPL benchmark (`freMTPLfreq`/`freMTPLsev`), not freMTPL2 as the PRD, scoping document, README and system design state. Rating factors present: Power (letter codes d–o), Brand, Gas, Region (10 levels), DriverAge, CarAge, Density. **BonusMalus and Area are absent**, although scoping §7 lists bonus-malus as an input. | Documents must be corrected; Phase 1 GX suite and fixtures may encode a different schema; segmentation cannot use BonusMalus. | D9, D8, D3, R11 |
+| **Dataset identity:** 413,169 policies, 10 frequency columns, 16,181 severity records. This is the original French MTPL benchmark (`freMTPLfreq`/`freMTPLsev`), not freMTPL2. Rating factors present: Power (letter codes d–o), Brand, Gas, Region (10 levels), DriverAge, CarAge, Density. **BonusMalus and Area are absent.** | Dataset naming and rating-factor documentation corrected under D9; Phase 1 GX suite and fixtures may encode a different schema; segmentation cannot use BonusMalus. | D9, D8, D3, R11 |
 | **Perfect key reconciliation:** unique PolicyIDs, 0 orphan severity records, 0 claim-count mismatches (15,390 claiming policies; 16,181 claims). | Raw contract can state exact reconciliation expectations; no cleaning rule needed for key mismatches. | D8 |
 | **Sparse losses:** 96.28% of policies have zero claims; frequency 6.98% per policy-year; portfolio pure premium €148.67 per car-year. | MAE/RMSE on pure premium are poor calibration metrics. | D1 |
 | **Heavy severity tail:** mean €2,130 vs median €1,156; skew 75, kurtosis 6,601; P99 €16,109, P99.5 €35,432, P99.9 €131,834; top claim €2.04M = 5.91% of losses; top 10 = 15.81%; top 1% of claims = 36.75%. Claims at €25k and above: 113 claims (0.70%) carry about 34.0% of losses; the 24 claims above €100k carry 21.59%. Derived from the tier table: capping at €100k removes about €5.04M (≈14.6% of losses; excess load ≈1.17); capping at €25k removes about 25.8%. | Capping is mandatory and the excess load is material, not cosmetic. | D1a |
@@ -89,10 +90,11 @@ Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R*
 
 | Gap | Needed by |
 |---|---|
-| Any Tier 1 code on `main`: intake, features, GLM, DGP, estimator, validation, registry, showcase | All exits |
+| Phase 2 Tier 1 implementation on `main`: raw intake, feature/loss pipeline, GLM, DGP, estimator, validation, registry artifact | All exits |
+| Retained Phase 2 showcase presentation/API and tests exist, but are not evidence that the Tier 1 training pipeline or approved segment artifact exists | E2; V2 |
 | `params.yaml` and Pydantic keys: loss cap and excess load, segment bands and size floors, DGP parameters and seeds, thresholds, MLflow settings, premium loading | ADR-005 |
 | Raw-table and training-table GX contracts matching the real schema | INV-3 |
-| A definition of "segment" in any document | PRD FR-1/FR-2, Phases 3 and 6 |
+| Segment definition and Tier 1 contract are approved in P2-D3/ADR-014 but not implemented in the pipeline | PRD FR-1/FR-2, Phases 3 and 6 |
 | Numeric validation thresholds | Scoping §8 |
 
 ### 2.4 EDA gaps still open
@@ -113,27 +115,29 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 ### 2.6 Obsolete artifacts and unresolved decisions
 
 - Obsolete: attempt-1 code and ADR-011 to ADR-019 numbering on the archive branch; any Phase 1 elasticity fixture built for a freMTPL2 schema (U).
-- Unresolved before this plan: severity scope, segment definition, gate thresholds, registered artifact, estimator scale. All are carried below.
+- At initial drafting, severity scope, segment definition, gate thresholds, registry contract, and estimator scale were unresolved. Decisions are now approved; Q1–Q3 outcomes and implementation remain open as recorded below.
 
 ### 2.7 Entry verification checklist
 
 | # | Check | Informs |
 |---|---|---|
 | V1 | Phase 1 gates green on `main`; reproduce the 42 + 2 result | Entry condition |
-| V2 | Contents of `src/aegis/pipelines`, `tools`, `schemas`, `api`, `bandit` (expected: scaffold only) | §2.3 |
+| V2 | Contents of `src/aegis/pipelines`, `tools`, `schemas`, `api`, `bandit`; distinguish retained showcase code from Phase 2 Tier 1 training implementation | §2.3 |
 | V3 | Schema encoded by the existing elasticity GX suite and fixtures versus the real column set | D8 |
 | V4 | Current `dvc.yaml` stages; what `ingest` fetches and from where; whether `data/raw/` is DVC-tracked; resolve the stray `data/raw/elasticity_fremtpl2.csv` and `data/raw/elasticity_raw.csv` (confirm unused and remove, so the freMTPL files are the sole intake) | D8, D9 |
 | V5 | `pyproject.toml`/lock: EconML, scikit-learn, statsmodels, MLflow, FastAPI, Jinja2 resolve on Python 3.12 under Windows | D5, D11, D12 |
 | V6 | `eda_summary.json` regenerated and consistent with the console output; note both `artifacts/` and `data/` are gitignored (`.gitignore:42-43`), so either un-ignore the summary via a negation under `artifacts/*` and commit it, or record its checksum as local evidence | §2.2 |
 | V7 | `archive/phase2-attempt-1` readable (reference only) | Audit |
 | V8 | Development-machine cores and RAM | D5 budget |
-| V9 | Pinned MLflow version and its registry/alias behavior | D11a |
+| V9 | Pinned MLflow version and its registry/alias behavior — **verified:** `uv.lock` and `uv run` report 3.15.2; SQLite-backed registry check created an `approved` alias, resolved it, reassigned it to another version, and confirmed the new target. Current docs support the same API. D11a selects aliases. | D11a |
 
 ---
 
 ## 3. Phase Scope and Requirement Assessment
 
 ### 3.1 Findings
+
+The table records issues as observed during plan drafting. Their approved resolutions are recorded in §5/§6 and ADR-012–ADR-015; empirical outcomes that still require Q1–Q3 remain open.
 
 | ID | Finding | Sources | Impact if unresolved | Routed to |
 |---|---|---|---|---|
@@ -186,23 +190,23 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 
 | ID | Title | Parent | Scope / impact | Approval | Status |
 |---|---|---|---|---|---|
-| P2-D1 | GLM baseline target and severity scope | — | Amends PRD §4/§12, scoping §6/§9, README, roadmap wording | Required | Proposed |
-| P2-D1a | Large-loss capping policy | D1 | Losses₀ accuracy for Phase 6 | Required (policy); level by Q1 | Proposed; level Unresolved — Q1 |
-| P2-D2 | DGP data products and truth isolation | — | Leakage prevention | Not required | Proposed — no approval required |
-| P2-D2a | Treatment/outcome form, unit, truth and ε definition | D2 | Phase 6 contract; E1 validity | Required | Proposed |
-| P2-D2b | Confounding, overlap and heterogeneity design | D2 | E1 validity | Required | Proposed |
-| P2-D3 | Segment definition and Tier 1 output contract | — | Phase 3 and 6 interface | Required | Proposed |
-| P2-D4 | Feature pipeline and tail handling | — | Heavy-tail carryover | Required | Proposed |
-| P2-D5 | Estimator configuration and training scale | — | Runtime budget; validation cost | Required (budget); config by Q2 | Unresolved — Q2 |
-| P2-D6 | Validation protocol and gate design | — | E1 | Required | Proposed |
-| P2-D6a | Gate thresholds | D6 | E1 | Required (method); values by Q3 | Unresolved — Q3 |
-| P2-D7 | Confounding sensitivity method | — | PRD §14 Q1 | Required | Proposed |
-| P2-D8 | Elasticity-side data contracts and DAG ordering | — | Amends ADR-003 (INV-3) | Required | Proposed |
-| P2-D9 | Raw data identity, source and pinning | — | Document corrections; reproducibility | Not required | Proposed — no approval required |
-| P2-D10 | Reproducibility contract and execution tiers | — | Amends PRD §7 wording | Required | Proposed |
-| P2-D11 | What Phase 2 registers and promotes | — | Phase 3/6/showcase interface | Required | Proposed |
-| P2-D11a | Tracking backend and promotion mechanism | D11 | Amends gates Part 4.2 wording | Required | Proposed (pending V9) |
-| P2-D12 | Showcase slice scope and INV-5 enforcement | — | E2; ADR-009 clarification | Required (scenario set); enforcement not required | Proposed |
+| P2-D1 | GLM baseline target and severity scope | — | Amends PRD §4/§12, scoping §6/§9, README, roadmap wording | Required | **Approved — Batch 1** |
+| P2-D1a | Large-loss capping policy | D1 | Losses₀ accuracy for Phase 6 | Required (policy); level by Q1 | **Policy and Q1 criterion approved — Batch 3; cap level unresolved — Q1** |
+| P2-D2 | DGP data products and truth isolation | — | Leakage prevention | Not required | **Accepted as the sole viable approach** |
+| P2-D2a | Treatment/outcome form, unit, truth and ε definition | D2 | Phase 6 contract; E1 validity | Required | **Approved — Batch 2** |
+| P2-D2b | Confounding, overlap and heterogeneity design | D2 | E1 validity | Required | **Approved — Batch 2** |
+| P2-D3 | Segment definition and Tier 1 output contract | — | Phase 3 and 6 interface | Required | **Approved — Batch 2; provisional band edges subject to §2.4 close-out** |
+| P2-D4 | Feature pipeline and tail handling | — | Heavy-tail carryover | Required | **Approved — Batch 2; bounds follow raw-distribution check** |
+| P2-D5 | Estimator configuration and training scale | — | Runtime budget; validation cost | Required (budget); config by Q2 | **Q2 method and proposed budget criteria approved — Batch 3; scale/configuration unresolved — Q2** |
+| P2-D6 | Validation protocol and gate design | — | E1 | Required | **Approved — Batch 2** |
+| P2-D6a | Gate thresholds | D6 | E1 | Required (method); values by Q3 | **Q3 calibration method approved — Batch 3; numeric thresholds unresolved — Q3** |
+| P2-D7 | Confounding sensitivity method | — | PRD §14 Q1 | Required | **Approved — Batch 2** |
+| P2-D8 | Elasticity-side data contracts and DAG ordering | — | Amends ADR-003 (INV-3) | Required | **Approved — Batch 1** |
+| P2-D9 | Raw data identity, source and pinning | — | Document corrections; reproducibility | Not required | **Accepted as the factual correction — Batch 1** |
+| P2-D10 | Reproducibility contract and execution tiers | — | Amends PRD §7 wording | Required | **Approved — Batch 1** |
+| P2-D11 | What Phase 2 registers and promotes | — | Phase 3/6/showcase interface | Required | **Approved — Batch 4** |
+| P2-D11a | Tracking backend and promotion mechanism | D11 | Amends gates Part 4.2 wording | Required | **Approved — Batch 1, V9 verified** |
+| P2-D12 | Showcase slice scope and INV-5 enforcement | — | E2; ADR-009 clarification | Required (scenario set); enforcement not required | **Approved — Batch 4** |
 
 ### Recommended approval batches
 
@@ -212,6 +216,19 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 | 2 — Benchmark design | D2a, D2b, D3, D4, D6, D7 | One coherent block defining what E1 means |
 | 3 — Test-gated (approve method now, values later) | D1a, D5, D6a | Close when Q1, Q2, Q3 report |
 | 4 — Delivery shape | D11, D12 | Depend on the artifact contract in D3 |
+
+### Approval record
+
+All four batches were approved on **October 21, 2026**, in the order above. The approval adopts each recommendation and its stated constraints; it does not predetermine empirical results.
+
+| Order | Approved decisions | Recorded outcome |
+|---|---|---|
+| 1 — Requirement conflicts and document corrections | D1, D8, D10, D11a, D9 | Approved/accepted; V9 verified; dependent documents corrected |
+| 2 — Benchmark design | D2a, D2b, D3, D4, D6, D7; D2 accepted as sole viable design | Approved/accepted; provisional bands and raw-data-dependent bounds retained |
+| 3 — Test-gated | D1a, D5, D6a | Methods and stated criteria approved; Q1 cap level, Q2 scale/configuration, and Q3 numeric thresholds remain evidence-gated |
+| 4 — Delivery shape | D11, D12 | Approved |
+
+The approved default criteria and methods are retained as written. Options and trade-off text above remain unchanged for traceability.
 
 ### Qualification tests
 
@@ -246,7 +263,9 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 
 **Recommendation.** **B.** Reword PRD §4/§12 to: *no separate severity model and no severity-driven pricing in v1; loss cost enters only as the baseline GLM output.* The amendment must state plainly that the Tweedie GLM *is* the sanctioned combined frequency-severity model (compound Poisson-Gamma), so the reworded non-goal reads as *no separate severity model / no severity-driven pricing* — not as excluding severity from the loss-cost model. Align scoping §6, the README row and the roadmap capability text ("exposure and capped-loss feature engineering"). The Tweedie power is estimated or fixed with stated justification in the spec, not left as a default. Calibration is reported as holdout mean Tweedie deviance, actual-versus-expected by predicted-loss decile and by segment; MAE/RMSE are secondary. "Finite, self-consistent intervals" moves to the causal estimator.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 1 (October 21, 2026):** Option B. A single capped-pure-premium Tweedie GLM provides the baseline loss cost; there is no separate severity model or severity-driven pricing in v1. Required document corrections are approved.
+
+**Approval.** Approved, October 21, 2026 (Batch 1). **Decision status.** Approved.
 
 **Consequences.** The baseline exposes loss cost per policy-year by segment, aggregated from GLM fitted values (D3). The frequency-times-severity identity is not used as a test.
 
@@ -274,7 +293,9 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 
 **Cap level: Unresolved — qualification test Q1.** Candidates from the EDA: P99 (€16,109), P99.5 (€35,432), €100,000, P99.9 (€131,834). For each, report loss share removed, claims affected, Tweedie fit stability, holdout deviance, decile calibration, and segment loss-cost ranking against the next-higher cap. **Pass:** the lowest-truncation level beyond which segment loss-cost Spearman against the next level is ≥ 0.98 and holdout deviance changes by ≤ 1% (proposed defaults, adjustable at approval). If the excess share by segment departs materially from the exposure share, the uniform load is revisited and returns to the decision workflow.
 
-**Approval.** Required for policy A and the Q1 defaults. **Decision status.** Proposed; level unresolved until Q1 reports.
+> **APPROVED — Batch 3 (October 21, 2026):** Option A and the stated Q1 comparison and pass criteria. Q1 still determines the cap level; material excess-share concentration by segment returns to decision review.
+
+**Approval.** Policy and Q1 criteria approved, October 21, 2026 (Batch 3). **Decision status.** Approved; cap level unresolved until Q1 reports.
 
 **Consequences.** Segment loss costs used downstream are capped and loaded, and labeled as such.
 
@@ -294,7 +315,9 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 
 **Recommendation.** As stated. Enforcement: the training-table suite fails any table containing a truth column (D8), and a unit test asserts the estimator package cannot import the truth loader.
 
-**Approval.** **No approval required — only one viable option exists under the applicable constraints.** **Decision status.** Proposed — no approval required.
+> **ACCEPTED — Batch 2 (October 21, 2026):** This is the sole viable approach under the applicable constraints. Keep training data, truth sidecar, and DGP manifest as separate products; enforce truth isolation as specified.
+
+**Approval.** No approval required — sole viable approach accepted, October 21, 2026. **Decision status.** Accepted.
 
 **Consequences.** D2a and D2b inherit this separation.
 
@@ -327,7 +350,9 @@ Routed to §3: R1 severity scope; R2 baseline metric; R3 unfalsifiable E1; R4 sl
 - Segment aggregates use ratio of sums: ε_seg = Σ τᵢ / Σ q₀ᵢ, matching Phase 6, which applies the response to segment-level Q₀.
 - **Bound:** max |εᵢ|·0.15 < 1, so the ADR-011 zero floor never binds in the benchmark. The ε range is a stated design choice in the spec, not a claim about real markets.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** Option B and the listed unit, treatment, outcome, truth, ε conversion, aggregation, and bound. The self-test tolerance is specified in P2-F04.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved.
 
 **Consequences.** If the EDA gap on exposure (§2.4) shows short exposure reflects lapse, the unit decision is revisited through change management.
 
@@ -358,7 +383,9 @@ A third variant (hidden confounder) is reserved for D7.
 4. **Single confounding dial** in config.
 5. **Homogeneity (ADR-011):** within a segment, εᵢ is not materially correlated with expected loss cost; the correlation tolerance is stated in the spec.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** Option A is the main confounded benchmark; randomized treatment remains the positive control. The five DGP requirements and their self-test enforcement are approved.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved.
 
 **Consequences.** Requirement 5 may constrain which covariates drive heterogeneity inside a band.
 
@@ -387,7 +414,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 **Tier 1 output contract (Pydantic).** Per segment: `segment_id`, policy count, exposure in policy-years, baseline retention q₀, τ̂, ε̂, 95% interval on ε̂ (inference on the segment average), loss cost per policy-year, base premium per policy-year, `model_version`, `data_version`, `semi_synthetic = true`. Base premium = loss cost × (1 + loading), loading in config, so Revenue₀ and Losses₀ are consistent by construction; Phase 6 scales by segment policy count. There is **no** proposed-adjustment field.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** Option A, the 36-cell actuarial grid and merge floor, and the Pydantic segment contract. The proposed band edges remain subject to §2.4 close-out; schema contains no proposed-adjustment field.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved; proposed band edges subject to §2.4 close-out.
 
 **Consequences.** Scoping §7 and PRD wording on inputs are corrected (R11). Phase 3 and 6 specs inherit these units.
 
@@ -413,7 +442,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 **Recommendation.** **A.** One cleaning step emits two views: banded/categorical for the GLM and numeric/ordinal for the forest. Rules: exposure capped at 1.0 for the 421 affected policies with a logged count and a tolerance expectation in the raw contract; log(Density); DriverAge and CarAge bounds set after the raw-distribution check. Every clip or exclusion is a stated rule with logged counts. The fitted pipeline, band edges and feature list are versioned artifacts. A baseline feature-distribution summary is persisted with them (cheap, avoids a moving reference later; no monitoring logic in Phase 2).
 
-**Approval.** Required (brief). **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** Option A and the shared dual-view pipeline, no composite index, claims-feature exclusion, clipping/logging, and artifact/versioning requirements. DriverAge and CarAge bounds follow the raw-distribution check.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved; raw-distribution-dependent bounds remain to be set.
 
 **Consequences.** Any later composite feature requires a new decision with a leverage test.
 
@@ -440,7 +471,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 **Pass criteria (proposed, adjustable).** Full registered fit ≤ 30 minutes and ≤ 80% of RAM; otherwise adopt the smallest n whose Spearman is within 0.02 of the largest tested n for validation runs, with the registered fit on full data if the budget allows, and the choice stated in the artifact manifest.
 
-**Approval.** Required for the budget; configuration is fixed by Q2. **Decision status.** Unresolved — Q2.
+> **APPROVED — Batch 3 (October 21, 2026):** Run Q2 at the four stated sample sizes and compare both nuisance-model families. The proposed 30-minute/80%-RAM budget and 0.02 recovery tolerance are approved as decision criteria. Q2 still selects the scale and configuration.
+
+**Approval.** Q2 method and budget criteria approved, October 21, 2026 (Batch 3); configuration is fixed by Q2. **Decision status.** Approved method; outcome unresolved — Q2.
 
 **Consequences.** The Q2 report becomes the basis for K (seeds) in D6 and the grid in D7.
 
@@ -467,7 +500,9 @@ A third variant (hidden confounder) is reserved for D7.
 - Negative controls that must fail the gate: (c1) an unadjusted estimator on the same confounded data; (c2) shuffled τ̂; (c3) a zero-effect DGP, where the fraction of segments declared significant stays near the nominal rate. Positive control: the randomized-T variant must pass.
 - Gate statistic: worst seed and median across seeds, never one seed.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** The held-out, multi-seed protocol; listed metrics; negative and positive controls; segment-average interval method; and worst-seed plus median gate statistic are approved.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved.
 
 **Consequences.** The harness is built first against the controls, so a gate that cannot fail is caught before the estimator is judged.
 
@@ -485,7 +520,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 **Recommendation.** **B — Q3.** On pilot seeds, run the estimator and all negative controls; place each threshold in the gap between the upper tail of the control distributions and the lower tail of the estimator distribution, with a stated minimum margin. If no gap exists, the benchmark or estimator design has failed, and that finding returns to D2b/D5; thresholds are not lowered to fit. Values are frozen in config before the final-seed run; later changes need approval.
 
-**Approval.** Required for the method; values fixed by Q3. **Decision status.** Unresolved — Q3.
+> **APPROVED — Batch 3 (October 21, 2026):** Use Q3 to calibrate thresholds on pilot seeds, require separation with a stated margin, and freeze values before final-seed evaluation. Numeric thresholds remain unresolved until Q3; a failed separation reopens benchmark/estimator design rather than lowering the gate.
+
+**Approval.** Calibration method approved, October 21, 2026 (Batch 3); values fixed by Q3. **Decision status.** Approved method; thresholds unresolved — Q3.
 
 **Consequences.** The frozen values and the Q3 report are part of the registered artifact's validation summary.
 
@@ -511,7 +548,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 **Recommendation.** **B.** Add an unobserved confounder U to T and Y at a small grid of strengths (proposed 3 × 3 plus a zero cell), hide it from the estimator, and report degradation of m1–m3. The robustness value is the smallest strength at which median Spearman breaches the D6a threshold, labeled a property of the synthetic benchmark. Grid size follows Q2 cost; the harness raises on any skipped cell. A reopens only if a reviewer requires it, with a fail-loud wrapper.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 2 (October 21, 2026):** Option B and the hidden-confounder degradation sweep, robustness-value definition, Q2-bounded grid, fail-loud behavior, and stated condition for reconsidering Option A.
+
+**Approval.** Approved, October 21, 2026 (Batch 2). **Decision status.** Approved.
 
 **Consequences.** Scenario S4 in D12 depends on this output.
 
@@ -538,7 +577,9 @@ A third variant (hidden confounder) is reserved for D7.
 
 Provisional DAG (names finalized in P2-F10): `ingest → validate_raw → build_features → fit_baseline → generate_dgp → validate_training → train_estimator → validate_recovery → register_candidate → version`. No stage versions a dataset before its suite passes.
 
-**Approval.** Required (ADR-003 amendment). **Decision status.** Proposed.
+> **APPROVED — Batch 1 (October 21, 2026):** Option A; two elasticity-side suites; the specified raw/training checks, fixtures, summed per-policy claim loss, and fail-before-version DAG ordering. ADR-003 is amended accordingly.
+
+**Approval.** Approved, October 21, 2026 (Batch 1; ADR-003 amendment). **Decision status.** Approved.
 
 **Consequences.** ADR-003 text changes from one to two elasticity-side suites.
 
@@ -554,9 +595,11 @@ Provisional DAG (names finalized in P2-F10): `ingest → validate_raw → build_
 
 **Options.** One. The data is what it is: pin the analyzed files by checksum in a DVC-tracked intake manifest (failing on mismatch), and correct the documents to name the dataset as the original French MTPL benchmark with seven rating factors and no BonusMalus or Area. An unpinned or misnamed source would make downstream artifacts irreproducible and the documents false.
 
+> **ACCEPTED — Batch 1 (October 21, 2026):** Correct the dataset identity and factor list, and require checksum-pinned input through a DVC-tracked intake manifest.
+
 **Trade-offs.** None; the correction is factual.
 
-**Approval.** **No approval required — only one viable option exists under the applicable constraints.** **Decision status.** Proposed — no approval required.
+**Approval.** No approval required — factual correction accepted, October 21, 2026 (Batch 1). **Decision status.** Accepted.
 
 **Consequences.** Amendments to PRD FR-1/§9, scoping §7, README and system design naming are applied under change management.
 
@@ -587,7 +630,9 @@ Provisional DAG (names finalized in P2-F10): `ingest → validate_raw → build_
 
 PRD §7 is reworded accordingly.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 1 (October 21, 2026):** Option B; tiered reproducibility contract and T1/T2/T3 execution tiers, including the proposed 65% T1 coverage floor.
+
+**Approval.** Approved, October 21, 2026 (Batch 1). **Decision status.** Approved.
 
 **Consequences.** The CI fixture must preserve the data's key shape (zero-inflation and a heavy tail) well enough to exercise the code paths, not to reproduce results.
 
@@ -613,7 +658,9 @@ PRD §7 is reworded accordingly.
 
 **Recommendation.** **C.** The registered model packages the segment table (D3 contract), the baseline and causal calibration reports, the validation-gate summary, the DGP manifest id, the DVC data hash and the git commit. The serving path never deserializes the estimator.
 
-**Approval.** Required. **Decision status.** Proposed.
+> **APPROVED — Batch 4 (October 21, 2026):** Option C. Promote the segment-level output package with its calibration, validation, DGP, data, and source lineage; retain the fitted estimator as a non-promotable run artifact and never deserialize it in serving.
+
+**Approval.** Approved, October 21, 2026 (Batch 4). **Decision status.** Approved.
 
 **Consequences.** No feature computation happens at serving time, so training-serving skew cannot arise in Phase 2.
 
@@ -624,6 +671,8 @@ PRD §7 is reworded accordingly.
 **Question.** Which MLflow backend and promotion mechanism does Phase 2 use?
 
 **Context.** Gates Part 4.2 and existing guidance describe promotion as a stage transition with rollback as a stage-tag flip. As far as I know, current MLflow versions deprecate registry stages in favor of aliases and are moving away from the plain file store. This must be verified against the pinned version (V9) before approval.
+
+**Verification update (October 21, 2026):** V9 found MLflow 3.15.2 pinned in `uv.lock`; current MLflow registry documentation describes alias creation and reassignment, and confirms aliases replace stages as the recommended promotion reference.
 
 **Governing.** Gates Part 4.2, D11, ADR-005.
 
@@ -637,9 +686,11 @@ PRD §7 is reworded accordingly.
 
 **Trade-offs.** B depends on behavior that may be deprecated; A is equally local.
 
-**Recommendation.** **A.** The pipeline sets `candidate`; `approved` is set only with a recorded reviewer identity and the hash of the reviewed calibration report. A candidate cannot be promoted without lineage tags: git commit, DVC data hash, run id and a gate-pass tag. Rollback is re-pointing `approved` to the previous version. Phase 3 and the showcase read only `approved`. Gates Part 4.2 wording is updated. If V9 shows stage transitions are fully supported and preferred in the pinned version, this decision returns for review.
+**Recommendation.** **A.** The pipeline sets `candidate`; `approved` is set only with a recorded reviewer identity and the hash of the reviewed calibration report. A candidate cannot be promoted without lineage tags: git commit, DVC data hash, run id and a gate-pass tag. Rollback is re-pointing `approved` to the previous version. Phase 3 and the showcase read only `approved`. Gates Part 4.2 wording is updated. V9 verified MLflow 3.15.2 alias support; revisit only if implementation evidence contradicts this verified behavior.
 
-**Approval.** Required. **Decision status.** Proposed (pending V9).
+> **APPROVED — Batch 1 (October 21, 2026):** Option A, verified against V9. Use local SQLite-backed MLflow tracking and mutable `candidate`/`approved` aliases; gate promotion on human review and complete lineage. Rollback re-points `approved` to the previous version.
+
+**Approval.** Approved, October 21, 2026 (Batch 1; V9 verified). **Decision status.** Approved.
 
 **Consequences.** Tracking URI comes from environment configuration, not code.
 
@@ -661,7 +712,9 @@ PRD §7 is reworded accordingly.
 
 **Enforcement (no approval required — only one viable option exists under the applicable constraints).** The response schema has no proposed-adjustment field, a test asserts its absence, and every page carries the banner *model validation demo on semi-synthetic data — not a pricing recommendation*. A label alone would not stop a future field from appearing.
 
-**Approval.** Required for the scenario set. **Decision status.** Proposed.
+> **APPROVED — Batch 4 (October 21, 2026):** Four curated presets from the `approved` artifact; ε̂/truth, intervals, and gate summary only; no bandit or proposed Δ. Optionally dependent scenarios S3/S4 remain blocked until their Q1/D7 evidence exists. The schema-level prohibition and persistent demo banner are accepted as required enforcement.
+
+**Approval.** Scenario set approved, October 21, 2026 (Batch 4); enforcement accepted as the sole viable approach. **Decision status.** Approved.
 
 **Consequences.** S3 and S4 depend on Q1 and P2-F08 outputs; their absence blocks E2.
 
@@ -670,12 +723,11 @@ PRD §7 is reworded accordingly.
 ## 7. What Happens After Approval
 
 1. **Approved decisions become implementation constraints.** Unresolved decisions (D1a level, D5, D6a) stay open until their qualification tests report; each result is recorded back in §6 as a dated entry.
-2. **Required ADRs are identified.** Approved decisions consolidate into four ADRs, numbers assigned at consolidation: (i) baseline target and loss treatment (D1, D1a); (ii) semi-synthetic causal benchmark and validation protocol (D2, D2a, D2b, D6, D6a, D7); (iii) Tier 1 segments, output contract and registry (D3, D11, D11a); (iv) elasticity-side contracts and reproducibility tiers (D8, D10).
-3. **Documents amended in the same change set as approval** (change-management workflow, never silent): PRD FR-1/§4/§7/§9/§12 (D1, D9, D10); scoping §6/§7/§9 (D1, D9); README Phase 2 row and dataset name (D1, D9); roadmap Phase 2 capability text and slice wording (D1, D12); system design dataset naming (D9); ADR-003 (D8); ADR-009 clarification that the Phase 2 slice excludes the bandit (D12); gates Part 4.2 (D11a).
-4. **The Phase Execution Plan is activated.** It, not this document, sequences stages and gates. Inputs handed to it:
+2. **ADR consolidation complete:** approved decisions are recorded in ADR-012–ADR-015 in `system_design.md`: (i) baseline target, loss treatment, and feature preparation (D1, D1a, D4); (ii) semi-synthetic causal benchmark and validation protocol (D2, D2a, D2b, D5, D6, D6a, D7); (iii) Tier 1 segments, output contract, and registry (D3, D11, D11a); (iv) dataset identity, elasticity-side contracts, and reproducibility tiers (D8, D9, D10). D12 is recorded as an amendment to ADR-009.
+3. **Documents amended in this approval change set:** PRD FR-1/§4/§7/§9/§11/§12 (D1, D9, D10); scoping §0/§6/§7/§9 (D1, D9); README Phase 2 row (D1, D9); roadmap Phase 2 capability and showcase text (D1, D12); ADR-003 (D8); ADR-009 clarification that the Phase 2 slice excludes the bandit (D12); gates Part 4.2 (D11a). Dataset identity is corrected to the original French MTPL benchmark, with seven rating factors and no BonusMalus or Area.
+4. **The Phase Execution Plan is the next planning artifact.** It, not this document, sequences stages and gates. Inputs handed to it include independent ADR/decision review and sign-off checkpoints; the ADRs are consolidated and approved but implementation is not yet verified:
    - Stage 0 pre-implementation verification: V1–V9 and the open EDA gaps (§2.4).
    - Qualification tests Q1–Q3 as stage gates, with the pass criteria above.
-   - A final ADR consolidation and sign-off stage covering the four ADRs.
    - Candidates for the one-time falsification pass, each a failure that must be detected: a truth column placed in the training table (D2, D8); a deliberately broken estimator against the gate (D6, via controls); a malformed raw file halting the DAG (D8); a proposed-adjustment field added to the showcase schema (D12); a threshold changed after the final run (D6a).
 5. **Feature-level work enters the SDD lifecycle.** P2-F01 to P2-F11 each need their spec approved before implementation, at the depth stated in §4. Specs may not reopen an approved decision.
 6. **Material deviations return through the decision and change-management workflow.** Approval of a decision here does not authorize unrelated work.

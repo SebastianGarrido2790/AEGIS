@@ -1,7 +1,7 @@
 # Product Requirements Document — AEGIS
 
 **Actuarial Elasticity & Governance Intelligence System**
-Author: Sebastián Garrido Arévalo | Date: August 13, 2026 | Phase 0 — Planning
+Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ---
 
@@ -35,7 +35,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 **Non-Goals:**
 
 - AEGIS does not autonomously publish a rate change. A human underwriter always holds final authority.
-- AEGIS does not model claims severity in v1 — frequency/elasticity only.
+- AEGIS does not build a separate claims-severity model or use severity-driven pricing in v1. The Phase 2 baseline is a capped-pure-premium Tweedie GLM (compound Poisson-Gamma), whose loss-cost output is used as the baseline reference; large-loss excess is handled under the approved cap-and-load policy.
 - AEGIS is not a multi-jurisdiction compliance product; the regulatory corpus models a single illustrative jurisdiction.
 - AEGIS does not integrate with a live carrier core system in v1; integration points are modeled, not connected.
 
@@ -51,7 +51,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 ## 6. Functional Requirements
 
-1. The system SHALL ingest empirical policy exposure, claim frequency, and rating factors from the public freMTPL2 benchmark, and evaluate causal elasticity estimation against a semi-synthetic price-treatment experiment with known ground truth per segment.
+1. The system SHALL ingest empirical policy exposure, claim frequency, losses, and rating factors from the original French MTPL (`freMTPLfreq`/`freMTPLsev`) benchmark. Its seven rating factors are Power, Brand, Gas, Region, DriverAge, CarAge, and Density; BonusMalus and Area are not present. The system SHALL evaluate causal elasticity estimation against a semi-synthetic price-treatment experiment with known ground truth per segment.
 2. The system SHALL constrain any live rate exploration to a bounded corridor via contextual bandit exploration; it SHALL NOT recommend adjustments outside that corridor without explicit escalation.
 3. The system SHALL retrieve and cite relevant regulatory/actuarial-fairness source material for every proposed rate change via the Compliance Agent, backed by the Redis Stack (RedisVL) index.
 4. The system SHALL project revenue and loss-ratio impact for every proposed change via the Revenue/Loss-Ratio Impact deterministic tool node (INV-5), using a first-order demand elasticity volume approximation rather than static premium multiplication, assuming homogeneous retention risk within segment.
@@ -67,7 +67,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 - **Reliability:** provider-level failures must trigger the Gateway's fallback chain; application-level failures (e.g., structured-output validation) must trigger the LangGraph-level circuit breaker; both must be independently observable via OTel metrics.
 - **Latency:** end-to-end recommendation latency for a single segment/policy review should remain within an interactive range suitable for same-session use by an underwriter (target: low single-digit seconds for the agentic path, excluding scheduled batch retraining). Aspirational — no SLA is set (see `scoping_doc.md` §8); the Gateway/tool timeouts in `params.yaml` are failure bounds, not latency budgets.
 - **Cost governance:** token/cost per recommendation must be tracked and attributable per agent via the Gateway's cost/trace export.
-- **Reproducibility:** the full pipeline (data → model → agent outputs) must be reproducible bit-for-bit under a fixed seed and CI-gated.
+- **Phase 2 reproducibility:** under the same lockfile and operating system, Phase 2 data products (cleaned data, DGP table, truth sidecar, and manifest) are bit-identical; model outputs reproduce within stated numeric tolerances. Cross-operating-system model identity is not claimed. CI runs a committed small-fixture smoke tier; the full-data DVC run and multi-seed validation campaign run locally/on demand, with the validation summary committed. Later phases specify their own reproducibility gates.
 - **Modularity:** no module in `src/` exceeds 1,000 lines; the Compliance Agent, deterministic tool nodes, Gateway integration, and governance layer are independently testable.
 
 ## 8. System Architecture
@@ -89,7 +89,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 ## 9. Data Sources
 
-- Public P&C benchmark dataset (French Motor Third-Party Liability / freMTPL2) providing realistic empirical driver/vehicle rating covariates and loss frequencies. Because observational claims datasets lack randomized price variation and renewal records, price variation and price elasticity are modeled via a semi-synthetic data-generating process (DGP) over freMTPL2 covariates to benchmark causal recovery against known ground truth.
+- Public P&C benchmark dataset: the original French Motor Third-Party Liability frequency/severity files (`freMTPLfreq`/`freMTPLsev`), providing 413,169 policy records, 16,181 claim records, and seven rating factors (Power, Brand, Gas, Region, DriverAge, CarAge, Density); BonusMalus and Area are absent. Input files shall be pinned by checksum in a DVC-tracked manifest. Because these observational files lack randomized price variation and renewal records, price variation and price elasticity are modeled via a semi-synthetic data-generating process (DGP) over the empirical covariates to benchmark causal recovery against known ground truth. The Phase 2 baseline uses a capped-pure-premium Tweedie GLM with excess load; it is not a separate severity model or severity-driven pricing system.
 - Public regulatory and actuarial-fairness source material (NAIC model laws, state Unfair Trade Practices Act excerpts, relevant ASOPs) for the Compliance Agent's RAG index.
 - Synthetic policy/segment stream for bandit exploration and end-to-end testing, standing in for a live production feed.
 
@@ -110,7 +110,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 ## 11. Success Metrics & KPIs
 
-- Elasticity model: recovery of the known segment-varying synthetic treatment effect — per-segment and rank-based (Spearman) correlation, robust to heavy-tailed leverage points — with self-consistent, finite confidence intervals (point estimate contained in its own interval); GLM baseline calibration (MAE/RMSE) as reference.
+- Elasticity model: recovery of the known segment-varying synthetic treatment effect under the approved held-out, multi-seed protocol, with per-segment and Spearman metrics, finite/self-consistent 95% intervals, sign agreement, and negative/positive controls; numeric thresholds are frozen after Q3 calibration. GLM baseline calibration: holdout mean Tweedie deviance and actual-versus-expected by predicted-loss decile and segment; MAE/RMSE are secondary metrics.
 - Bandit: cumulative regret vs. static-price baseline (simulated).
 - Compliance Agent: four-metric diagnostic matrix (Faithfulness, Answer Relevancy, Context Recall, Context Precision), read jointly per ADR-010 — no single metric gates alone; LLM-as-judge agreement rate.
 - Governance: HITL escalation rate (should reflect genuine ambiguity, not over- or under-triggering).
@@ -120,7 +120,7 @@ The stakeholder problem is not "we lack a pricing model." It is the absence of a
 
 ## 12. Out of Scope (Future Iterations)
 
-- Claims severity modeling (frequency/elasticity only in v1).
+- A separate claims-severity model or severity-driven pricing in v1; capped loss cost from the baseline Tweedie GLM is in scope as the reference loss-cost output.
 - Multi-jurisdiction, multi-state simultaneous filing logic.
 - Live carrier core system integration (API contracts modeled, not connected).
 - Autonomous rate publication without human sign-off.

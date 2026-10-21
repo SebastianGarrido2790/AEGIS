@@ -58,6 +58,8 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 **Resolution (approved by Sebastián, Aug 16, 2026):** Option B — incremental slices at the close of Phases 2, 6, and 7.
 
+**Phase 2 scope amendment (approved October 21, 2026; P2-D12):** The Phase 2 slice is an elasticity-model validation showcase reading the `approved` segment artifact. It excludes the Phase 3 bandit and any proposed rate adjustment. Four curated presets demonstrate recovery, uncertainty, cap sensitivity, and hidden-confounding degradation; each page is labeled as a semi-synthetic model-validation demo.
+
 ---
 
 ## UI-D1c — What does it actually show?

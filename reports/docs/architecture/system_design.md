@@ -2,7 +2,9 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 1 Validated; Phase 2 reset for EDA-first redo.** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
+**Status: Phase 1 Validated; Phase 2 decisions approved October 21, 2026, with qualification tests and implementation pending.** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
+
+**ADR threshold:** offer an ADR only when all three tests pass: (1) the choice is hard to reverse at meaningful cost; (2) a future reader would find it surprising without recorded rationale; and (3) materially viable alternatives existed and one was selected for specific trade-offs. If any test fails, record the choice in the relevant specification, implementation plan, evaluation, or existing decision record instead. An ADR is never implied merely because a change is architectural or consequential.
 
 ---
 
@@ -119,13 +121,17 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-003: Data contracts — Great Expectations paired with DVC, CI-blocking
 
+**Status:** Validated (Phase 1); amended for Phase 2 on October 21, 2026 (P2-D8).
+
 **Context:** DVC versions data and pipeline artifacts but does not validate them; without an independent validation gate, invalid data can be faithfully version-controlled ("garbage in, garbage out").
 
-**Decision:** Two Great Expectations suites — one for elasticity training data (schema, value ranges, post-treatment leakage check), one for regulatory corpus ingestion (non-empty chunks, required metadata, duplicate detection) — both enforced as CI-blocking gates ahead of DVC versioning, not as advisory warnings.
+**Decision:** Great Expectations suites for the raw elasticity policy table, generated elasticity training table, and regulatory corpus ingestion. The raw and training suites are enforced as CI-blocking gates before their respective datasets are DVC-versioned; the regulatory-corpus suite gates corpus versioning. The raw suite checks schema, key/claim reconciliation, and value ranges. The training suite checks pre-treatment inputs, treatment/outcome constraints, and excludes truth columns. The corpus suite checks non-empty chunks, required metadata, and duplicate detection.
 
 **Rationale:** The regulatory corpus suite in particular is a direct upstream mitigation for the system's highest-severity failure mode (RAG-grounded compliance hallucination, `../groundedness/scoping_doc.md` §11) — malformed or duplicated chunks are rejected before indexing, not caught after the fact.
 
 **Consequences:** Adds a validation step ahead of every data pipeline run; accepted as necessary given the severity of the failure mode it mitigates.
+
+**Phase 2 amendment (approved October 21, 2026; P2-D8):** The original single elasticity-training suite is expanded to separate raw-policy and generated-training suites, in addition to the existing regulatory-corpus suite. The DVC DAG places each contract before versioning the dataset it validates. Raw policy loss sums aggregate all claims associated with each policy.
 
 ### ADR-004: Package layout & build toolchain — Namespaced `src/aegis/` with Hatchling & Python 3.12
 
@@ -189,15 +195,17 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-009: Showcase interface — Incremental glass-box demo, curated scenarios, FastAPI + Jinja2
 
-**Status:** Approved (pre-Phase 2)
+**Status:** Approved (pre-Phase 2); Phase 2 slice clarified October 21, 2026 (P2-D12).
 
 **Context:** The PRD names a secondary audience (hiring managers, technical evaluators, academic reviewers) distinct from the in-universe personas. No artifact currently lets that audience observe the governed multi-agent decision loop running without reading code or ADRs. This is a separate question from PRD §12's exclusion of a full production UI — that exclusion concerns a real underwriting console for daily operational use, not a demo interface for portfolio evaluation. Full deliberation recorded in `../decisions/showcase_ui_assessment.md`.
 
-**Decision:** Build a minimal, explicitly-labeled "glass-box" demo interface — not a production dashboard — using FastAPI with server-rendered Jinja2 templates (HTML-over-the-wire), consistent with the SSR dashboard pattern already established elsewhere in this portfolio. It is built incrementally, with a slice added at the close of each phase that produces something worth showing (Phase 2: elasticity/bandit output view; Phase 6: multi-agent trace panel; Phase 7: audit record and HITL view) rather than as a dedicated standalone phase. It exposes a curated set of 3–5 preset scenarios via dropdown selection — not free-form input — deliberately including at least one scenario engineered to trigger escalation and one to trigger the deterministic fallback, not only successful-approval paths.
+**Decision:** Build a minimal, explicitly-labeled "glass-box" demo interface — not a production dashboard — using FastAPI with server-rendered Jinja2 templates (HTML-over-the-wire), consistent with the SSR dashboard pattern already established elsewhere in this portfolio. It is built incrementally, with a slice added at the close of each phase that produces something worth showing (Phase 2: elasticity diagnostic view, excluding the Phase 3 bandit and any proposed adjustment; Phase 6: governed workflow trace panel; Phase 7: audit record and HITL view) rather than as a dedicated standalone phase. It exposes a curated set of 3–5 preset scenarios via dropdown selection — not free-form input — deliberately including at least one scenario engineered to trigger escalation and one to trigger the deterministic fallback, not only successful-approval paths.
 
 **Rationale:** A code listing cannot communicate that the system is _governed_, not merely agentic — an evaluator needs to see an escalation trigger or a fallback engage to register that distinction. FastAPI + Jinja2 was chosen over Streamlit/Gradio to remain consistent with established portfolio precedent and to avoid the "quick model demo" association those frameworks carry, which risks undercutting the production-engineering positioning this project is built around. Incremental delivery avoids concentrating UI risk at the end of the roadmap, when schedule pressure is highest and scope quietly erodes. Curated scenarios over free-form input were chosen because INV-10 means there is no live data source for genuinely free-form input to query against — and because showing only successful approvals would hide the actual differentiator (the governance layer), which is the entire point of exposing this to the secondary audience in the first place.
 
 **Consequences:** `../groundedness/scoping_doc.md`, `../groundedness/prd.md` §12, and `../implementation_roadmap.md` are updated to reflect this component and its phase-by-phase delivery slices. The interface must at every stage remain visually and textually distinguishable from a production system — mislabeling risks contradicting PRD §12's non-goal rather than complementing it.
+
+**Phase 2 amendment (approved October 21, 2026; P2-D12):** The Phase 2 slice demonstrates estimator validation only, from the approved segment artifact. It excludes bandit output and proposed Δ; the response contract has no adjustment field and every page carries the semi-synthetic model-validation disclaimer. Its four presets cover a well-recovered segment, a small/uncertain segment, a cap-sensitive loss segment (from Q1), and hidden-confounding degradation (from D7).
 
 ### ADR-010: Compliance Agent evaluation refined to a four-metric diagnostic matrix (INV-6 amendment)
 
@@ -261,6 +269,58 @@ Adopt **Single Decision Agent + Deterministic Specialist Nodes + Bounded Post-Go
 - The system is positioned as a **governed-by-construction agentic workflow with a single compliance reasoning agent**, not "three agents."
 - `capability_profile_gates.md` is amended to reflect the node-level LLM test, provisional Level 3 classification, and Phase 5 retrieval-mode evaluation.
 - `PRD.md`, `scoping_doc.md`, `implementation_roadmap.md`, `system_design.md`, and `README.md` are reconciled in lockstep.
+
+### ADR-012: Phase 2 Loss-Cost Baseline and Feature Preparation
+
+**Status:** Approved October 21, 2026; cap level awaits Q1.
+
+**Context:** The original French MTPL benchmark has a severe claims tail. Phase 6 requires a segment-level baseline loss cost, while the v1 non-goal excludes a separate severity model and severity-driven pricing.
+
+**Decision:** Use one capped-pure-premium Tweedie GLM (compound Poisson-Gamma) as the baseline loss-cost model. Add the training-split portfolio excess load so the cap does not silently understate aggregate loss. Select the cap via Q1: compare the EDA-grounded candidates, and select the lowest truncation level for which segment loss-cost Spearman against the next-higher cap is at least 0.98 and holdout deviance changes by no more than 1%. Reopen the uniform excess load if its segment distribution materially departs from exposure. Report holdout mean Tweedie deviance and actual-versus-expected by predicted-loss decile and segment; MAE/RMSE are secondary. Tweedie power requires a justified fixed or estimated choice in the feature specification.
+
+Use one deterministic preprocessing pipeline with categorical/banded and numeric/ordinal views. Do not create composite risk indices; exclude claims variables from elasticity covariates. Cap exposure at 1.0 with counts logged, log-transform Density, set DriverAge/CarAge bounds after raw-distribution verification, and version the fitted pipeline, feature list, band edges, and baseline feature-distribution summary. Every clip/exclusion is documented and counted.
+
+**Consequences:** The cap level and excess load are data-derived and recorded in configuration and the model artifact. Q1, raw-distribution verification, and implementation remain required before the Phase 2 baseline is complete.
+
+### ADR-013: Semi-Synthetic Causal Benchmark and Validation Protocol
+
+**Status:** Approved October 21, 2026; estimator scale is pending Q2 and numeric gate thresholds are pending Q3.
+
+**Context:** The public observational data has no price treatment or renewal outcome. A defensible recovery claim therefore requires an isolated synthetic treatment/outcome benchmark, held-out evaluation, and controls that can falsify a weak estimator.
+
+**Decision:** Keep three physically separate products: estimator-visible X/T/Y/segment training data; a truth sidecar (τᵢ, q₀ᵢ, εᵢ) read only by validation; and a DGP manifest. The policy record is the equally weighted unit, includes every policy, and uses a synthetic renewal indicator with relative price treatment Δ in [−0.15, +0.15]. Under the approved logistic model, τᵢ is the local renewal-probability slope at Δ=0, q₀ᵢ is baseline renewal probability, and εᵢ=τᵢ/q₀ᵢ. Segment ε is a ratio of sums. The DGP must self-test estimator/truth estimand gap, overlap, interpretable heterogeneity and interaction, segment-effect dispersion, within-segment ε/loss-cost homogeneity, and max |εᵢ|·0.15<1. Observed exposure does not determine synthetic renewal; it is used for baseline weighting/offset and loss-cost units only.
+
+Use observed confounding from a risk-based treatment assignment as the main benchmark and randomized treatment as positive control. Q2 compares CausalForestDML scale at 25k, 100k, 250k, and 413k, with boosted-tree and regularized-linear nuisance models. The approved budget criteria are a full registered fit within 30 minutes and 80% of available RAM; if the budget is exceeded, validation uses the smallest sample whose Spearman is within 0.02 of the largest tested sample, while registering on full data if budget permits. Q2 sets scale and nuisance configuration.
+
+Evaluate on held-out policies using at least five disjoint final seeds, with pilot seeds reserved for threshold calibration. Report segment τ Spearman, policy-level held-out Spearman, per-segment ε bias, 95% interval coverage, interval finiteness/self-consistency, and sign agreement. Controls that must fail are unadjusted estimation on confounded data, shuffled τ̂, and a zero-effect DGP; randomized treatment is the positive control. Report worst-seed and median results. Q3 sets thresholds from separation between control and estimator distributions with a minimum margin; freeze thresholds before final-seed evaluation. If no separation exists, revisit DGP/estimator design rather than lowering thresholds. Hidden-confounder sensitivity uses a Q2-bounded grid, reports degradation and the first strength where median Spearman breaches the frozen threshold, and fails loudly on skipped cells.
+
+**Consequences:** Numerical thresholds and estimator configuration are evidence-gated, not selected from final-seed outcomes. Truth must not enter estimator inputs; tolerance details and interval inference are specified in the feature specifications before implementation.
+
+### ADR-014: Tier 1 Segment Contract and Human-Gated Artifact Promotion
+
+**Status:** Approved October 21, 2026.
+
+**Context:** Phases 3, 6, and the showcase consume segment-level output. The estimator package must remain auditable without requiring serving to deserialize a library-bound model.
+
+**Decision:** Define segments by the 36-cell DriverAge × CarAge × Density grid (four, three, and three bands respectively); Region, Power, Brand, and Gas are GLM factors only. Freeze edges in configuration and merge cells below 1,000 policies under a rule defined in the specification. Subject to §2.4 raw-distribution close-out, the proposed bands are DriverAge 18–24/25–44/45–64/65+, CarAge 0–4/5–9/10+, and Density ≤500/501–2,000/>2,000. Aggregate segment loss cost from capped/loaded GLM fitted values.
+
+The typed segment output contains segment ID, policy count, exposure in policy-years, q₀, τ̂, ε̂ and its 95% segment-average interval, loss cost and base premium per policy-year, model/data versions, and `semi_synthetic=true`. Base premium equals loss cost × (1+configured loading); there is no proposed-adjustment field. Register the segment table plus calibration reports, validation summary, DGP manifest ID, DVC data hash, and Git commit. Keep the fitted estimator as a non-promotable run artifact; serving does not deserialize it.
+
+Use local SQLite-backed MLflow tracking, with the tracking URI supplied through environment configuration. The pipeline assigns `candidate`; `approved` is a mutable registry alias set only after a recorded human review tied to the calibration-report hash and complete lineage (Git commit, DVC data hash, run ID, gate-pass tag). Rollback re-points `approved` to the prior version. Phase 3 and the showcase read only `approved`.
+
+**Consequences:** Promotion is explicit and review-gated; serving receives plain segment data. MLflow 3.15.2 is pinned; SQLite-backed alias creation, resolution, and reassignment were exercised successfully on October 21, 2026. Human review, runtime qualification, and implementation remain required.
+
+### ADR-015: Phase 2 Data Contracts, Dataset Identity, and Reproducibility
+
+**Status:** Approved October 21, 2026; implementation pending.
+
+**Context:** INV-3 applies to every dataset before DVC versioning. The current Phase 1 elasticity suite does not independently gate raw input and generated training data, and existing project descriptions misidentify the analyzed benchmark.
+
+**Decision:** The Phase 2 intake is the original French MTPL frequency/severity data (`freMTPLfreq`/`freMTPLsev`), not freMTPL2. It has seven factors—Power, Brand, Gas, Region, DriverAge, CarAge, Density—and no BonusMalus or Area. Pin source files by checksum in a DVC-tracked intake manifest, failing on mismatch. Use separate GX contracts for the raw policy table and generated training table, in addition to the existing regulatory corpus contract. Raw validation checks unique PolicyID, ClaimNb 0–4, exposure range with an explicit tolerance for values above 1.0, positive ClaimAmount, no nulls, complete policy mapping, and exact claim-count reconciliation. Sum all claim amounts per policy. Training validation checks pre-treatment covariates only, absence of truth columns, treatment corridor, overlap floor, and binary outcome. Version no dataset until its suite passes.
+
+Use tiered Phase 2 reproducibility: under the same lockfile and operating system, cleaned data, DGP table, truth sidecar, and manifest are bit-identical; model outputs meet stated numeric tolerances, with no cross-OS identity claim. T1 CI-smoke uses a committed small fixture, falsifiable tests and model checks, and a 65% Tier 1 module coverage floor. T2 is the local full-data `dvc repro` and MLflow candidate run. T3 is the on-demand multi-seed/control/sensitivity campaign, with its summary committed.
+
+**Consequences:** Update the PRD and supporting documentation to the observed source identity and this Phase 2 reproducibility contract. The raw/training GX gates and checksum manifest are required implementation work; they are not claimed to exist yet.
 
 ## 5. Open Implementation Notes
 

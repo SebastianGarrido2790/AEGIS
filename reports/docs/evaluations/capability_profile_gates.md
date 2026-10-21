@@ -111,7 +111,7 @@ Already implemented, not re-specified here: the Top Bun is the planned sanitizat
 Two distinct mappings, not one:
 
 - **The Compliance Agent's "action" (a verdict):** the pre-action state snapshot is the last compliance-approved rate table itself; the inverse operation is INV-6's deterministic fallback to that same snapshot.
-- **The elasticity model's promotion (a Tier 1 artifact, not a Tier 2 agent action):** the MLflow registry's staged versioning is the state capture; rollback is a registry stage-tag flip, gated by required human review of the calibration report before promotion.
+- **The elasticity model's promotion (a Tier 1 artifact, not a Tier 2 agent action):** the MLflow registry's `approved` alias is the state capture; rollback re-points that alias to the previous version. Promotion requires a human review record tied to the calibration-report hash and complete lineage. The Phase 2 decision uses aliases (P2-D11a; MLflow 3.15.2 verified October 21, 2026).
 
 ---
 
