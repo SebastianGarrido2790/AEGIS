@@ -23,7 +23,9 @@ Each decision carries one of three tags:
 
 ### Basis and limits
 
-Sources: the project documents (scoping, PRD, user story, roadmap, system design ADRs, capability-profile gates, invariants register), the phase-plan template, and the console output of `scripts/explore_raw_data.py` supplied with this update. The content of `eda_summary.json` was not visible to this draft; the console output was used, and V6 requires confirming the two agree. The repository itself was not inspected. Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R** reported in change reports, not independently verified; **U** unverified, confirm at entry (§2.7).
+Sources: the project documents (scoping, PRD, user story, roadmap, system design ADRs, capability-profile gates, invariants register), the phase-plan template, and the console output of `scripts/explore_raw_data.py` supplied with this update. The content of `eda_summary.json` was not visible to this draft; the console output was used, and V6 requires confirming the two agree. The repository itself was not inspected. 
+
+Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R** reported in change reports, not independently verified; **U** unverified, confirm at entry (§2.7).
 
 ---
 
