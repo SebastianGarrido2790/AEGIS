@@ -118,6 +118,40 @@ class FeaturePathsConfig(BaseModel):
     metadata: str = Field(default="data/processed/feature_metadata.json")
 
 
+class GLMBaselineConfig(BaseModel):
+    """Configuration for the cap-parameterized Tweedie baseline (Phase 2, P2-F03)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    default_cap: float = Field(default=100000.0, gt=0.0)
+    tweedie_p_min: float = Field(default=1.05, gt=1.0, lt=2.0)
+    tweedie_p_max: float = Field(default=1.95, gt=1.0, lt=2.0)
+    tweedie_p_step: float = Field(default=0.05, gt=0.0)
+    tweedie_p_refine_step: float = Field(default=0.01, gt=0.0)
+    tweedie_p_fallback: float = Field(default=1.5, gt=1.0, lt=2.0)
+    decile_count: int = Field(default=10, gt=1)
+    link: str = Field(default="log")
+
+    @model_validator(mode="after")
+    def _validate_grid(self) -> "GLMBaselineConfig":
+        """Validates the variance-power grid and link."""
+        if self.tweedie_p_min >= self.tweedie_p_max:
+            raise ValueError("tweedie_p_min must be less than tweedie_p_max")
+        if self.link != "log":
+            raise ValueError("only the log link is supported for the Tweedie baseline")
+        return self
+
+
+class GLMPathsConfig(BaseModel):
+    """Configuration for GLM baseline output paths (Phase 2, P2-F03)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    fitted_loss_cost: str = Field(default="data/processed/glm_fitted_loss_cost.csv")
+    model_metadata: str = Field(default="data/processed/glm_baseline_model.json")
+    calibration_report: str = Field(default="data/processed/glm_calibration_report.json")
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -130,6 +164,8 @@ class Tier1MLConfig(BaseModel):
     exploration_corridor_width: float = Field(default=0.15, gt=0.0, lt=1.0)
     feature_pipeline: FeaturePipelineConfig = Field(default_factory=FeaturePipelineConfig)
     feature_paths: FeaturePathsConfig = Field(default_factory=FeaturePathsConfig)
+    glm_baseline: GLMBaselineConfig = Field(default_factory=GLMBaselineConfig)
+    glm_paths: GLMPathsConfig = Field(default_factory=GLMPathsConfig)
 
 
 class Tier2AgentsConfig(BaseModel):

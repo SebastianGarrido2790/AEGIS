@@ -12,7 +12,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 0 | Pre-Implementation Verification & Dependency Check | ✅ PASSED | 2026-10-21 | §Stage 0 |
 | 1 | Raw Intake & Raw Data Contract | ✅ PASSED | 2026-10-21 | §Stage 1 |
 | 2 | Deterministic Feature Pipeline | ✅ PASSED | 2026-10-21 | §Stage 2 |
-| 3 | GLM Loss-Cost Baseline & Calibration Reporting | Pending | — | — |
+| 3 | GLM Loss-Cost Baseline & Calibration Reporting | ✅ PASSED | 2026-10-21 | §Stage 3 |
 | 4 | Segment Definition & Tier 1 Output Contract | Pending | — | — |
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | Pending | — | — |
 | 6 | Semi-Synthetic DGP & Training Contract | Pending | — | — |
@@ -182,9 +182,9 @@ Raw intake manifest verified cryptographically; deterministic policy joining cor
 
 ---
 
-## Stage 2 � Deterministic Feature Pipeline
+## Stage 2 — Deterministic Feature Pipeline
 
-**Executed:** 2026-10-21 � **Gate 2:** ? PASSED � **Feature:** `P2-F02` (Full SDD)
+**Executed:** 2026-10-21 — **Gate 2:** ✅ PASSED — **Feature:** `P2-F02` (Full SDD)
 
 1. **Specification and plan:**
    - `002_feature-pipeline/spec.md` approved 2026-10-21 with OD-1 (DriverAge `[18, 90]`, CarAge `[0, 34]`) and OD-2 (one-hot unordered factors).
@@ -226,3 +226,40 @@ Raw intake manifest verified cryptographically; deterministic policy joining cor
 ### Gate 2 outcome
 
 Both views reproduce byte-identically; all clips and exclusions are counted and recorded; no composite index exists; claims variables are provably absent from the forest covariates; transformer metadata is versioned and validated. Stage 2 PASSED; Stage 3 is unlocked.
+
+---
+
+## Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting
+
+**Executed:** 2026-10-21 · **Gate 3:** ✅ PASSED · **Feature:** `P2-F03` (Full SDD)
+
+1. **Specification and plan:**
+   - `003_glm-baseline-loss-treatment/spec.md` APPROVED 2026-10-21 with OD-1 (profile-deviance `p` selection with `p=1.5` fallback), OD-2 (all seven rating factors, drop-first reference coding), OD-3 (default cap €100,000), OD-4 (ratio-of-sums A/E; deciles ranked on predicted pure premium), OD-5 (JSON+CSV only, no pickle).
+   - `plan.md` and `tasks.md` written before implementation; all 8 tasks completed.
+2. **Fit (empirical, 413,169 rows):**
+   - Target = `min(ClaimAmount, cap)/exposure_capped`, frequency weights = `exposure_capped`, Tweedie log link.
+   - Seeded 80/20 split (`random_state=42`): **train 330,535 / test 82,634**.
+   - Selected variance power `p = 1.84` via profile deviance (21 grid points, refinement around the minimizer); **`fallback = False`**; dispersion 1641.32; **`converged = True`**.
+   - Profile minimizer: `p=1.84` (train deviance 5,523,352.58); nearest neighbors `1.85` (5,559,782), `1.80` (5,577,123).
+3. **Calibration (holdout test split):**
+   - Holdout mean Tweedie deviance: **16.9016**.
+   - Decile A/E (ratio of sums): 1.608, 1.111, 0.815, 0.683, 0.912, 1.447, 0.893, 1.146, 1.143, 0.730.
+   - One-way segment A/E: DriverAge 18-24 0.626 / 25-44 1.123 / 45-64 0.938 / 65+ 1.319; CarAge 0.719–1.042; Density ≤500 0.948 / 501-2000 1.045 / >2000 1.186 (plus the 36-cell cross).
+   - Secondary diagnostics (reference only, not gates): MAE 136.59, RMSE 1141.62.
+4. **Single-model invariant:** no statsmodels Poisson or Gamma family anywhere in the fit path (structural source assertion); Tweedie is the sole combined model (P2-D1).
+5. **Artifacts (SHA-256):**
+   - `glm_baseline_model.json` (3,942 B): `7bbe17fd926a39a7cc09f29f4949374991b2d50f6b02b359daa7d7169820a360`
+   - `glm_fitted_loss_cost.csv` (13,717,080 B): `9be5875d34dc7062bad740dcf4dd2fc63aa812b5ba0d0b6eab9e42e81a7946b9`
+   - `glm_calibration_report.json` (11,196 B): `4fae22711d9a1905c7dfd0b9394607c85f03d6dde8ae737ba5f4a89e5809b9a9`
+   - Config fingerprint: `fd39a517612d01cbb27ec24b985f72b8a5631ab175c0637c129eb9b03a55ad88`
+   - Artifacts round-trip through `GLMBaselineMetadata` / `GLMCalibrationReport`; no timestamps.
+6. **DVC:** added `glm_baseline` after `build_features`; `uv run dvc repro` ran all 8 stages cleanly.
+7. **Verification:**
+   - `uv run pytest -q`: **116 passed, 2 skipped** (187 non-failing GX deprecation warnings).
+   - `uv run ruff check .`: clean; `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: **32/32 modules** within 1,000 lines (`glm_baseline.py` 409, `glm_calibration.py` 143, `schemas/glm.py` 75).
+
+### Gate 3 outcome
+
+The Tweedie GLM converged without numerical errors; holdout mean deviance and decile/segment A/E ratios were generated and persisted; the variance power is documented with a recorded profile-deviance table; MAE/RMSE are present only as secondary diagnostics and are referenced by no gate. Stage 3 PASSED; Stage 4 is unlocked.
+

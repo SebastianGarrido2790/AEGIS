@@ -34,6 +34,10 @@ class FeaturePipelineError(AEGISError):
     """Raised when the deterministic feature pipeline cannot produce valid outputs (P2-F02)."""
 
 
+class GLMBaselineError(AEGISError):
+    """Raised when the Tweedie baseline cannot fit or calibrate valid outputs (P2-F03)."""
+
+
 class GroundingThresholdError(AEGISError):
     """Raised when compliance retrieval grounding falls below threshold (INV-6)."""
 

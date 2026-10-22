@@ -18,8 +18,9 @@ from aegis.pipelines.data_contracts import (
     validate_regulatory_corpus,
 )
 from aegis.pipelines.feature_pipeline import run_feature_pipeline
+from aegis.pipelines.glm_baseline import run_glm_baseline
 from aegis.pipelines.raw_intake import ingest_raw_data
-from aegis.utils.exceptions import DataContractError, FeaturePipelineError
+from aegis.utils.exceptions import DataContractError, FeaturePipelineError, GLMBaselineError
 
 
 def ingest_file(input_path: Path | None, output_path: Path, data_type: str) -> int:
@@ -87,6 +88,28 @@ def build_feature_artifacts(
         return 0
     except FeaturePipelineError as exc:
         print(f"[BLOCK] Feature pipeline failed: {exc}")
+        return 1
+
+
+def build_glm_baseline(
+    input_path: Path | None,
+    cap: float | None,
+    fitted_output: Path | None,
+    metadata_output: Path | None,
+    report_output: Path | None,
+) -> int:
+    """Fits the cap-parameterized Tweedie baseline and writes calibration artifacts."""
+    try:
+        run_glm_baseline(
+            input_path=input_path,
+            cap=cap,
+            fitted_path=fitted_output,
+            metadata_path=metadata_output,
+            report_path=report_output,
+        )
+        return 0
+    except GLMBaselineError as exc:
+        print(f"[BLOCK] GLM baseline failed: {exc}")
         return 1
 
 
@@ -369,6 +392,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Metadata output (defaults to params.yaml)",
     )
 
+    p_glm = subparsers.add_parser("build-glm")
+    p_glm.add_argument(
+        "--input-path",
+        type=Path,
+        default=Path("data/processed/features_glm.csv"),
+        help="Stage 2 GLM view",
+    )
+    p_glm.add_argument(
+        "--cap",
+        type=float,
+        default=None,
+        help="Loss cap level (defaults to params.yaml glm_baseline.default_cap)",
+    )
+    p_glm.add_argument(
+        "--fitted-output",
+        type=Path,
+        default=None,
+        help="Fitted loss-cost CSV (defaults to params.yaml)",
+    )
+    p_glm.add_argument(
+        "--metadata-output",
+        type=Path,
+        default=None,
+        help="Model metadata JSON (defaults to params.yaml)",
+    )
+    p_glm.add_argument(
+        "--report-output",
+        type=Path,
+        default=None,
+        help="Calibration report JSON (defaults to params.yaml)",
+    )
+
     return parser
 
 
@@ -400,6 +455,10 @@ def main() -> int:
     if args.command == "build-features":
         return build_feature_artifacts(
             args.input_path, args.glm_output, args.forest_output, args.metadata_output
+        )
+    if args.command == "build-glm":
+        return build_glm_baseline(
+            args.input_path, args.cap, args.fitted_output, args.metadata_output, args.report_output
         )
 
     return 1

@@ -48,6 +48,7 @@ def test_cli_parser_commands_structure() -> None:
         "version-regulatory",
         "version-raw",
         "build-features",
+        "build-glm",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -262,3 +263,23 @@ def test_build_features_cli_blocks_on_invalid_input(tmp_path: Path, config) -> N
         code = main()
     assert code == 1
     assert not (tmp_path / "glm.csv").exists()
+
+
+def test_build_glm_cli_blocks_on_invalid_input(tmp_path: Path, config) -> None:
+    """Verifies the build-glm subcommand returns 1 on input missing GLM columns."""
+    test_args = [
+        "cli.py",
+        "build-glm",
+        "--input-path",
+        config.data_contracts.raw_policy_valid_fixture,
+        "--fitted-output",
+        str(tmp_path / "fitted.csv"),
+        "--metadata-output",
+        str(tmp_path / "metadata.json"),
+        "--report-output",
+        str(tmp_path / "report.json"),
+    ]
+    with patch("sys.argv", test_args):
+        code = main()
+    assert code == 1
+    assert not (tmp_path / "fitted.csv").exists()

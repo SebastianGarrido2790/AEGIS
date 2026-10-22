@@ -53,6 +53,21 @@ tier1_ml:
     glm_view: "data/processed/features_glm.csv"
     forest_view: "data/processed/features_forest.csv"
     metadata: "data/processed/feature_metadata.json"
+  # Cap-parameterized Tweedie GLM baseline (P2-F03); cap default is a Q1 candidate,
+  # final level selected in Stage 5 (Q1). Variance power estimated by profile deviance.
+  glm_baseline:
+    default_cap: 100000.0
+    tweedie_p_min: 1.05
+    tweedie_p_max: 1.95
+    tweedie_p_step: 0.05
+    tweedie_p_refine_step: 0.01
+    tweedie_p_fallback: 1.5
+    decile_count: 10
+    link: "log"
+  glm_paths:
+    fitted_loss_cost: "data/processed/glm_fitted_loss_cost.csv"
+    model_metadata: "data/processed/glm_baseline_model.json"
+    calibration_report: "data/processed/glm_calibration_report.json"
 
 tier2_agents:
   groundedness_threshold: 0.85

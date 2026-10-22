@@ -45,7 +45,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 |---|---|---|---|---|---|---|
 | **P2-F01** | `001_raw-intake-contract` | Raw intake, checksum manifest & raw-table contract | Light | Stage 1 | — | ✅ Implemented |
 | **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ✅ Implemented |
-| **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ⬜ Not started |
+| **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ✅ Implemented |
 | **P2-F04** | `004_semi-synthetic-dgp` | Semi-synthetic DGP, truth sidecar & training contract | Full | Stage 6 | F02, F03 | ⬜ Not started |
 | **P2-F05** | `005_segments-tier1-contract` | 36-cell segment definition & Tier 1 Pydantic schema | Full | Stage 4 | F02, F03 | ⬜ Not started |
 | **P2-F06** | `006_causal-estimator` | `CausalForestDML` training & segment-level inference | Full | Stages 7–8 | F04, F05 | ⬜ Not started |
@@ -68,7 +68,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
 | **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails |
 | **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage |
-| **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | Parameterized GLM fits; deviance + A/E deciles produced; power justified |
+| **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified |
 | **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | 36 cells + merge floor realized; schema rejects Δ; ratio-of-sums tested |
 | **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | Cap selected per Spearman ≥0.98 / deviance ≤1%; excess distribution checked |
 | **6** | Semi-Synthetic DGP & Training Contract | Training table, truth sidecar, manifest, GX suite | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds |
@@ -213,23 +213,11 @@ Pipeline produces identical outputs on repeated runs; all clips and exclusions a
 
 ---
 
-### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03)
+### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03) ✅ **PASSED**
 
 **Goal:** Build a single, cap-parameterized Tweedie GLM (compound Poisson-Gamma) as the foundational actuarial loss-cost baseline and $Losses_0$ source, with a standardized calibration reporting suite.
 
-**Actions:**
-1. Create `reports/docs/phases/phase_2/003_glm-baseline-loss-treatment/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
-2. Implement the Tweedie GLM in `src/aegis/pipelines/glm_baseline.py` using `statsmodels`:
-   - Target: capped pure premium ($\text{ClaimAmount}_{\text{capped}} / \text{Exposure}$).
-   - Weight/Offset: `Exposure`.
-   - Tweedie variance power $p \in (1, 2)$: estimate via profile deviance or fix with explicit actuarial justification in `spec.md`.
-   - Parameterization: accept the loss cap level as a parameter to support Stage 5 (Q1) sweeping.
-3. Implement calibration evaluation module:
-   - Compute out-of-sample mean Tweedie deviance on the 20% held-out test split.
-   - Actual-versus-Expected (A/E) ratios across predicted-loss deciles.
-   - Actual-versus-Expected (A/E) ratios across segment bands.
-   - Secondary diagnostics: MAE and RMSE (recorded for reference, strictly prohibited as primary calibration gates per P2-D1).
-4. Confirm no separate frequency and severity models are created; Tweedie serves as the unified loss-cost model.
+**Evidence:** Executed outcomes for Stage 3 (selected `p=1.84`, holdout deviance 16.9016, decile/segment A/E, artifact hashes) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-3--glm-loss-cost-baseline--calibration-reporting).
 
 **Inputs / Dependencies:**
 - Stage 2 feature pipeline validated.
@@ -239,7 +227,7 @@ Pipeline produces identical outputs on repeated runs; all clips and exclusions a
 
 **Falsification:** None.
 
-**Gate 3 — Hard Close:**
+**Gate 3 — Hard Close: ✅ PASSED (2026-10-21)**
 Tweedie GLM converges without numerical errors; holdout mean deviance and decile A/E ratios are generated; Tweedie variance power has documented justification; MAE/RMSE are not used as primary pass/fail gates.
 
 ---
@@ -692,7 +680,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ✅ **PASSED** |
 | **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ✅ **PASSED** |
 | **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ✅ **PASSED** |
-| **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ⬜ Not started |
+| **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ✅ **PASSED** |
 | **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ⬜ Not started |
 | **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ⬜ Not started |
 | **6** | Semi-Synthetic DGP | Training table, truth sidecar, suite | ADR-013, 015 | Planted truth fails suite | DGP self-tests pass; truth isolation proven | ⬜ Not started |

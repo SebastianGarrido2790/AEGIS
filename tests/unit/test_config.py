@@ -175,3 +175,56 @@ def test_feature_pipeline_duplicate_levels_raise(tmp_path: Path) -> None:
         tmp_path, {"gas_levels": ["Regular", "Regular"]}
     )
     assert "Configuration validation failed" in str(error)
+
+
+def test_glm_baseline_config_values() -> None:
+    """Verifies that approved P2-F03 GLM defaults, grid, and paths load."""
+    config = load_params()
+    glm = config.tier1_ml.glm_baseline
+    assert glm.default_cap == 100000.0
+    assert glm.tweedie_p_min == 1.05
+    assert glm.tweedie_p_max == 1.95
+    assert glm.tweedie_p_step == 0.05
+    assert glm.tweedie_p_fallback == 1.5
+    assert glm.decile_count == 10
+    assert glm.link == "log"
+    assert config.tier1_ml.glm_paths.fitted_loss_cost == (
+        "data/processed/glm_fitted_loss_cost.csv"
+    )
+    assert config.tier1_ml.glm_paths.model_metadata == "data/processed/glm_baseline_model.json"
+    assert config.tier1_ml.glm_paths.calibration_report == (
+        "data/processed/glm_calibration_report.json"
+    )
+
+
+def _load_mutated_glm_config(tmp_path: Path, mutation: dict) -> ConfigurationError:
+    """Writes params.yaml with a mutated glm_baseline block and returns the load error."""
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["glm_baseline"].update(mutation)
+    target = tmp_path / "mutated_glm_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(target)
+    return exc_info.value
+
+
+def test_glm_baseline_inverted_p_grid_raises(tmp_path: Path) -> None:
+    """Verifies that p_min >= p_max is rejected at config load."""
+    error = _load_mutated_glm_config(
+        tmp_path, {"tweedie_p_min": 1.9, "tweedie_p_max": 1.1}
+    )
+    assert "Configuration validation failed" in str(error)
+
+
+def test_glm_baseline_non_log_link_raises(tmp_path: Path) -> None:
+    """Verifies that a non-log link is rejected at config load."""
+    error = _load_mutated_glm_config(tmp_path, {"link": "identity"})
+    assert "Configuration validation failed" in str(error)
+
+
+def test_glm_baseline_fallback_out_of_range_raises(tmp_path: Path) -> None:
+    """Verifies that a fallback power outside (1, 2) is rejected at config load."""
+    error = _load_mutated_glm_config(tmp_path, {"tweedie_p_fallback": 1.0})
+    assert "Configuration validation failed" in str(error)
