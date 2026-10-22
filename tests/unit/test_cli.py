@@ -47,6 +47,7 @@ def test_cli_parser_commands_structure() -> None:
         "version-elasticity",
         "version-regulatory",
         "version-raw",
+        "build-features",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -213,3 +214,51 @@ def test_main_cli_routing(subcmd: str, extra_args: list[str], tmp_path: Path, co
     with patch("sys.argv", test_args):
         main()
 
+
+
+def test_build_features_cli(tmp_path: Path, config) -> None:
+    """Verifies the build-features subcommand writes both views and metadata."""
+    glm_path = tmp_path / "glm.csv"
+    forest_path = tmp_path / "forest.csv"
+    metadata_path = tmp_path / "metadata.json"
+    test_args = [
+        "cli.py",
+        "build-features",
+        "--input-path",
+        config.data_contracts.raw_policy_valid_fixture,
+        "--glm-output",
+        str(glm_path),
+        "--forest-output",
+        str(forest_path),
+        "--metadata-output",
+        str(metadata_path),
+    ]
+    with patch("sys.argv", test_args):
+        code = main()
+    assert code == 0
+    assert glm_path.is_file()
+    assert forest_path.is_file()
+    assert metadata_path.is_file()
+
+
+def test_build_features_cli_blocks_on_invalid_input(tmp_path: Path, config) -> None:
+    """Verifies the build-features subcommand returns 1 on invalid input."""
+    bad_fixture = (
+        Path(config.data_contracts.fixtures_dir) / "raw_policy_invalid_orphan_severity.csv"
+    )
+    test_args = [
+        "cli.py",
+        "build-features",
+        "--input-path",
+        str(bad_fixture),
+        "--glm-output",
+        str(tmp_path / "glm.csv"),
+        "--forest-output",
+        str(tmp_path / "forest.csv"),
+        "--metadata-output",
+        str(tmp_path / "metadata.json"),
+    ]
+    with patch("sys.argv", test_args):
+        code = main()
+    assert code == 1
+    assert not (tmp_path / "glm.csv").exists()

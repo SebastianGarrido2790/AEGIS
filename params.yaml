@@ -17,6 +17,42 @@ tier1_ml:
   # Bandit may propose up to ±15%; governance auto-approves only within ±5%,
   # so proposals in (5%, 15%] always escalate by design (drives the escalation-rate KPI).
   exploration_corridor_width: 0.15
+  # Deterministic dual-view feature pipeline (P2-F02); edges are left-closed, right-open.
+  feature_pipeline:
+    exposure_cap: 1.0
+    driver_age_bounds: [18, 90]
+    car_age_bounds: [0, 34]
+    driver_age_band_edges: [18, 25, 45, 65, 100]
+    driver_age_band_labels: ["18-24", "25-44", "45-64", "65+"]
+    car_age_band_edges: [0, 5, 10, 101]
+    car_age_band_labels: ["0-4", "5-9", "10+"]
+    density_band_edges: [0, 501, 2001, 1000000000]
+    density_band_labels: ["<=500", "501-2000", ">2000"]
+    power_levels: ["d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o"]
+    brand_levels:
+      - "Renault, Nissan or Citroen"
+      - "Japanese (except Nissan) or Korean"
+      - "Opel, General Motors or Ford"
+      - "Volkswagen, Audi, Skoda or Seat"
+      - "Mercedes, Chrysler or BMW"
+      - "Fiat"
+      - "other"
+    gas_levels: ["Regular", "Diesel"]
+    region_levels:
+      - "Centre"
+      - "Ile-de-France"
+      - "Bretagne"
+      - "Pays-de-la-Loire"
+      - "Aquitaine"
+      - "Nord-Pas-de-Calais"
+      - "Poitou-Charentes"
+      - "Basse-Normandie"
+      - "Haute-Normandie"
+      - "Limousin"
+  feature_paths:
+    glm_view: "data/processed/features_glm.csv"
+    forest_view: "data/processed/features_forest.csv"
+    metadata: "data/processed/feature_metadata.json"
 
 tier2_agents:
   groundedness_threshold: 0.85

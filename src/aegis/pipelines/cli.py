@@ -17,8 +17,9 @@ from aegis.pipelines.data_contracts import (
     validate_raw_policy_data,
     validate_regulatory_corpus,
 )
+from aegis.pipelines.feature_pipeline import run_feature_pipeline
 from aegis.pipelines.raw_intake import ingest_raw_data
-from aegis.utils.exceptions import DataContractError
+from aegis.utils.exceptions import DataContractError, FeaturePipelineError
 
 
 def ingest_file(input_path: Path | None, output_path: Path, data_type: str) -> int:
@@ -66,6 +67,26 @@ def ingest_raw_policy(
         return 1
     except Exception as exc:
         print(f"[ERROR] Failed during raw ingestion: {exc}")
+        return 1
+
+
+def build_feature_artifacts(
+    input_path: Path | None,
+    glm_output: Path | None,
+    forest_output: Path | None,
+    metadata_output: Path | None,
+) -> int:
+    """Builds the deterministic GLM and forest feature views."""
+    try:
+        run_feature_pipeline(
+            input_path=input_path,
+            glm_path=glm_output,
+            forest_path=forest_output,
+            metadata_path=metadata_output,
+        )
+        return 0
+    except FeaturePipelineError as exc:
+        print(f"[BLOCK] Feature pipeline failed: {exc}")
         return 1
 
 
@@ -322,6 +343,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="Destination path in versioned storage",
     )
 
+    p_feat = subparsers.add_parser("build-features")
+    p_feat.add_argument(
+        "--input-path",
+        type=Path,
+        default=Path("data/versioned/raw_policy_data.csv"),
+        help="Validated raw policy table",
+    )
+    p_feat.add_argument(
+        "--glm-output",
+        type=Path,
+        default=None,
+        help="GLM view output (defaults to params.yaml)",
+    )
+    p_feat.add_argument(
+        "--forest-output",
+        type=Path,
+        default=None,
+        help="Forest view output (defaults to params.yaml)",
+    )
+    p_feat.add_argument(
+        "--metadata-output",
+        type=Path,
+        default=None,
+        help="Metadata output (defaults to params.yaml)",
+    )
+
     return parser
 
 
@@ -350,6 +397,10 @@ def main() -> int:
         return version_file(args.raw_path, args.report_path, args.output_path)
     if args.command == "version-raw":
         return version_file(args.raw_path, args.report_path, args.output_path)
+    if args.command == "build-features":
+        return build_feature_artifacts(
+            args.input_path, args.glm_output, args.forest_output, args.metadata_output
+        )
 
     return 1
 

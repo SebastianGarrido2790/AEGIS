@@ -36,6 +36,21 @@ stages:
     outs:
       - data/versioned/raw_policy_data.csv
 
+  build_features:
+    cmd: uv run python -m aegis.pipelines.cli build-features --input-path data/versioned/raw_policy_data.csv --glm-output data/processed/features_glm.csv --forest-output data/processed/features_forest.csv --metadata-output data/processed/feature_metadata.json
+    deps:
+      - data/versioned/raw_policy_data.csv
+      - params.yaml
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/feature_pipeline.py
+      - src/aegis/config/schema.py
+      - src/aegis/schemas/features.py
+      - src/aegis/utils/exceptions.py
+    outs:
+      - data/processed/features_glm.csv
+      - data/processed/features_forest.csv
+      - data/processed/feature_metadata.json
+
   # ==========================================
   # 2. Regulatory Corpus Data Pipeline Path
   # ==========================================

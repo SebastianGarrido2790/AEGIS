@@ -99,7 +99,7 @@ All lists and edges live in `params.yaml`. The Pydantic schema validates lengths
 `exposure_capped` is included as a baseline weight/offset, not as an elasticity covariate; the estimator's covariate list is the metadata `forest_covariates` field, which excludes it. Claims fields are absent by construction and by assertion.
 
 **Metadata (JSON):**
-`input_rows`, `output_rows`, `input_sha256`, `view_sha256`, `exposure_clip_count`, `tail_clip_counts`, `band_edges`, `band_labels`, `level_mappings`, `one_hot_columns`, `glm_columns`, `forest_columns`, `forest_covariates`, `distribution_summary`, `config_fingerprint`.
+`input_rows`, `output_rows`, `input_sha256`, `glm_view`, `forest_view`, `exposure_clip_count`, `tail_clip_counts`, `band_edges`, `level_mappings`, `one_hot_columns`, `forest_covariates`, `distribution_summary`, `config_fingerprint`.
 
 ### 3.3 Function signatures
 
@@ -124,7 +124,7 @@ def run_feature_pipeline(
 ) -> FeatureMetadata: ...
 ```
 
-`FeatureViews` is an internal frozen dataclass holding `glm`, `forest`, and `metadata`. Public function arguments and returns are typed; no raw `dict` crosses the module boundary.
+`FeatureViews` is an internal frozen dataclass holding `glm`, `forest`, the fixed schema lists, the clip counts, and the config used. Public function arguments and returns are typed; no raw `dict` crosses the module boundary.
 
 **Covers:** FR-5–FR-7, FR-11, FR-12, AC-3, AC-4, AC-8.
 
@@ -179,7 +179,7 @@ For each view: row count; for numeric columns, count/min/max/mean/std/P01/P25/P5
 - `to_csv(index=False, lineterminator="\n")`.
 - SHA-256 computed over written file bytes.
 - Metadata has no timestamps; `config_fingerprint` is a hash of the relevant config subset.
-- Gate evidence: two consecutive runs over the empirical input produce equal `view_sha256` values; a test recomputes both hashes.
+- Gate evidence: two consecutive runs over the empirical input produce equal `glm_view.sha256` and `forest_view.sha256`; a test recomputes both hashes.
 
 **Covers:** FR-10, FR-11, AC-1, AC-11.
 
@@ -266,12 +266,12 @@ None. Local DVC execution only. CI-smoke integration is deferred to Stage 14 by 
 
 | Requirement | Component | Validation |
 |---|---|---|
-| FR-1, FR-2 | Transform core | T4/T10 tests |
-| FR-3, FR-8 | Transform core | T4/T7 tests |
+| FR-1, FR-2 | Transform core | T3/T4/T9 tests |
+| FR-3, FR-8 | Transform core | T4/T9 tests |
 | FR-4 | Config + band derivation | T1/T4 tests |
 | FR-5 | GLM view builder | T5 test |
 | FR-6, FR-7 | Forest view builder | T6 tests |
-| FR-9 | Column whitelist | T10 test |
-| FR-10, FR-11 | Writer + metadata | T8/T10 tests |
-| FR-12 | CLI + DVC stage | T9 test |
-| FR-13 | Input contract + typed errors | T3 tests |
+| FR-9 | Column whitelist | T7 test |
+| FR-10, FR-11 | Writer + metadata | T7/T9 tests |
+| FR-12 | CLI + DVC stage | T8 test |
+| FR-13 | Input contract + typed errors | T2/T3 tests |

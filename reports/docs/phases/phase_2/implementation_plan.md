@@ -26,8 +26,6 @@ Each decision carries one of three tags:
 
 Sources: project documents (scoping, PRD, user story, roadmap, system design ADRs, capability-profile gates, invariants register), the phase-plan template, repository inspection, and `artifacts/eda_summary.json`. The artifact is present and its dataset identity and principal counts match the plan; full regeneration and consistency verification remain part of V6. V1–V8 remain entry checks; V9 was verified on October 21, 2026 against `uv.lock` (MLflow 3.15.2) and current MLflow registry documentation.
 
-Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R** reported in change reports, not independently verified; **U** unverified, confirm at entry (§2.7).
-
 ---
 
 ## 1. Phase Context
@@ -60,6 +58,8 @@ Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R*
 ## 2. Current State Audit
 
 ### 2.1 What exists
+
+Evidence tags: **D** documented; **E** observed in the supplied EDA output; **R** reported in change reports, not independently verified; **U** unverified, confirm at entry (§2.7).
 
 | Item | Evidence | Tag |
 |---|---|---|

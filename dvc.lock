@@ -83,8 +83,8 @@ stages:
       size: 1293
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     outs:
     - path: data/raw/regulatory_raw.json
       hash: md5
@@ -106,8 +106,8 @@ stages:
       size: 2371
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
       md5: 570c220013ca4ae8b9adb9f891384772
@@ -133,8 +133,8 @@ stages:
       size: 182
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     outs:
     - path: data/versioned/regulatory_corpus.json
       hash: md5
@@ -159,8 +159,8 @@ stages:
       size: 767
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     - path: src/aegis/pipelines/raw_intake.py
       hash: md5
       md5: 61e7ee2dca4a366c7ca24ce3bfac6553
@@ -186,8 +186,8 @@ stages:
       size: 5414
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     - path: src/aegis/pipelines/data_contracts.py
       hash: md5
       md5: 570c220013ca4ae8b9adb9f891384772
@@ -217,10 +217,58 @@ stages:
       size: 177
     - path: src/aegis/pipelines/cli.py
       hash: md5
-      md5: bcc3c3e935f445d2984e7e7f684557c7
-      size: 11387
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
     outs:
     - path: data/versioned/raw_policy_data.csv
       hash: md5
       md5: d86f37c37bc172dff59f8b0307a6798e
       size: 35473759
+  build_features:
+    cmd: uv run python -m aegis.pipelines.cli build-features --input-path 
+      data/versioned/raw_policy_data.csv --glm-output 
+      data/processed/features_glm.csv --forest-output 
+      data/processed/features_forest.csv --metadata-output 
+      data/processed/feature_metadata.json
+    deps:
+    - path: data/versioned/raw_policy_data.csv
+      hash: md5
+      md5: d86f37c37bc172dff59f8b0307a6798e
+      size: 35473759
+    - path: params.yaml
+      hash: md5
+      md5: adc067ea73956cf98a14d9c2bd1c7f1a
+      size: 3329
+    - path: src/aegis/config/schema.py
+      hash: md5
+      md5: f702a9fb193860755b3355cfe08ef53f
+      size: 8304
+    - path: src/aegis/pipelines/cli.py
+      hash: md5
+      md5: 01c7f88c404e524d41f7d8c4ed0114be
+      size: 12930
+    - path: src/aegis/pipelines/feature_pipeline.py
+      hash: md5
+      md5: 13a84bd82aaf007a7cdde087eb82907f
+      size: 22589
+    - path: src/aegis/schemas/features.py
+      hash: md5
+      md5: 79bf35483cf98c1b3fe5f7e6dd29c49a
+      size: 2997
+    - path: src/aegis/utils/exceptions.py
+      hash: md5
+      md5: 1c3e3d6730a0f272f506d85834061ed8
+      size: 1424
+    outs:
+    - path: data/processed/feature_metadata.json
+      hash: md5
+      md5: 8a95725dea07aa4013511d7c810b9c8f
+      size: 10204
+    - path: data/processed/features_forest.csv
+      hash: md5
+      md5: 7e6f5ca1d500822ef007af65df0d2117
+      size: 32589134
+    - path: data/processed/features_glm.csv
+      hash: md5
+      md5: 34e188466046246e552dbe9e2d53c41a
+      size: 45979423

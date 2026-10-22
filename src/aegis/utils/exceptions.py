@@ -30,6 +30,10 @@ class DataContractError(AEGISError):
     """Raised when data contracts or expectation suites fail validation (INV-3)."""
 
 
+class FeaturePipelineError(AEGISError):
+    """Raised when the deterministic feature pipeline cannot produce valid outputs (P2-F02)."""
+
+
 class GroundingThresholdError(AEGISError):
     """Raised when compliance retrieval grounding falls below threshold (INV-6)."""
 

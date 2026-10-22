@@ -4,7 +4,7 @@
 **Feature ID:** `P2-F02` (`002_feature-pipeline`)  
 **Spec:** APPROVED October 21, 2026  
 **Plan:** `plan.md` (consistent with the approved spec)  
-**Status:** Ready for implementation  
+**Status:** COMPLETED — Gate 2 PASSED (2026-10-21)  
 **Date:** October 21, 2026
 
 ---
@@ -123,3 +123,7 @@
 | FR-12 | T8 |
 | FR-13 | T2, T3 |
 | Gate 2 | T10 |
+
+## Completion
+
+All tasks completed and verified on 2026-10-21. Gate 2 passed; executed evidence is recorded in `stage_evidence.md` §Stage 2.

@@ -44,7 +44,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | Feature ID | Folder / Slug | Feature Name | SDD Depth | Primary Stage(s) | Dependencies | Status |
 |---|---|---|---|---|---|---|
 | **P2-F01** | `001_raw-intake-contract` | Raw intake, checksum manifest & raw-table contract | Light | Stage 1 | — | ✅ Implemented |
-| **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ⬜ Not started |
+| **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ✅ Implemented |
 | **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ⬜ Not started |
 | **P2-F04** | `004_semi-synthetic-dgp` | Semi-synthetic DGP, truth sidecar & training contract | Full | Stage 6 | F02, F03 | ⬜ Not started |
 | **P2-F05** | `005_segments-tier1-contract` | 36-cell segment definition & Tier 1 Pydantic schema | Full | Stage 4 | F02, F03 | ⬜ Not started |
@@ -67,7 +67,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 |---|---|---|---|---|---|
 | **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
 | **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails |
-| **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | Identical output on identical input; clips counted; no composite/claims leakage |
+| **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage |
 | **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | Parameterized GLM fits; deviance + A/E deciles produced; power justified |
 | **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | 36 cells + merge floor realized; schema rejects Δ; ratio-of-sums tested |
 | **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | Cap selected per Spearman ≥0.98 / deviance ≤1%; excess distribution checked |
@@ -194,20 +194,11 @@ Raw GX suite passes clean on valid raw data; each malformed fixture fails its sp
 
 ---
 
-### Stage 2 — Deterministic Feature Pipeline (P2-F02)
+### Stage 2 — Deterministic Feature Pipeline (P2-F02) ✅ **PASSED**
 
 **Goal:** Establish a single, deterministic feature transformation pipeline that emits two distinct views (GLM categorical/banded view and Causal Forest numeric/ordinal view) with zero leverage-inducing composite indices and strict exclusion of claims history from elasticity covariates.
 
-**Actions:**
-1. Create `reports/docs/phases/phase_2/002_feature-pipeline/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
-2. Implement feature transforms in `src/aegis/pipelines/feature_pipeline.py`:
-   - Exposure clipping: cap exposure at 1.0 with logged counts and warnings for affected records (421 policies).
-   - Density: log-transform $\ln(\text{Density})$ to normalize extreme right skew.
-   - Rating factors: categorical encoding for GLM (Power letter codes, Brand, Gas, Region, DriverAge bands, CarAge bands); numeric/ordinal encoding for `CausalForestDML`.
-   - Tail bounds: set DriverAge and CarAge clipping bounds based on Stage 0 unbinned distribution metrics.
-3. Enforce covariate hygiene: strictly exclude claims variables (`ClaimNb`, `ClaimAmount`, `PurePremium`) from the feature set $X$ exposed to the causal elasticity model (A4).
-4. Implement determinism assertion: verify that running the pipeline twice on identical input produces bit-identical DataFrames.
-5. Save fitted pipeline transformers, band edges, and baseline feature distribution summary as versioned artifacts.
+**Evidence:** Executed outcomes for Stage 2 (421 exposure clips, 307/410 tail clips, deterministic hashes, 14/27-column views, metadata round-trip) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-2--deterministic-feature-pipeline).
 
 **Inputs / Dependencies:**
 - Stage 1 raw data contract validated and versioned.
@@ -217,7 +208,7 @@ Raw GX suite passes clean on valid raw data; each malformed fixture fails its sp
 
 **Falsification:** None (determinism is verified by repeated bit-for-bit execution; feature leakage is prevented by schema assertion).
 
-**Gate 2 — Hard Close:**
+**Gate 2 — Hard Close: ✅ PASSED (2026-10-21)**
 Pipeline produces identical outputs on repeated runs; all clips and exclusions are logged with exact counts; composite indices are absent; claims variables are provably absent from elasticity covariates; transformer artifacts are versioned.
 
 ---
@@ -700,7 +691,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 |---|---|---|---|---|---|---|
 | **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ✅ **PASSED** |
 | **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ✅ **PASSED** |
-| **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ⬜ Not started |
+| **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ✅ **PASSED** |
 | **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ⬜ Not started |
 | **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ⬜ Not started |
 | **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ⬜ Not started |

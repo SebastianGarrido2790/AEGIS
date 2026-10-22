@@ -122,3 +122,56 @@ def test_extra_unknown_key_raises_validation_error(tmp_path: Path) -> None:
     with pytest.raises(ConfigurationError) as exc_info:
         load_params(extra_key_yaml)
     assert "Configuration validation failed against schema" in str(exc_info.value)
+
+
+def test_feature_pipeline_config_values() -> None:
+    """Verifies that approved P2-F02 bounds, bands, levels, and paths load."""
+    config = load_params()
+    fp = config.tier1_ml.feature_pipeline
+    assert fp.exposure_cap == 1.0
+    assert fp.driver_age_bounds == (18, 90)
+    assert fp.car_age_bounds == (0, 34)
+    assert fp.driver_age_band_edges == [18, 25, 45, 65, 100]
+    assert len(fp.driver_age_band_labels) == 4
+    assert len(fp.car_age_band_labels) == 3
+    assert len(fp.density_band_labels) == 3
+    assert len(fp.power_levels) == 12
+    assert len(fp.brand_levels) == 7
+    assert len(fp.gas_levels) == 2
+    assert len(fp.region_levels) == 10
+    assert config.tier1_ml.feature_paths.glm_view == "data/processed/features_glm.csv"
+
+
+def _load_mutated_feature_config(tmp_path: Path, mutation: dict) -> ConfigurationError:
+    """Writes params.yaml with a mutated feature_pipeline block and returns the load error."""
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["feature_pipeline"].update(mutation)
+    target = tmp_path / "mutated_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(target)
+    return exc_info.value
+
+
+def test_feature_pipeline_band_label_mismatch_raises(tmp_path: Path) -> None:
+    """Verifies that an edge/label count mismatch is rejected at config load."""
+    error = _load_mutated_feature_config(
+        tmp_path, {"driver_age_band_labels": ["18-24", "25-44", "45-64"]}
+    )
+    assert "Configuration validation failed" in str(error)
+
+
+def test_feature_pipeline_non_monotonic_edges_raise(tmp_path: Path) -> None:
+    """Verifies that non-increasing band edges are rejected at config load."""
+    error = _load_mutated_feature_config(tmp_path, {"car_age_band_edges": [0, 10, 5, 101]})
+    assert "Configuration validation failed" in str(error)
+
+
+def test_feature_pipeline_duplicate_levels_raise(tmp_path: Path) -> None:
+    """Verifies that duplicate factor levels are rejected at config load."""
+    error = _load_mutated_feature_config(
+        tmp_path, {"gas_levels": ["Regular", "Regular"]}
+    )
+    assert "Configuration validation failed" in str(error)

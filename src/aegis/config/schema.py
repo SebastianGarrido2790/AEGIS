@@ -4,7 +4,7 @@ Strict Pydantic models for domain-nested parameters declared in params.yaml (ADR
 Fails loudly on missing keys, invalid types, or unexpected configuration fields.
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GatewayConfig(BaseModel):
@@ -23,6 +23,101 @@ class GatewayConfig(BaseModel):
     cache_ttl_seconds: int = Field(default=3600, gt=0)
 
 
+class FeaturePipelineConfig(BaseModel):
+    """Configuration for the deterministic dual-view feature pipeline (Phase 2, P2-F02)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    exposure_cap: float = Field(default=1.0, gt=0.0)
+    driver_age_bounds: tuple[int, int] = Field(default=(18, 90))
+    car_age_bounds: tuple[int, int] = Field(default=(0, 34))
+    driver_age_band_edges: list[int] = Field(default=[18, 25, 45, 65, 100])
+    driver_age_band_labels: list[str] = Field(
+        default=["18-24", "25-44", "45-64", "65+"]
+    )
+    car_age_band_edges: list[int] = Field(default=[0, 5, 10, 101])
+    car_age_band_labels: list[str] = Field(default=["0-4", "5-9", "10+"])
+    density_band_edges: list[float] = Field(default=[0, 501, 2001, 1000000000])
+    density_band_labels: list[str] = Field(default=["<=500", "501-2000", ">2000"])
+    power_levels: list[str] = Field(
+        default=["d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o"]
+    )
+    brand_levels: list[str] = Field(
+        default=[
+            "Renault, Nissan or Citroen",
+            "Japanese (except Nissan) or Korean",
+            "Opel, General Motors or Ford",
+            "Volkswagen, Audi, Skoda or Seat",
+            "Mercedes, Chrysler or BMW",
+            "Fiat",
+            "other",
+        ]
+    )
+    gas_levels: list[str] = Field(default=["Regular", "Diesel"])
+    region_levels: list[str] = Field(
+        default=[
+            "Centre",
+            "Ile-de-France",
+            "Bretagne",
+            "Pays-de-la-Loire",
+            "Aquitaine",
+            "Nord-Pas-de-Calais",
+            "Poitou-Charentes",
+            "Basse-Normandie",
+            "Haute-Normandie",
+            "Limousin",
+        ]
+    )
+
+    @model_validator(mode="after")
+    def _validate_bands_and_levels(self) -> "FeaturePipelineConfig":
+        """Validates edge monotonicity, label alignment, and factor level uniqueness."""
+        band_specs = [
+            (
+                "driver_age",
+                self.driver_age_band_edges,
+                self.driver_age_band_labels,
+            ),
+            ("car_age", self.car_age_band_edges, self.car_age_band_labels),
+            ("density", self.density_band_edges, self.density_band_labels),
+        ]
+        for name, edges, labels in band_specs:
+            if len(edges) != len(labels) + 1:
+                raise ValueError(
+                    f"{name} band edges ({len(edges)}) must equal labels ({len(labels)}) + 1"
+                )
+            if any(left >= right for left, right in zip(edges, edges[1:], strict=False)):
+                raise ValueError(f"{name} band edges must be strictly increasing")
+        for name, bounds in [
+            ("driver_age", self.driver_age_bounds),
+            ("car_age", self.car_age_bounds),
+        ]:
+            if bounds[0] >= bounds[1]:
+                raise ValueError(f"{name} bounds must be strictly increasing")
+        level_groups = [
+            ("power", self.power_levels),
+            ("brand", self.brand_levels),
+            ("gas", self.gas_levels),
+            ("region", self.region_levels),
+        ]
+        for name, levels in level_groups:
+            if not levels:
+                raise ValueError(f"{name} levels must not be empty")
+            if len(set(levels)) != len(levels):
+                raise ValueError(f"{name} levels must be unique")
+        return self
+
+
+class FeaturePathsConfig(BaseModel):
+    """Configuration for deterministic feature-pipeline output paths (Phase 2, P2-F02)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    glm_view: str = Field(default="data/processed/features_glm.csv")
+    forest_view: str = Field(default="data/processed/features_forest.csv")
+    metadata: str = Field(default="data/processed/feature_metadata.json")
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -33,6 +128,8 @@ class Tier1MLConfig(BaseModel):
     causal_estimator: str = Field(default="CausalForestDML")
     cv_folds: int = Field(default=5, gt=1)
     exploration_corridor_width: float = Field(default=0.15, gt=0.0, lt=1.0)
+    feature_pipeline: FeaturePipelineConfig = Field(default_factory=FeaturePipelineConfig)
+    feature_paths: FeaturePathsConfig = Field(default_factory=FeaturePathsConfig)
 
 
 class Tier2AgentsConfig(BaseModel):

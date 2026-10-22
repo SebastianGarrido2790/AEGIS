@@ -11,7 +11,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 |---|---|---|---|---|
 | 0 | Pre-Implementation Verification & Dependency Check | ✅ PASSED | 2026-10-21 | §Stage 0 |
 | 1 | Raw Intake & Raw Data Contract | ✅ PASSED | 2026-10-21 | §Stage 1 |
-| 2 | Deterministic Feature Pipeline | Pending | — | — |
+| 2 | Deterministic Feature Pipeline | ✅ PASSED | 2026-10-21 | §Stage 2 |
 | 3 | GLM Loss-Cost Baseline & Calibration Reporting | Pending | — | — |
 | 4 | Segment Definition & Tier 1 Output Contract | Pending | — | — |
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | Pending | — | — |
@@ -179,3 +179,50 @@ All V1–V9 checks executed and documented; all four EDA gaps resolved with empi
 ### Gate 1 outcome
 
 Raw intake manifest verified cryptographically; deterministic policy joining correctly aggregates multiple claims; raw policy GX contract passes 20/20 on empirical data; all 8 malformed fixtures fail specifically; orphan severity falsification halts pipeline; DVC DAG reproduces cleanly. Stage 1 PASSED; Stage 2 is unlocked.
+
+---
+
+## Stage 2 � Deterministic Feature Pipeline
+
+**Executed:** 2026-10-21 � **Gate 2:** ? PASSED � **Feature:** `P2-F02` (Full SDD)
+
+1. **Specification and plan:**
+   - `002_feature-pipeline/spec.md` approved 2026-10-21 with OD-1 (DriverAge `[18, 90]`, CarAge `[0, 34]`) and OD-2 (one-hot unordered factors).
+   - `plan.md` and `tasks.md` written before implementation; all 10 tasks completed.
+2. **Configuration:**
+   - `params.yaml` and `FeaturePipelineConfig` now declare exposure cap 1.0, age bounds, three band specs, and fixed level lists (Power 12, Brand 7, Gas 2, Region 10).
+   - Pydantic rejects non-monotonic edges, label/edge mismatch, duplicate levels, and invalid bounds. Tests cover each rejection.
+3. **Input contract:**
+   - Exact 13-column set enforced; extra columns rejected to prevent schema drift.
+   - Duplicate `PolicyID`, nulls, non-positive `Exposure`/`Density`, unknown levels, non-numeric columns, and empty input raise typed `FeaturePipelineError` with rule, column, count, and sample keys.
+4. **Derivations (empirical run, 413,169 rows):**
+   - Exposure clipped to 1.0: **421 records**.
+   - DriverAge clipped to `[18, 90]`: **0 below / 307 above**.
+   - CarAge clipped to `[0, 34]`: **0 below / 410 above**.
+   - `log_density = ln(Density)` verified against independent computation (max abs diff < 1e-12).
+   - Bands are left-closed/right-open: DriverAge 4, CarAge 3, Density 3.
+5. **Dual views:**
+   - GLM view: **14 columns** (identity, capped exposure, ClaimAmount, raw ages, log density, three bands, four categorical factors).
+   - Forest view: **27 columns** (identity, capped exposure, clipped ages, log density, three ordinal codes, Power ordinal, **19 fixed one-hot columns**).
+   - Forest covariates exclude `PolicyID`, `exposure_capped`, and all claims fields (`ClaimNb`, `ClaimAmount`, `sev_claim_count`, `is_orphan_severity`).
+   - No composite-index column exists in either view (whitelist test).
+6. **Determinism and artifacts:**
+   - Two independent full runs produced identical view hashes:
+     - GLM: `9ffe469b83da4522e0afa64fec733eef62fa1dea121e15cef591e3de48f58b95`
+     - Forest: `688dceff7515882a7a26ee0bc3b344fb8bad3108ee16741c6606b4f33379321e`
+   - Input SHA-256: `09249ac77dcb7b43e6efbcaf8f93fd481d976820684cd6d2251558596bcb702d`
+   - Config fingerprint: `c054757bc17f9b1574cee80b0bbef1bd82bf20854e121f7fc0640c9f34d63da3`
+   - Artifacts: `features_glm.csv` (45,979,423 B), `features_forest.csv` (32,589,134 B), `feature_metadata.json` (10,204 B).
+   - Metadata round-trips through `FeatureMetadata`; no timestamps.
+7. **DVC:**
+   - Added `build_features` after `version_raw`; it depends on the versioned raw table, config, and feature modules.
+   - `uv run dvc repro`: all 7 stages clean; `build_features` executed once, raw GX gate remained upstream.
+8. **Verification:**
+   - `uv run pytest -q`: **92 passed, 2 skipped** (skips remain the showcase model-dependent tests). 187 non-failing GX `condition_parser` deprecation warnings.
+   - `uv run ruff check .`: clean.
+   - `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: **29/29 modules** within 1,000 lines (`feature_pipeline.py` 669).
+
+### Gate 2 outcome
+
+Both views reproduce byte-identically; all clips and exclusions are counted and recorded; no composite index exists; claims variables are provably absent from the forest covariates; transformer metadata is versioned and validated. Stage 2 PASSED; Stage 3 is unlocked.
