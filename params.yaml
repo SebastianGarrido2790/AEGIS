@@ -68,6 +68,22 @@ tier1_ml:
     fitted_loss_cost: "data/processed/glm_fitted_loss_cost.csv"
     model_metadata: "data/processed/glm_baseline_model.json"
     calibration_report: "data/processed/glm_calibration_report.json"
+  # Tier 1 actuarial segment grid (P2-F05, ADR-014); approved OD-1 merge pools the
+  # single sub-1,000-policy cell (18-24 / 5-9 / >2000, 956 policies) into the
+  # adjacent density band 501-2000, yielding the combined label ">500".
+  segments:
+    min_policy_count: 1000
+    premium_loading: 0.20
+    cell_merges:
+      - driver_age_band: "18-24"
+        car_age_band: "5-9"
+        from_density_band: ">2000"
+        to_density_band: "501-2000"
+        merged_density_band: ">500"
+  segment_paths:
+    segment_loss_cost: "data/processed/segment_loss_cost.csv"
+    segment_definitions: "data/processed/segment_definitions.json"
+    policy_segments: "data/processed/policy_segments.csv"
 
 tier2_agents:
   groundedness_threshold: 0.85

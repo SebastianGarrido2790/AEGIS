@@ -38,6 +38,10 @@ class GLMBaselineError(AEGISError):
     """Raised when the Tweedie baseline cannot fit or calibrate valid outputs (P2-F03)."""
 
 
+class SegmentError(AEGISError):
+    """Raised when segment assignment or Tier 1 aggregation cannot produce valid outputs."""
+
+
 class GroundingThresholdError(AEGISError):
     """Raised when compliance retrieval grounding falls below threshold (INV-6)."""
 

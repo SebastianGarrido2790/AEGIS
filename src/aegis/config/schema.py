@@ -152,6 +152,38 @@ class GLMPathsConfig(BaseModel):
     calibration_report: str = Field(default="data/processed/glm_calibration_report.json")
 
 
+class CellMergeConfig(BaseModel):
+    """Approved merge of a sub-floor actuarial cell into an adjacent density band (P2-F05)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    driver_age_band: str
+    car_age_band: str
+    from_density_band: str
+    to_density_band: str
+    merged_density_band: str
+
+
+class SegmentsConfig(BaseModel):
+    """Configuration for the Tier 1 actuarial segment grid (Phase 2, P2-F05)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min_policy_count: int = Field(default=1000, ge=1)
+    premium_loading: float = Field(default=0.20, ge=0.0)
+    cell_merges: list[CellMergeConfig] = Field(default_factory=list)
+
+
+class SegmentPathsConfig(BaseModel):
+    """Configuration for segment pipeline output paths (Phase 2, P2-F05)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    segment_loss_cost: str = Field(default="data/processed/segment_loss_cost.csv")
+    segment_definitions: str = Field(default="data/processed/segment_definitions.json")
+    policy_segments: str = Field(default="data/processed/policy_segments.csv")
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -166,6 +198,38 @@ class Tier1MLConfig(BaseModel):
     feature_paths: FeaturePathsConfig = Field(default_factory=FeaturePathsConfig)
     glm_baseline: GLMBaselineConfig = Field(default_factory=GLMBaselineConfig)
     glm_paths: GLMPathsConfig = Field(default_factory=GLMPathsConfig)
+    segments: SegmentsConfig = Field(default_factory=SegmentsConfig)
+    segment_paths: SegmentPathsConfig = Field(default_factory=SegmentPathsConfig)
+
+    @model_validator(mode="after")
+    def _validate_segment_merges(self) -> "Tier1MLConfig":
+        """Validates that every configured cell merge references frozen band labels."""
+        labels = self.feature_pipeline
+        merged_labels: set[str] = set()
+        for merge in self.segments.cell_merges:
+            checks = [
+                ("driver_age_band", merge.driver_age_band, labels.driver_age_band_labels),
+                ("car_age_band", merge.car_age_band, labels.car_age_band_labels),
+                ("from_density_band", merge.from_density_band, labels.density_band_labels),
+                ("to_density_band", merge.to_density_band, labels.density_band_labels),
+            ]
+            for name, value, allowed in checks:
+                if value not in allowed:
+                    raise ValueError(
+                        f"cell merge {name} '{value}' is not a frozen band label"
+                    )
+            if merge.from_density_band == merge.to_density_band:
+                raise ValueError("cell merge from/to density bands must differ")
+            if merge.merged_density_band in labels.density_band_labels:
+                raise ValueError(
+                    f"merged density label '{merge.merged_density_band}' collides with a band label"
+                )
+            if merge.merged_density_band in merged_labels:
+                raise ValueError(
+                    f"duplicate merged density label '{merge.merged_density_band}'"
+                )
+            merged_labels.add(merge.merged_density_band)
+        return self
 
 
 class Tier2AgentsConfig(BaseModel):

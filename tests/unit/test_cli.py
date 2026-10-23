@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pandas as pd
 import pytest
 
 from aegis.config.loader import get_config
@@ -49,6 +50,7 @@ def test_cli_parser_commands_structure() -> None:
         "version-raw",
         "build-features",
         "build-glm",
+        "build-segments",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -283,3 +285,72 @@ def test_build_glm_cli_blocks_on_invalid_input(tmp_path: Path, config) -> None:
         code = main()
     assert code == 1
     assert not (tmp_path / "fitted.csv").exists()
+
+
+def _write_segment_fixtures(tmp_path: Path, count: int = 1200) -> tuple[Path, Path]:
+    """Writes a single-segment features/fitted pair above the policy floor."""
+    features = pd.DataFrame(
+        {
+            "PolicyID": range(1, count + 1),
+            "exposure_capped": [0.5] * count,
+            "driver_age_band": ["25-44"] * count,
+            "car_age_band": ["0-4"] * count,
+            "density_band": ["<=500"] * count,
+        }
+    )
+    fitted = pd.DataFrame(
+        {
+            "PolicyID": range(1, count + 1),
+            "exposure_capped": [0.5] * count,
+            "fitted_loss_cost_per_year": [100.0] * count,
+        }
+    )
+    features_path = tmp_path / "features.csv"
+    fitted_path = tmp_path / "fitted.csv"
+    features.to_csv(features_path, index=False)
+    fitted.to_csv(fitted_path, index=False)
+    return features_path, fitted_path
+
+
+def test_build_segments_cli_success(tmp_path: Path) -> None:
+    """Verifies the build-segments subcommand writes all three artifacts."""
+    features_path, fitted_path = _write_segment_fixtures(tmp_path)
+    test_args = [
+        "cli.py",
+        "build-segments",
+        "--features-path",
+        str(features_path),
+        "--fitted-path",
+        str(fitted_path),
+        "--loss-cost-output",
+        str(tmp_path / "segments.csv"),
+        "--definitions-output",
+        str(tmp_path / "definitions.json"),
+        "--policy-segments-output",
+        str(tmp_path / "policy_segments.csv"),
+    ]
+    with patch("sys.argv", test_args):
+        code = main()
+
+    assert code == 0
+    assert (tmp_path / "segments.csv").is_file()
+    assert (tmp_path / "definitions.json").is_file()
+    assert (tmp_path / "policy_segments.csv").is_file()
+
+
+def test_build_segments_cli_blocks_on_invalid_input(tmp_path: Path, config) -> None:
+    """Verifies the build-segments subcommand returns 1 on missing columns."""
+    test_args = [
+        "cli.py",
+        "build-segments",
+        "--features-path",
+        config.data_contracts.raw_policy_valid_fixture,
+        "--fitted-path",
+        config.data_contracts.raw_policy_valid_fixture,
+        "--loss-cost-output",
+        str(tmp_path / "segments.csv"),
+    ]
+    with patch("sys.argv", test_args):
+        code = main()
+    assert code == 1
+    assert not (tmp_path / "segments.csv").exists()

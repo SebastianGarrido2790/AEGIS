@@ -20,7 +20,13 @@ from aegis.pipelines.data_contracts import (
 from aegis.pipelines.feature_pipeline import run_feature_pipeline
 from aegis.pipelines.glm_baseline import run_glm_baseline
 from aegis.pipelines.raw_intake import ingest_raw_data
-from aegis.utils.exceptions import DataContractError, FeaturePipelineError, GLMBaselineError
+from aegis.pipelines.segments import run_segment_pipeline
+from aegis.utils.exceptions import (
+    DataContractError,
+    FeaturePipelineError,
+    GLMBaselineError,
+    SegmentError,
+)
 
 
 def ingest_file(input_path: Path | None, output_path: Path, data_type: str) -> int:
@@ -110,6 +116,28 @@ def build_glm_baseline(
         return 0
     except GLMBaselineError as exc:
         print(f"[BLOCK] GLM baseline failed: {exc}")
+        return 1
+
+
+def build_segments(
+    features_path: Path | None,
+    fitted_path: Path | None,
+    loss_cost_output: Path | None,
+    definitions_output: Path | None,
+    policy_segments_output: Path | None,
+) -> int:
+    """Builds the Tier 1 segment table, metadata, and policy mapping."""
+    try:
+        run_segment_pipeline(
+            features_path=features_path,
+            fitted_path=fitted_path,
+            loss_cost_path=loss_cost_output,
+            definitions_path=definitions_output,
+            policy_segments_path=policy_segments_output,
+        )
+        return 0
+    except SegmentError as exc:
+        print(f"[BLOCK] Segment pipeline failed: {exc}")
         return 1
 
 
@@ -424,6 +452,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Calibration report JSON (defaults to params.yaml)",
     )
 
+    p_seg = subparsers.add_parser("build-segments")
+    p_seg.add_argument(
+        "--features-path",
+        type=Path,
+        default=Path("data/processed/features_glm.csv"),
+        help="Stage 2 GLM view",
+    )
+    p_seg.add_argument(
+        "--fitted-path",
+        type=Path,
+        default=Path("data/processed/glm_fitted_loss_cost.csv"),
+        help="Stage 3 fitted loss cost",
+    )
+    p_seg.add_argument(
+        "--loss-cost-output",
+        type=Path,
+        default=None,
+        help="Segment table CSV (defaults to params.yaml)",
+    )
+    p_seg.add_argument(
+        "--definitions-output",
+        type=Path,
+        default=None,
+        help="Segment metadata JSON (defaults to params.yaml)",
+    )
+    p_seg.add_argument(
+        "--policy-segments-output",
+        type=Path,
+        default=None,
+        help="Policy-to-segment CSV (defaults to params.yaml)",
+    )
+
     return parser
 
 
@@ -459,6 +519,14 @@ def main() -> int:
     if args.command == "build-glm":
         return build_glm_baseline(
             args.input_path, args.cap, args.fitted_output, args.metadata_output, args.report_output
+        )
+    if args.command == "build-segments":
+        return build_segments(
+            args.features_path,
+            args.fitted_path,
+            args.loss_cost_output,
+            args.definitions_output,
+            args.policy_segments_output,
         )
 
     return 1

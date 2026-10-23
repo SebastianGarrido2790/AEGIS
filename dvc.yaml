@@ -67,6 +67,22 @@ stages:
       - data/processed/glm_baseline_model.json
       - data/processed/glm_calibration_report.json
 
+  build_segments:
+    cmd: uv run python -m aegis.pipelines.cli build-segments --features-path data/processed/features_glm.csv --fitted-path data/processed/glm_fitted_loss_cost.csv --loss-cost-output data/processed/segment_loss_cost.csv --definitions-output data/processed/segment_definitions.json --policy-segments-output data/processed/policy_segments.csv
+    deps:
+      - data/processed/features_glm.csv
+      - data/processed/glm_fitted_loss_cost.csv
+      - params.yaml
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/segments.py
+      - src/aegis/config/schema.py
+      - src/aegis/schemas/segments.py
+      - src/aegis/utils/exceptions.py
+    outs:
+      - data/processed/segment_loss_cost.csv
+      - data/processed/segment_definitions.json
+      - data/processed/policy_segments.csv
+
   # ==========================================
   # 2. Regulatory Corpus Data Pipeline Path
   # ==========================================

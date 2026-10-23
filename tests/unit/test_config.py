@@ -228,3 +228,80 @@ def test_glm_baseline_fallback_out_of_range_raises(tmp_path: Path) -> None:
     """Verifies that a fallback power outside (1, 2) is rejected at config load."""
     error = _load_mutated_glm_config(tmp_path, {"tweedie_p_fallback": 1.0})
     assert "Configuration validation failed" in str(error)
+
+
+def test_segments_config_values() -> None:
+    """Verifies that approved P2-F05 segment floor, loading, merge, and paths load."""
+    config = load_params()
+    segments = config.tier1_ml.segments
+    assert segments.min_policy_count == 1000
+    assert segments.premium_loading == 0.20
+    assert len(segments.cell_merges) == 1
+    merge = segments.cell_merges[0]
+    assert merge.driver_age_band == "18-24"
+    assert merge.car_age_band == "5-9"
+    assert merge.from_density_band == ">2000"
+    assert merge.to_density_band == "501-2000"
+    assert merge.merged_density_band == ">500"
+    assert config.tier1_ml.segment_paths.segment_loss_cost == (
+        "data/processed/segment_loss_cost.csv"
+    )
+    assert config.tier1_ml.segment_paths.segment_definitions == (
+        "data/processed/segment_definitions.json"
+    )
+    assert config.tier1_ml.segment_paths.policy_segments == (
+        "data/processed/policy_segments.csv"
+    )
+
+
+def _load_mutated_segment_config(
+    tmp_path: Path, mutation: dict, merge_mutation: dict | None = None
+) -> ConfigurationError:
+    """Writes params.yaml with a mutated segments block and returns the load error."""
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["segments"].update(mutation)
+    if merge_mutation:
+        base["tier1_ml"]["segments"]["cell_merges"][0].update(merge_mutation)
+    target = tmp_path / "mutated_segment_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(target)
+    return exc_info.value
+
+
+def test_segments_unknown_driver_band_raises(tmp_path: Path) -> None:
+    """Verifies that a merge referencing an unknown DriverAge label is rejected."""
+    error = _load_mutated_segment_config(
+        tmp_path, {}, {"driver_age_band": "17-23"}
+    )
+    assert "Configuration validation failed" in str(error)
+
+
+def test_segments_unknown_from_density_raises(tmp_path: Path) -> None:
+    """Verifies that a merge referencing an unknown density label is rejected."""
+    error = _load_mutated_segment_config(
+        tmp_path, {}, {"from_density_band": ">9999"}
+    )
+    assert "Configuration validation failed" in str(error)
+
+
+def test_segments_merged_label_collision_raises(tmp_path: Path) -> None:
+    """Verifies that a merged label colliding with an existing band label is rejected."""
+    error = _load_mutated_segment_config(
+        tmp_path, {}, {"merged_density_band": ">2000"}
+    )
+    assert "Configuration validation failed" in str(error)
+
+
+def test_segments_non_positive_floor_raises(tmp_path: Path) -> None:
+    """Verifies that a non-positive policy floor is rejected."""
+    error = _load_mutated_segment_config(tmp_path, {"min_policy_count": 0})
+    assert "Configuration validation failed" in str(error)
+
+
+def test_segments_negative_loading_raises(tmp_path: Path) -> None:
+    """Verifies that a negative premium loading is rejected."""
+    error = _load_mutated_segment_config(tmp_path, {"premium_loading": -0.01})
+    assert "Configuration validation failed" in str(error)

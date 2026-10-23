@@ -13,7 +13,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 1 | Raw Intake & Raw Data Contract | ✅ PASSED | 2026-10-21 | §Stage 1 |
 | 2 | Deterministic Feature Pipeline | ✅ PASSED | 2026-10-21 | §Stage 2 |
 | 3 | GLM Loss-Cost Baseline & Calibration Reporting | ✅ PASSED | 2026-10-21 | §Stage 3 |
-| 4 | Segment Definition & Tier 1 Output Contract | Pending | — | — |
+| 4 | Segment Definition & Tier 1 Output Contract | ✅ PASSED | 2026-10-21 | §Stage 4 |
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | Pending | — | — |
 | 6 | Semi-Synthetic DGP & Training Contract | Pending | — | — |
 | 7 | Qualification Q2: Estimator Training Scale & Budget | Pending | — | — |
@@ -262,4 +262,44 @@ Both views reproduce byte-identically; all clips and exclusions are counted and 
 ### Gate 3 outcome
 
 The Tweedie GLM converged without numerical errors; holdout mean deviance and decile/segment A/E ratios were generated and persisted; the variance power is documented with a recorded profile-deviance table; MAE/RMSE are present only as secondary diagnostics and are referenced by no gate. Stage 3 PASSED; Stage 4 is unlocked.
+
+---
+
+## Stage 4 — Segment Definition & Tier 1 Output Contract
+
+**Executed:** 2026-10-21 · **Gate 4:** ✅ PASSED · **Feature:** `P2-F05` (Full SDD)
+
+1. **Specification and plan:**
+   - `005_segments-tier1-contract/spec.md` APPROVED 2026-10-21 with OD-1 (merge thin cell along density into `>500`), OD-2 (canonical `D:_C:_Dens:` identifiers), OD-3 (`premium_loading = 0.20`), OD-4 (persist all three tables now), OD-5 (dual defense against adjustment fields).
+   - `plan.md` and `tasks.md` written before implementation; all 8 tasks completed.
+2. **Cell counts (empirical, 413,169 policies):**
+   - Base grid: **36 cells** (4 DriverAge × 3 CarAge × 3 Density).
+   - Exactly one cell below the 1,000 floor: `18-24 / 5-9 / >2000` = **956**.
+   - Approved merge pools it with adjacent `501-2000` into `D:18-24_C:5-9_Dens:>500` = **2,234** policies.
+   - Realized: **35 segments**; minimum segment size **1,067**; no segment below 1,000.
+3. **Economics:**
+   - Exposure-weighted segment loss cost (GLM fitted, capped at €100,000): portfolio **€126.53 per policy-year**; segment range €83.18–€507.19.
+   - Base premium = loss cost × 1.20: portfolio **€151.84 per policy-year**.
+   - Total exposure 231,780.21 policy-years; all 413,169 policies mapped.
+4. **Tier 1 contract:**
+   - `Tier1SegmentOutput` carries the 13 ADR-014 fields with `extra="forbid"`.
+   - Dual defense: pre-validation scan rejects keys containing `delta`, `adjust`, `proposed`, or `new_premium`; interval and finiteness validators enforce `ci_lower ≤ ε̂ ≤ ci_upper` and `semi_synthetic = true`.
+   - Falsification: `proposed_adjustment: 0.05` raises `ValidationError`; `delta`, `proposed_premium`, `new_premium`, `price_adjustment`, `rate_adjustment` all rejected.
+5. **Ratio-of-sums:** `ε̂_seg = Στ̂ / Σq₀` verified against hand calculation; empty, length-mismatch, non-finite, and non-positive-denominator inputs raise typed `SegmentError`.
+6. **Artifacts (SHA-256):**
+   - `segment_loss_cost.csv` (3,160 B): `319c371dd69d13bedbad8e1f0782153f0dde81ab5da0e6e4b18335386aa96758`
+   - `segment_definitions.json` (629 B): `079407763318d30e8cf99a5568602ea6a24cf160d21b143d4d778455917edf8f`
+   - `policy_segments.csv` (13,254,695 B): `396574cb5f49e651a0b2d2410156a6523bb62801a36ade240c1e0b5d9a4fd3ba`
+   - Config fingerprint: `55ce36728dbdb617ec9332c1aaa32938bf4e93c70872f24a7bd370657bed4bcb`
+   - Two consecutive runs produced byte-identical artifacts; no timestamps.
+7. **DVC:** added `build_segments` after `glm_baseline`; `uv run dvc repro` ran all 9 stages cleanly.
+8. **Verification:**
+   - `uv run pytest -q`: **153 passed, 2 skipped** (187 non-failing GX deprecation warnings).
+   - `uv run ruff check .`: clean; `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: **34/34 modules** within 1,000 lines (`segments.py` 479, `schemas/segments.py` 163, `schema.py` 306, `cli.py` 536).
+
+### Gate 4 outcome
+
+All policies map to exactly one realized segment and every segment meets the 1,000-policy floor after the approved merge; ratio-of-sums aggregation passes unit tests; Pydantic validation structurally blocks `proposed_adjustment` and all adjustment-like fields; a typed error halts any floor violation. Stage 4 PASSED; Stage 5 is unlocked.
+
 

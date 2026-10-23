@@ -47,7 +47,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ✅ Implemented |
 | **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ✅ Implemented |
 | **P2-F04** | `004_semi-synthetic-dgp` | Semi-synthetic DGP, truth sidecar & training contract | Full | Stage 6 | F02, F03 | ⬜ Not started |
-| **P2-F05** | `005_segments-tier1-contract` | 36-cell segment definition & Tier 1 Pydantic schema | Full | Stage 4 | F02, F03 | ⬜ Not started |
+| **P2-F05** | `005_segments-tier1-contract` | 36-cell segment definition & Tier 1 Pydantic schema | Full | Stage 4 | F02, F03 | ✅ Implemented |
 | **P2-F06** | `006_causal-estimator` | `CausalForestDML` training & segment-level inference | Full | Stages 7–8 | F04, F05 | ⬜ Not started |
 | **P2-F07** | `007_validation-gate` | Multi-seed validation harness & qualification gate | Full | Stages 9–10 | F06 | ⬜ Not started |
 | **P2-F08** | `008_confounder-sensitivity` | Hidden-confounder sensitivity sweep & robustness value | Light | Stage 11 | F04, F07 | ⬜ Not started |
@@ -69,7 +69,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails |
 | **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage |
 | **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified |
-| **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | 36 cells + merge floor realized; schema rejects Δ; ratio-of-sums tested |
+| **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | ✅ **PASSED** — 35 segments, floor met, schema rejects Δ; ratio-of-sums tested |
 | **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | Cap selected per Spearman ≥0.98 / deviance ≤1%; excess distribution checked |
 | **6** | Semi-Synthetic DGP & Training Contract | Training table, truth sidecar, manifest, GX suite | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds |
 | **7** | Qualification Q2 — Estimator Scale | Scale, nuisance family & runtime report | ADR-013 | None (evidence-gathering qualification) | All grid cells run; budget criteria met; scale and nuisance family selected |
@@ -232,23 +232,11 @@ Tweedie GLM converges without numerical errors; holdout mean deviance and decile
 
 ---
 
-### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05)
+### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05) ✅ **PASSED**
 
 **Goal:** Formalize the 36-cell actuarial segment grid as the universal analysis unit across AEGIS, and define the typed Tier 1 Pydantic output contract with strict structural exclusion of proposed price adjustments.
 
-**Actions:**
-1. Create `reports/docs/phases/phase_2/005_segments-tier1-contract/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
-2. Implement segment assignment logic based on frozen config boundaries:
-   - DriverAge (4 bands): 18–24, 25–44, 45–64, 65+.
-   - CarAge (3 bands): 0–4, 5–9, 10+.
-   - Density (3 bands): $\le 500$, $501–2000$, $> 2000$.
-   - Total cells: 36. Implement cell merge rule: any segment with $< 1,000$ policies is merged into an adjacent band per the approved specification rule.
-3. Implement segment-level loss-cost aggregation: aggregate GLM fitted values (capped and loaded) via exposure-weighted sums per segment.
-4. Implement the Tier 1 Pydantic contract (`Tier1SegmentOutput`):
-   - Fields: `segment_id`, `policy_count`, `exposure_years`, `baseline_retention_q0`, `tau_hat`, `epsilon_hat`, `epsilon_ci_lower`, `epsilon_ci_upper`, `loss_cost_per_year`, `base_premium_per_year`, `model_version`, `data_version`, `semi_synthetic`.
-   - Technical premium calculation: $\text{BasePremium} = \text{LossCost} \times (1 + \text{loading})$.
-   - Strict invariant: **zero proposed adjustment fields** (`delta`, `proposed_premium`, etc.) permitted in this schema.
-5. Implement ratio-of-sums aggregation for segment elasticity: $\hat{\epsilon}_{\text{seg}} = \sum \hat{\tau}_i / \sum q_{0i}$.
+**Evidence:** Executed outcomes for Stage 4 (35 realized segments, 2,234-policy merged cell, floor 1,067, portfolio loss cost €126.53/yr, artifact hashes) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-4--segment-definition--tier-1-output-contract).
 
 **Inputs / Dependencies:**
 - Stage 2 feature pipeline and Stage 3 GLM fitted values.
@@ -256,11 +244,10 @@ Tweedie GLM converges without numerical errors; holdout mean deviance and decile
 
 **ADR Implements:** ADR-014 (segment definition, Tier 1 output contract, ratio-of-sums aggregation); P2-D3.
 
-**Falsification:**
-Add a test that dynamically passes a payload containing `proposed_adjustment: 0.05` to the `Tier1SegmentOutput` model. Confirm that Pydantic raises a `ValidationError` due to `extra="forbid"`, proving that no proposed adjustment can leak into Tier 1 outputs.
+**Falsification:** An injected `proposed_adjustment: 0.05` payload is rejected by `Tier1SegmentOutput` (and all adjustment-like field names), so no proposed adjustment can leak into Tier 1 outputs.
 
-**Gate 4 — Hard Close:**
-All policies map to valid segments; cell counts meet the $\ge 1,000$ policy floor (or merged per rule); ratio-of-sums aggregation passes unit test; Pydantic schema validation blocks any `proposed_adjustment` field.
+**Gate 4 — Hard Close: ✅ PASSED (2026-10-21)**
+All policies map to valid segments; every realized segment meets the ≥1,000-policy floor after the approved merge; ratio-of-sums aggregation passes unit tests; Pydantic validation blocks any `proposed_adjustment` field.
 
 ---
 
@@ -681,7 +668,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ✅ **PASSED** |
 | **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ✅ **PASSED** |
 | **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ✅ **PASSED** |
-| **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ⬜ Not started |
+| **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ✅ **PASSED** |
 | **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ⬜ Not started |
 | **6** | Semi-Synthetic DGP | Training table, truth sidecar, suite | ADR-013, 015 | Planted truth fails suite | DGP self-tests pass; truth isolation proven | ⬜ Not started |
 | **7** | Qualification Q2 | Scale, nuisance family & report | ADR-013 | None | Budget met; scale & nuisance family selected | ⬜ Not started |
