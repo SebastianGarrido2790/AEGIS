@@ -51,6 +51,7 @@ def test_cli_parser_commands_structure() -> None:
         "build-features",
         "build-glm",
         "build-segments",
+        "run-q1",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])

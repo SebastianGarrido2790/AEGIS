@@ -184,6 +184,29 @@ class SegmentPathsConfig(BaseModel):
     policy_segments: str = Field(default="data/processed/policy_segments.csv")
 
 
+class CapSweepConfig(BaseModel):
+    """Configuration for Qualification Q1 loss-cap sweep (Phase 2, P2-D1a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cap_candidates: list[float] = Field(
+        default=[16109.0, 35432.0, 100000.0, 131834.0]
+    )
+    spearman_threshold: float = Field(default=0.98, ge=0.0, le=1.0)
+    deviance_change_threshold: float = Field(default=0.01, gt=0.0)
+
+    @model_validator(mode="after")
+    def _validate_candidates(self) -> "CapSweepConfig":
+        """Validates that cap candidates are non-empty, positive, and increasing."""
+        if not self.cap_candidates:
+            raise ValueError("cap_candidates must not be empty")
+        if any(cap <= 0 for cap in self.cap_candidates):
+            raise ValueError("cap candidates must be positive")
+        if sorted(self.cap_candidates) != self.cap_candidates:
+            raise ValueError("cap candidates must be strictly increasing")
+        return self
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -200,6 +223,9 @@ class Tier1MLConfig(BaseModel):
     glm_paths: GLMPathsConfig = Field(default_factory=GLMPathsConfig)
     segments: SegmentsConfig = Field(default_factory=SegmentsConfig)
     segment_paths: SegmentPathsConfig = Field(default_factory=SegmentPathsConfig)
+    cap_sweep: CapSweepConfig = Field(default_factory=CapSweepConfig)
+    loss_cap: float | None = Field(default=None, gt=0.0)
+    excess_load: float | None = Field(default=None, gt=1.0)
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":

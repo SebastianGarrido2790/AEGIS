@@ -295,6 +295,8 @@ The approved default criteria and methods are retained as written. Options and t
 
 > **APPROVED — Batch 3 (October 21, 2026):** Option A and the stated Q1 comparison and pass criteria. Q1 still determines the cap level; material excess-share concentration by segment returns to decision review.
 
+> **Q1 VERDICT (October 24, 2026):** Selected cap **€100,000** and uniform excess load **1.1988** (16.58% of training loss removed, 20 claims truncated). The passing transition €100,000 → €131,834 has segment loss-cost Spearman 0.9992 (≥0.98) and holdout-deviance change 0.406% (≤1%). Excess concentration is material (segment `D:18-24_C:10+_Dens:<=500` holds 72.0% of excess vs 1.14% exposure, 62.9×); per operator decision the uniform load is retained with a documented caveat carried to Phase 6. See `q1_cap_sweep_report.md`.
+
 **Approval.** Policy and Q1 criteria approved, October 21, 2026 (Batch 3). **Decision status.** Approved; cap level unresolved until Q1 reports.
 
 **Consequences.** Segment loss costs used downstream are capped and loaded, and labeled as such.

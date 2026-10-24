@@ -70,7 +70,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage |
 | **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified |
 | **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | ✅ **PASSED** — 35 segments, floor met, schema rejects Δ; ratio-of-sums tested |
-| **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | Cap selected per Spearman ≥0.98 / deviance ≤1%; excess distribution checked |
+| **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | ✅ **PASSED** — Cap €100,000; Spearman ≥0.98 / deviance ≤1%; excess concentration escalated |
 | **6** | Semi-Synthetic DGP & Training Contract | Training table, truth sidecar, manifest, GX suite | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds |
 | **7** | Qualification Q2 — Estimator Scale | Scale, nuisance family & runtime report | ADR-013 | None (evidence-gathering qualification) | All grid cells run; budget criteria met; scale and nuisance family selected |
 | **8** | Causal Estimator & Segment Inference | Trained estimator & segment-average intervals | ADR-013 | None | Segment intervals are finite, self-consistent, and on the segment average |
@@ -251,23 +251,11 @@ All policies map to valid segments; every realized segment meets the ≥1,000-po
 
 ---
 
-### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration
+### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration ✅ **PASSED**
 
 **Goal:** Execute qualification test Q1 across EDA-grounded candidate thresholds to select the optimal loss cap and portfolio excess load, closing the open P2-D1a level.
 
-**Actions:**
-1. Execute the cap sweep script across the 4 candidate levels: P99 (€16,109), P99.5 (€35,432), €100,000, and P99.9 (€131,834) on the training split.
-2. For each candidate level, compute and record in `reports/docs/phases/phase_2/q1_cap_sweep_report.md`:
-   - Total losses removed and percentage of portfolio loss removed.
-   - Number and percentage of claims truncated.
-   - Holdout Tweedie deviance.
-   - Decile calibration stability.
-   - Segment loss-cost Spearman rank correlation against the next-higher cap.
-   - Excess loss share per segment vs. segment exposure share.
-3. Apply the approved pass criterion: select the lowest truncation level beyond which segment loss-cost Spearman correlation against the next candidate is $\ge 0.98$ and holdout deviance changes by $\le 1\%$.
-4. Check excess concentration: verify that excess losses above the cap do not disproportionately concentrate in a single segment relative to exposure. If material concentration occurs, halt and invoke change management.
-5. Freeze the chosen cap level and excess load scalar in `params.yaml` under `tier1_ml.loss_cap` and `tier1_ml.excess_load`.
-6. Finalize Stage 3 GLM baseline at the chosen cap and generate final holdout calibration report.
+**Evidence:** Executed outcomes for Stage 5 (selected cap €100,000, excess load 1.1988, Spearman 0.9992 / deviance 0.406% at the passing transition, excess concentration 62.9×) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-5--qualification-q1-loss-cap-sweep--final-calibration) and [`q1_cap_sweep_report.md`](q1_cap_sweep_report.md).
 
 **Inputs / Dependencies:**
 - Stage 3 parameterized GLM baseline.
@@ -277,8 +265,8 @@ All policies map to valid segments; every realized segment meets the ≥1,000-po
 
 **Falsification:** None (empirical qualification experiment).
 
-**Gate 5 — Hard Close:**
-Cap sweep report complete; cap selection satisfies the Spearman $\ge 0.98$ and deviance $\le 1\%$ criteria; excess-load distribution verified across segments; final values frozen in `params.yaml`.
+**Gate 5 — Hard Close: ✅ PASSED (2026-10-24)**
+Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.98 and deviance ≤1% criteria; excess-load distribution verified across segments (material concentration in one segment escalated to and resolved by the operator: uniform load + documented caveat); `tier1_ml.loss_cap = 100000.0` and `tier1_ml.excess_load = 1.1988` frozen in `params.yaml`.
 
 ---
 
@@ -669,7 +657,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ✅ **PASSED** |
 | **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ✅ **PASSED** |
 | **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ✅ **PASSED** |
-| **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ⬜ Not started |
+| **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ✅ **PASSED** |
 | **6** | Semi-Synthetic DGP | Training table, truth sidecar, suite | ADR-013, 015 | Planted truth fails suite | DGP self-tests pass; truth isolation proven | ⬜ Not started |
 | **7** | Qualification Q2 | Scale, nuisance family & report | ADR-013 | None | Budget met; scale & nuisance family selected | ⬜ Not started |
 | **8** | Causal Estimator | Trained forest & segment intervals | ADR-013 | None | Finite, self-consistent segment intervals | ⬜ Not started |

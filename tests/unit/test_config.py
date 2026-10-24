@@ -305,3 +305,39 @@ def test_segments_negative_loading_raises(tmp_path: Path) -> None:
     """Verifies that a negative premium loading is rejected."""
     error = _load_mutated_segment_config(tmp_path, {"premium_loading": -0.01})
     assert "Configuration validation failed" in str(error)
+
+
+def test_cap_sweep_config_values() -> None:
+    """Verifies that approved Q1 cap candidates and thresholds load."""
+    config = load_params()
+    sweep = config.tier1_ml.cap_sweep
+    assert sweep.cap_candidates == [16109.0, 35432.0, 100000.0, 131834.0]
+    assert sweep.spearman_threshold == 0.98
+    assert sweep.deviance_change_threshold == 0.01
+
+
+def _load_mutated_cap_sweep_config(tmp_path: Path, mutation: dict) -> ConfigurationError:
+    """Writes params.yaml with a mutated cap_sweep block and returns the load error."""
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["cap_sweep"].update(mutation)
+    target = tmp_path / "mutated_cap_sweep_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(target)
+    return exc_info.value
+
+
+def test_cap_sweep_empty_candidates_raise(tmp_path: Path) -> None:
+    """Verifies that empty cap candidates are rejected."""
+    error = _load_mutated_cap_sweep_config(tmp_path, {"cap_candidates": []})
+    assert "Configuration validation failed" in str(error)
+
+
+def test_cap_sweep_non_increasing_candidates_raise(tmp_path: Path) -> None:
+    """Verifies that non-increasing cap candidates are rejected."""
+    error = _load_mutated_cap_sweep_config(
+        tmp_path, {"cap_candidates": [35432.0, 16109.0]}
+    )
+    assert "Configuration validation failed" in str(error)

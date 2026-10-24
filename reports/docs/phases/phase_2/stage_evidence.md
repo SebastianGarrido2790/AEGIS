@@ -14,7 +14,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 2 | Deterministic Feature Pipeline | ✅ PASSED | 2026-10-21 | §Stage 2 |
 | 3 | GLM Loss-Cost Baseline & Calibration Reporting | ✅ PASSED | 2026-10-21 | §Stage 3 |
 | 4 | Segment Definition & Tier 1 Output Contract | ✅ PASSED | 2026-10-21 | §Stage 4 |
-| 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | Pending | — | — |
+| 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | ✅ PASSED | 2026-10-24 | §Stage 5 |
 | 6 | Semi-Synthetic DGP & Training Contract | Pending | — | — |
 | 7 | Qualification Q2: Estimator Training Scale & Budget | Pending | — | — |
 | 8 | Causal Estimator & Segment Inference | Pending | — | — |
@@ -301,5 +301,60 @@ The Tweedie GLM converged without numerical errors; holdout mean deviance and de
 ### Gate 4 outcome
 
 All policies map to exactly one realized segment and every segment meets the 1,000-policy floor after the approved merge; ratio-of-sums aggregation passes unit tests; Pydantic validation structurally blocks `proposed_adjustment` and all adjustment-like fields; a typed error halts any floor violation. Stage 4 PASSED; Stage 5 is unlocked.
+
+---
+
+## Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration
+
+**Executed:** 2026-10-24 · **Gate 5:** ✅ PASSED · **Qualification:** Q1 (P2-D1a, ADR-012)
+
+1. **Sweep (4 EDA candidates, GLM re-fit per cap, training-split metrics):**
+
+   | Cap (€) | Loss removed (€) | Removed % | Claims truncated | Excess load | p̂ | Holdout deviance |
+   |---|---:|---:|---:|---:|---:|---:|
+   | 16,109 (P99) | 8,801,359 | 31.34% | 126 (1.03%) | 1.4565 | 1.81 | 16.3187 |
+   | 35,432 (P99.5) | 7,045,693 | 25.09% | 67 (0.55%) | 1.3349 | 1.81 | 16.6300 |
+   | 100,000 | 4,656,129 | 16.58% | 20 (0.16%) | 1.1988 | 1.84 | 16.9016 |
+   | 131,834 (P99.9) | 4,087,724 | 14.56% | 14 (0.11%) | 1.1704 | 1.84 | 16.9702 |
+
+2. **Selection criteria (adjacent-cap transitions):**
+
+   | Transition | Spearman (segment loss-cost) | Holdout deviance change |
+   |---|---:|---:|
+   | 16,109 → 35,432 | 0.9972 | 1.908% (fail) |
+   | 35,432 → 100,000 | 0.9927 | 1.633% (fail) |
+   | 100,000 → 131,834 | 0.9992 | 0.406% (pass) |
+
+   Pass criterion (Spearman ≥ 0.98 and deviance change ≤ 1%) is first satisfied at the
+   €100,000 → €131,834 transition, so the **lowest truncation level selected is €100,000**.
+   The Tweedie variance power is stable (p̂ = 1.81 below €100k, 1.84 above).
+
+3. **Frozen config:** `tier1_ml.loss_cap = 100000.0`, `tier1_ml.excess_load = 1.1988`
+   (uniform excess load = 1/(1−16.58%)). `glm_baseline.default_cap` already equals €100,000,
+   so the final calibration report (`glm_calibration_report.json`, deviance 16.9016) is the
+   Stage 3 baseline at the selected cap.
+
+4. **Excess concentration (known limitation, operator decision 2026-10-24):** at the selected
+   cap, segment `D:18-24_C:10+_Dens:<=500` (contains the €2.04M claim) holds **72.0% of excess
+   loss against 1.14% of exposure (ratio 62.9×)**. The uniform load therefore understates
+   `Losses₀` for that segment and overstates it elsewhere; recorded as a benchmark limitation
+   carried to Phase 6 (operator chose uniform load + documented caveat).
+
+5. **Report:** `reports/docs/phases/phase_2/q1_cap_sweep_report.md` (full per-cap table,
+   transitions, selection, concentration caveat).
+
+6. **Verification:**
+   - `uv run pytest tests/unit/test_cap_sweep.py tests/unit/test_config.py tests/unit/test_cli.py -q`:
+     **52 passed** (cap-sweep metrics, selection, config, CLI).
+   - `uv run ruff check .`: clean; `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: all modules within 1,000 lines
+     (`cap_sweep.py` 339).
+
+### Gate 5 outcome
+
+The sweep report is complete; the selected cap satisfies the Spearman ≥0.98 and deviance
+≤1% criteria; the excess-load distribution was computed and its material concentration
+recorded and escalated to the operator (uniform load + documented caveat); the cap and
+excess load are frozen in `params.yaml`. Stage 5 PASSED; Stage 6 is unlocked.
 
 

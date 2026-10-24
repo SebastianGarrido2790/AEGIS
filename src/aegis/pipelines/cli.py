@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from aegis.config.loader import get_config
+from aegis.pipelines.cap_sweep import run_cap_sweep
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
     validate_raw_policy_data,
@@ -138,6 +139,25 @@ def build_segments(
         return 0
     except SegmentError as exc:
         print(f"[BLOCK] Segment pipeline failed: {exc}")
+        return 1
+
+
+def run_q1_cap_sweep(
+    input_path: Path | None,
+    work_dir: Path | None,
+    report_path: Path | None,
+) -> int:
+    """Executes the Q1 loss-cap sweep and writes the Markdown report."""
+    try:
+        _, selected_cap, selected_load = run_cap_sweep(
+            input_path=input_path,
+            work_dir=work_dir,
+            report_path=report_path,
+        )
+        print(f"[Q1] selected_cap={selected_cap:,.0f} excess_load={selected_load:.4f}")
+        return 0
+    except (GLMBaselineError, SegmentError) as exc:
+        print(f"[BLOCK] Cap sweep failed: {exc}")
         return 1
 
 
@@ -484,6 +504,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Policy-to-segment CSV (defaults to params.yaml)",
     )
 
+    p_q1 = subparsers.add_parser("run-q1")
+    p_q1.add_argument(
+        "--input-path",
+        type=Path,
+        default=Path("data/processed/features_glm.csv"),
+        help="Stage 2 GLM view",
+    )
+    p_q1.add_argument(
+        "--work-dir",
+        type=Path,
+        default=None,
+        help="Temporary directory for per-cap fitted artifacts",
+    )
+    p_q1.add_argument(
+        "--report-path",
+        type=Path,
+        default=None,
+        help="Markdown report destination (defaults to the Q1 report path)",
+    )
+
     return parser
 
 
@@ -528,6 +568,8 @@ def main() -> int:
             args.definitions_output,
             args.policy_segments_output,
         )
+    if args.command == "run-q1":
+        return run_q1_cap_sweep(args.input_path, args.work_dir, args.report_path)
 
     return 1
 

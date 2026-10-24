@@ -84,6 +84,16 @@ tier1_ml:
     segment_loss_cost: "data/processed/segment_loss_cost.csv"
     segment_definitions: "data/processed/segment_definitions.json"
     policy_segments: "data/processed/policy_segments.csv"
+  # Qualification Q1 loss-cap sweep (P2-D1a). Candidates are the EDA severity
+  # percentiles; pass = lowest cap whose transition to the next satisfies both
+  # Spearman >= 0.98 and holdout-deviance change <= 1%.
+  cap_sweep:
+    cap_candidates: [16109.0, 35432.0, 100000.0, 131834.0]
+    spearman_threshold: 0.98
+    deviance_change_threshold: 0.01
+  # Frozen by Q1 (Stage 5): loss cap and uniform excess load.
+  loss_cap: 100000.0
+  excess_load: 1.1988
 
 tier2_agents:
   groundedness_threshold: 0.85
