@@ -281,7 +281,7 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 
 **Goal:** Construct the isolated semi-synthetic data-generating process (DGP) with known ground truth, enforce strict physical separation of truth from estimator inputs, and gate training data ingestion with a dedicated Great Expectations contract.
 
-**Evidence:**
+**Evidence:** Executed outcomes for Stage 6 (synthetic treatment and outcome generator, truth definitions, bound guarantee, truth isolation) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-6--semi-synthetic-dgp--training-contract).
 
 **Actions:**
 
