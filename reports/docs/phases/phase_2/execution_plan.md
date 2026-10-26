@@ -1,9 +1,10 @@
 # Phase 2 — Staged Execution Plan
+
 ## Tier 1: Deterministic ML Baseline (EDA-First Redo)
 
 **Author:** Sebastián Garrido Arévalo | **Date:** October 21, 2026
 **Status:** ✅ **APPROVED (October 21, 2026)**
-**Implementation authorization:** ✅ Granted 2026-10-21 (operator authorized: "begin Stage 0") 
+**Implementation authorization:** ✅ Granted 2026-10-21 (operator authorized: "begin Stage 0")
 **Planning baseline:** Phase 1 Validated; Phase 2 Implementation Plan v0.3 approved across all four decision batches (2026-10-21); ADR-012 … ADR-015 consolidated in `architecture/system_design.md`.
 
 ---
@@ -41,21 +42,21 @@ The following conditions must be satisfied before Stage 0 implementation begins:
 
 Derived from the approved Feature Register (`implementation_plan.md` §4). All 11 candidate features are approved into the execution scope.
 
-| Feature ID | Folder / Slug | Feature Name | SDD Depth | Primary Stage(s) | Dependencies | Status |
-|---|---|---|---|---|---|---|
-| **P2-F01** | `001_raw-intake-contract` | Raw intake, checksum manifest & raw-table contract | Light | Stage 1 | — | ✅ Implemented |
-| **P2-F02** | `002_feature-pipeline` | Deterministic dual-view feature pipeline & tail handling | Full | Stage 2 | F01 | ✅ Implemented |
-| **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report | Full | Stage 3 (finalized Stage 5) | F02 | ✅ Implemented |
-| **P2-F04** | `004_semi-synthetic-dgp` | Semi-synthetic DGP, truth sidecar & training contract | Full | Stage 6 | F02, F03 | ⬜ Not started |
-| **P2-F05** | `005_segments-tier1-contract` | 36-cell segment definition & Tier 1 Pydantic schema | Full | Stage 4 | F02, F03 | ✅ Implemented |
-| **P2-F06** | `006_causal-estimator` | `CausalForestDML` training & segment-level inference | Full | Stages 7–8 | F04, F05 | ⬜ Not started |
-| **P2-F07** | `007_validation-gate` | Multi-seed validation harness & qualification gate | Full | Stages 9–10 | F06 | ⬜ Not started |
-| **P2-F08** | `008_confounder-sensitivity` | Hidden-confounder sensitivity sweep & robustness value | Light | Stage 11 | F04, F07 | ⬜ Not started |
-| **P2-F09** | `009_registry-promotion` | MLflow artifact packaging & human-gated alias promotion | Full | Stage 12 | F03, F06, F07 | ⬜ Not started |
-| **P2-F10** | `010_pipeline-config-ci-tiers` | DVC DAG extension, config expansion & CI tiers | Light | Stage 14 (evolves across stages) | F01–F09 | ⬜ Not started |
-| **P2-F11** | `011_showcase-slice` | Diagnostic glass-box showcase slice (presets from `approved`) | Full | Stage 13 | F09 | ⬜ Not started |
+| Feature ID | Folder / Slug                     | Feature Name                                                  | SDD Depth | Primary Stage(s)                 | Dependencies  | Status         |
+| ---------- | --------------------------------- | ------------------------------------------------------------- | --------- | -------------------------------- | ------------- | -------------- |
+| **P2-F01** | `001_raw-intake-contract`         | Raw intake, checksum manifest & raw-table contract            | Light     | Stage 1                          | —             | ✅ Implemented |
+| **P2-F02** | `002_feature-pipeline`            | Deterministic dual-view feature pipeline & tail handling      | Full      | Stage 2                          | F01           | ✅ Implemented |
+| **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report            | Full      | Stage 3 (finalized Stage 5)      | F02           | ✅ Implemented |
+| **P2-F04** | `004_semi-synthetic-dgp`          | Semi-synthetic DGP, truth sidecar & training contract         | Full      | Stage 6                          | F02, F03      | ⬜ Not started |
+| **P2-F05** | `005_segments-tier1-contract`     | 36-cell segment definition & Tier 1 Pydantic schema           | Full      | Stage 4                          | F02, F03      | ✅ Implemented |
+| **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | ⬜ Not started |
+| **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ⬜ Not started |
+| **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ⬜ Not started |
+| **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ⬜ Not started |
+| **P2-F10** | `010_pipeline-config-ci-tiers`    | DVC DAG extension, config expansion & CI tiers                | Light     | Stage 14 (evolves across stages) | F01–F09       | ⬜ Not started |
+| **P2-F11** | `011_showcase-slice`              | Diagnostic glass-box showcase slice (presets from `approved`) | Full      | Stage 13                         | F09           | ⬜ Not started |
 
-**Sequencing dependency note:** Q1 (Cap Sweep) is listed in the implementation plan's §5 qualification table as needing the F02/F03 skeleton, but its approved pass criterion is *segment loss-cost ranking stability* and it must report *excess-share by segment* (P2-D1a, ADR-012). Therefore, Q1 strictly requires the Stage 4 segment grid (F05). The stage order (Stage 3 GLM skeleton → Stage 4 Segments → Stage 5 Q1 Cap Sweep) honors this dependency naturally without modifying any approved decision.
+**Sequencing dependency note:** Q1 (Cap Sweep) is listed in the implementation plan's §5 qualification table as needing the F02/F03 skeleton, but its approved pass criterion is _segment loss-cost ranking stability_ and it must report _excess-share by segment_ (P2-D1a, ADR-012). Therefore, Q1 strictly requires the Stage 4 segment grid (F05). The stage order (Stage 3 GLM skeleton → Stage 4 Segments → Stage 5 Q1 Cap Sweep) honors this dependency naturally without modifying any approved decision.
 
 **Stage 0 blocking clarification:** D2a fixes the DGP unit as all 413,169 policies; D6 fixes evaluation on held-out policies (`test_size: 0.20`); Q2 specifies testing sample sizes n ∈ {25k, 100k, 250k, 413k}. If 20% is held out, the estimator's training split is ~330k, so 413k cannot be pure training rows. Stage 0 must confirm whether Q2 sample sizes represent total dataset slices (with the 80/20 split applied inside each) or pure training samples. This must be resolved before Stage 7 begins.
 
@@ -63,24 +64,24 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 
 ## 3. Stage Index
 
-| Stage | Name | Primary Deliverable | ADR Implements | Falsification | Hard Gate (One-Line Summary) |
-|---|---|---|---|---|---|
-| **0** | Pre-Implementation Verification | Baseline audit, V1–V9 checks, EDA resolution | None new | Evidence reconciliation against live repository | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
-| **1** | Raw Intake & Raw Data Contract | Checksum manifest, raw GX suite, fixtures | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails |
-| **2** | Deterministic Feature Pipeline | Dual-view pipeline, clip logging, versioned artifacts | ADR-012 | None (re-run determinism verified by assertion) | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage |
-| **3** | GLM Baseline & Calibration Reporting | Cap-parameterized Tweedie GLM & deviance report | ADR-012 | None | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified |
-| **4** | Segment Definition & Tier 1 Contract | 36-cell grid, merge rule, Pydantic schema | ADR-014 | Injected `proposed_adjustment` field is rejected by schema | ✅ **PASSED** — 35 segments, floor met, schema rejects Δ; ratio-of-sums tested |
-| **5** | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report | ADR-012 | None (evidence-gathering qualification) | ✅ **PASSED** — Cap €100,000; Spearman ≥0.98 / deviance ≤1%; excess concentration escalated |
-| **6** | Semi-Synthetic DGP & Training Contract | Training table, truth sidecar, manifest, GX suite | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds |
-| **7** | Qualification Q2 — Estimator Scale | Scale, nuisance family & runtime report | ADR-013 | None (evidence-gathering qualification) | All grid cells run; budget criteria met; scale and nuisance family selected |
-| **8** | Causal Estimator & Segment Inference | Trained estimator & segment-average intervals | ADR-013 | None | Segment intervals are finite, self-consistent, and on the segment average |
-| **9** | Validation Harness & Q3 Calibration | Metric harness, negative/positive controls, thresholds | ADR-013 | Negative controls (unadjusted, shuffled, zero-effect) fail harness | Controls fail; positive control passes; thresholds frozen with margin |
-| **10** | Final-Seed Validation Gate | Multi-seed recovery evaluation (E1 close) | ADR-013 | Attempted modification of frozen threshold is detected & blocked | Worst-seed & median pass frozen thresholds on held-out policies; E1 met |
-| **11** | Hidden-Confounder Sensitivity | Degradation curve & robustness value | ADR-013 | None (skipped-cell guard asserted in gate) | Full grid run with no skips; robustness value recorded; S4 strength identified |
-| **12** | Registry & Human-Gated Promotion | Packaged artifact, SQLite tracking, alias promotion | ADR-014 | Promotion to `approved` without human review/lineage is rejected | Pipeline sets `candidate`; `approved` requires review + lineage; serving is plain data |
-| **13** | Showcase Slice | Four curated presets rendering from `approved` (E2 close) | ADR-009, ADR-014 | Response schema rejects Δ field; banner presence asserted | 4 presets render from `approved`; no Δ field; model validation banner present; E2 met |
-| **14** | DAG, Config & CI Tiers / Reproducibility | 10-stage DVC DAG, `params.yaml`, CI-smoke tier | ADR-015, ADR-003 | None (reproducibility verified by re-run) | CI-smoke green with ≥65% Tier 1 coverage; `dvc repro` reproduces bit-identical |
-| **15** | ADR Consolidation & Phase Sign-Off | Complete PIR, validated ADRs, Phase 3 entry | ADR-012…015 | Documentation-to-reality audit of all exit claims | E1–E6 independently verified; PIR complete; human sign-off recorded |
+| Stage  | Name                                     | Primary Deliverable                                       | ADR Implements   | Falsification                                                           | Hard Gate (One-Line Summary)                                                                             |
+| ------ | ---------------------------------------- | --------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **0**  | Pre-Implementation Verification          | Baseline audit, V1–V9 checks, EDA resolution              | None new         | Evidence reconciliation against live repository                         | ✅ **PASSED** — All V-checks recorded; EDA gaps closed; Q2 ambiguity resolved; baseline commit `04903e6` |
+| **1**  | Raw Intake & Raw Data Contract           | Checksum manifest, raw GX suite, fixtures                 | ADR-015, ADR-003 | Orphan severity record halts the DVC DAG before versioning              | ✅ **PASSED** — Valid data passes; malformed fixtures fail named rules; tamper fails                     |
+| **2**  | Deterministic Feature Pipeline           | Dual-view pipeline, clip logging, versioned artifacts     | ADR-012          | None (re-run determinism verified by assertion)                         | ✅ **PASSED** — Identical output on identical input; clips counted; no composite/claims leakage          |
+| **3**  | GLM Baseline & Calibration Reporting     | Cap-parameterized Tweedie GLM & deviance report           | ADR-012          | None                                                                    | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified                     |
+| **4**  | Segment Definition & Tier 1 Contract     | 36-cell grid, merge rule, Pydantic schema                 | ADR-014          | Injected `proposed_adjustment` field is rejected by schema              | ✅ **PASSED** — 35 segments, floor met, schema rejects Δ; ratio-of-sums tested                           |
+| **5**  | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report             | ADR-012          | None (evidence-gathering qualification)                                 | ✅ **PASSED** — Cap €100,000; Spearman ≥0.98 / deviance ≤1%; excess concentration escalated              |
+| **6**  | Semi-Synthetic DGP & Training Contract   | Training table, truth sidecar, manifest, GX suite         | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds                                 |
+| **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | All grid cells run; budget criteria met; scale and nuisance family selected                              |
+| **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | Segment intervals are finite, self-consistent, and on the segment average                                |
+| **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | Controls fail; positive control passes; thresholds frozen with margin                                    |
+| **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | Worst-seed & median pass frozen thresholds on held-out policies; E1 met                                  |
+| **11** | Hidden-Confounder Sensitivity            | Degradation curve & robustness value                      | ADR-013          | None (skipped-cell guard asserted in gate)                              | Full grid run with no skips; robustness value recorded; S4 strength identified                           |
+| **12** | Registry & Human-Gated Promotion         | Packaged artifact, SQLite tracking, alias promotion       | ADR-014          | Promotion to `approved` without human review/lineage is rejected        | Pipeline sets `candidate`; `approved` requires review + lineage; serving is plain data                   |
+| **13** | Showcase Slice                           | Four curated presets rendering from `approved` (E2 close) | ADR-009, ADR-014 | Response schema rejects Δ field; banner presence asserted               | 4 presets render from `approved`; no Δ field; model validation banner present; E2 met                    |
+| **14** | DAG, Config & CI Tiers / Reproducibility | 10-stage DVC DAG, `params.yaml`, CI-smoke tier            | ADR-015, ADR-003 | None (reproducibility verified by re-run)                               | CI-smoke green with ≥65% Tier 1 coverage; `dvc repro` reproduces bit-identical                           |
+| **15** | ADR Consolidation & Phase Sign-Off       | Complete PIR, validated ADRs, Phase 3 entry               | ADR-012…015      | Documentation-to-reality audit of all exit claims                       | E1–E6 independently verified; PIR complete; human sign-off recorded                                      |
 
 ---
 
@@ -161,6 +162,7 @@ For each feature folder in `reports/docs/phases/phase_2/`:
 **Evidence:** Executed outcomes for Stage 0 (V1–V9 outputs, EDA gap closure, Q2 sample-size resolution) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-0--pre-implementation-verification--dependency-check).
 
 **Inputs / Dependencies:**
+
 - `data/raw/freMTPLfreq.csv.zip` and `data/raw/freMTPLsev.csv` present and checksum-verified.
 - `uv.lock` and Python 3.12 environment.
 
@@ -181,6 +183,7 @@ All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empiric
 **Evidence:** Executed outcomes for Stage 1 (checksum verification, policy-level joining, 20 GX expectations pass, 8 malformed fixtures fail, orphan severity falsification) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-1--raw-intake--raw-data-contract).
 
 **Inputs / Dependencies:**
+
 - Stage 0 baseline accepted.
 - Raw CSV files in `data/raw/`.
 
@@ -201,6 +204,7 @@ Raw GX suite passes clean on valid raw data; each malformed fixture fails its sp
 **Evidence:** Executed outcomes for Stage 2 (421 exposure clips, 307/410 tail clips, deterministic hashes, 14/27-column views, metadata round-trip) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-2--deterministic-feature-pipeline).
 
 **Inputs / Dependencies:**
+
 - Stage 1 raw data contract validated and versioned.
 - Stage 0 unbinned distribution metrics.
 
@@ -220,6 +224,7 @@ Pipeline produces identical outputs on repeated runs; all clips and exclusions a
 **Evidence:** Executed outcomes for Stage 3 (selected `p=1.84`, holdout deviance 16.9016, decile/segment A/E, artifact hashes) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-3--glm-loss-cost-baseline--calibration-reporting).
 
 **Inputs / Dependencies:**
+
 - Stage 2 feature pipeline validated.
 - Training and held-out test splits generated with fixed seed (`tier1_ml.random_state: 42`).
 
@@ -239,6 +244,7 @@ Tweedie GLM converges without numerical errors; holdout mean deviance and decile
 **Evidence:** Executed outcomes for Stage 4 (35 realized segments, 2,234-policy merged cell, floor 1,067, portfolio loss cost €126.53/yr, artifact hashes) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-4--segment-definition--tier-1-output-contract).
 
 **Inputs / Dependencies:**
+
 - Stage 2 feature pipeline and Stage 3 GLM fitted values.
 - Segment definition approved in ADR-014 / P2-D3.
 
@@ -258,6 +264,7 @@ All policies map to valid segments; every realized segment meets the ≥1,000-po
 **Evidence:** Executed outcomes for Stage 5 (selected cap €100,000, excess load 1.1988, Spearman 0.9992 / deviance 0.406% at the passing transition, excess concentration 62.9×) are recorded in [`stage_evidence.md`](stage_evidence.md#stage-5--qualification-q1-loss-cap-sweep--final-calibration) and [`q1_cap_sweep_report.md`](q1_cap_sweep_report.md).
 
 **Inputs / Dependencies:**
+
 - Stage 3 parameterized GLM baseline.
 - Stage 4 segment definitions.
 
@@ -270,11 +277,14 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 
 ---
 
-### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04)
+### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04) ✅ **PASSED**
 
 **Goal:** Construct the isolated semi-synthetic data-generating process (DGP) with known ground truth, enforce strict physical separation of truth from estimator inputs, and gate training data ingestion with a dedicated Great Expectations contract.
 
+**Evidence:**
+
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/004_semi-synthetic-dgp/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Implement the synthetic treatment and outcome generator in `src/aegis/pipelines/synthetic_dgp.py`:
    - Unit: all 413,169 policies with equal weight; observed exposure excluded from DGP covariates (A1, R12).
@@ -298,6 +308,7 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 6. Implement import-boundary test: assert that modules in `aegis.pipelines.causal` cannot import from `aegis.pipelines.truth_loader`.
 
 **Inputs / Dependencies:**
+
 - Stage 2 cleaned feature pipeline.
 - Stage 5 finalized loss-cost baseline and parameters.
 
@@ -306,7 +317,7 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 **Falsification:**
 Plant a synthetic truth column (`tau_ground_truth`) into a test training-table fixture and run the training GX checkpoint. Confirm the suite fails loudly with an unapproved-column error and halts the pipeline. Run the import-boundary test and confirm it fails if an import of the truth loader is injected into the causal estimator package.
 
-**Gate 6 — Hard Close:**
+**Gate 6 — Hard Close:** ✅ **PASSED (2026-10-26)**
 All 5 DGP self-tests pass within stated tolerances; training-table GX suite passes valid data and rejects truth-column fixture; truth loader import boundary is verified; three separate physical artifacts are produced.
 
 ---
@@ -316,6 +327,7 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 **Goal:** Execute qualification test Q2 across sample sizes and nuisance-model configurations to establish the optimal estimator training scale within runtime and memory budgets, closing the open P2-D5 decision.
 
 **Actions:**
+
 1. Using the Stage 6 DGP training data and Stage 4 segment definitions, run `CausalForestDML` across the sample sizes resolved in Stage 0 (e.g. $n \in \{25\text{k}, 100\text{k}, 250\text{k}, n_{\text{max}}\}$) on pilot seeds.
 2. Compare two nuisance model families:
    - Gradient-Boosted Trees (`GradientBoostingClassifier` / `GradientBoostingRegressor` from scikit-learn).
@@ -332,6 +344,7 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 6. Freeze the selected sample size $n^*$, cross-fitting folds ($cv=5$), and nuisance model choices in `params.yaml`.
 
 **Inputs / Dependencies:**
+
 - Stage 6 DGP training data.
 - Stage 0 resolution of sample-size semantics.
 - Stage 0 hardware baseline (V8).
@@ -350,6 +363,7 @@ Q2 report written with zero skipped cells; scale and nuisance models selected pe
 **Goal:** Implement the production `CausalForestDML` training pipeline and segment-level inference engine under the frozen Q2 configuration, generating finite, self-consistent confidence intervals on segment-average treatment effects.
 
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/006_causal-estimator/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Implement estimator training in `src/aegis/pipelines/causal_estimator.py`:
    - Fit `CausalForestDML` on training split only (strictly zero evaluation on training data).
@@ -361,6 +375,7 @@ Q2 report written with zero skipped cells; scale and nuisance models selected pe
 5. Ensure estimator objects remain decoupled from the serving inference path (packaged as non-promotable run artifacts).
 
 **Inputs / Dependencies:**
+
 - Stage 6 DGP training data and truth sidecar.
 - Stage 7 frozen estimator scale and nuisance configuration.
 
@@ -378,6 +393,7 @@ Estimator fits cleanly on training data; segment-average point estimates and int
 **Goal:** Construct the multi-seed validation harness, prove its sensitivity by executing required negative controls, and calibrate numeric gate thresholds on pilot seeds (Q3) without peeking at final validation seeds.
 
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/007_validation-gate/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Implement validation metric calculation in `src/aegis/pipelines/validation_harness.py`:
    - $m_1$: Segment-level Spearman correlation $\rho(\hat{\tau}_{\text{seg}}, \tau_{\text{seg}})$.
@@ -398,6 +414,7 @@ Estimator fits cleanly on training data; segment-average point estimates and int
 6. Write `reports/docs/phases/phase_2/q3_threshold_calibration_report.md` and freeze final numeric thresholds in `params.yaml` under `tier1_ml.validation_thresholds`.
 
 **Inputs / Dependencies:**
+
 - Stage 8 causal estimator and segment inference.
 - Pilot random seeds disjoint from final evaluation seeds.
 
@@ -416,6 +433,7 @@ All three negative controls demonstrably fail the harness; positive control pass
 **Goal:** Execute the definitive multi-seed validation campaign across disjoint final seeds to prove recovery of the known causal treatment effect, formally satisfying Roadmap Exit Criterion E1.
 
 **Actions:**
+
 1. Execute the validation campaign across $K$ final seeds ($K \ge 5$, varying both DGP noise and estimator random seeds) on held-out test policies.
 2. Compute the approved summary gate statistics across seeds:
    - **Worst-seed performance:** must exceed the frozen floor threshold for all metrics ($m_1$ through $m_5$).
@@ -428,6 +446,7 @@ All three negative controls demonstrably fail the harness; positive control pass
 5. Apply post-hoc immutability check: verify that any attempt to alter a frozen threshold after the run invalidates the validation artifact checksum.
 
 **Inputs / Dependencies:**
+
 - Stage 8 trained estimator pipeline.
 - Stage 9 frozen validation thresholds.
 - Disjoint final seed family.
@@ -447,6 +466,7 @@ Worst-seed and median-seed metrics beat frozen thresholds across all $K$ seeds; 
 **Goal:** Execute an unobserved-confounding sensitivity sweep over the known synthetic benchmark to establish the causal estimate's robustness value and generate the degradation curve feeding showcase scenario S4.
 
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/008_confounder-sensitivity/tasks.md`.
 2. Implement hidden-confounder injection in `src/aegis/pipelines/sensitivity.py`:
    - Inject an unobserved confounder $U \sim \mathcal{N}(0, 1)$ simultaneously into treatment assignment $T$ and outcome $Y$ with varying coupling strengths $(\gamma_T, \gamma_Y)$.
@@ -458,6 +478,7 @@ Worst-seed and median-seed metrics beat frozen thresholds across all $K$ seeds; 
 6. Record the sensitivity degradation curve in `artifacts/sensitivity_summary.json` and select the representative degraded case for showcase Scenario S4.
 
 **Inputs / Dependencies:**
+
 - Stage 6 DGP generation pipeline.
 - Stage 10 validated causal estimator and frozen thresholds.
 
@@ -475,6 +496,7 @@ All 10 sensitivity grid cells execute successfully with zero skips; degradation 
 **Goal:** Package Tier 1 outputs into a promotable, auditable registry artifact and enforce a strict human-review gate that permits `candidate` assignment by automated pipelines, but requires human sign-off for `approved` promotion.
 
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/009_registry-promotion/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Implement artifact packaging in `src/aegis/pipelines/registry.py`:
    - Package segment output table (`Tier1SegmentOutput` CSV/Parquet conforming to ADR-014).
@@ -491,6 +513,7 @@ All 10 sensitivity grid cells execute successfully with zero skips; degradation 
 6. Verify serving load behavior: confirm that loading the model for inference reads plain segment tables and never deserializes a pickled scikit-learn or EconML estimator.
 
 **Inputs / Dependencies:**
+
 - Stage 4 Tier 1 segment output schema.
 - Stage 5 GLM calibration report.
 - Stage 10 causal validation summary.
@@ -511,11 +534,12 @@ Attempt to run `promote_model.py` to assign the `approved` alias without providi
 **Goal:** Implement the glass-box developer showcase demo slice reading from the `approved` segment artifact, displaying only $\epsilon$, confidence intervals, and validation metrics, with the INV-5 exemption enforced by construction.
 
 **Actions:**
+
 1. Create `reports/docs/phases/phase_2/011_showcase-slice/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Configure the FastAPI serving layer (`src/aegis/api/`) and Jinja2 templates:
    - Connect `model_service.py` to resolve model metadata strictly from the MLflow `approved` alias.
    - Serve Chart.js as a local static asset (zero external CDN dependency in production/offline mode).
-   - Add persistent warning banner to every page: *"Model validation demo on semi-synthetic data — not a pricing recommendation."*
+   - Add persistent warning banner to every page: _"Model validation demo on semi-synthetic data — not a pricing recommendation."_
 3. Implement the four approved curated preset scenarios:
    - **Scenario S1 (Large segment):** Well-recovered driver segment with tight confidence intervals.
    - **Scenario S2 (Small segment):** Sparse policy segment exhibiting wide, honest confidence intervals.
@@ -527,6 +551,7 @@ Attempt to run `promote_model.py` to assign the `approved` alias without providi
 5. Re-enable and update existing showcase unit tests in `tests/unit/test_showcase.py`, removing the temporary skip marker.
 
 **Inputs / Dependencies:**
+
 - Stage 12 `approved` registered model artifact.
 - Stage 5 cap sweep findings (for S3) and Stage 11 sensitivity findings (for S4).
 
@@ -545,6 +570,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 **Goal:** Assemble the complete 10-stage DVC pipeline DAG with strict INV-3 validation ordering, formalize execution tiers (T1 CI-smoke, T2 local repro, T3 validation campaign), and prove reproducible execution.
 
 **Actions:**
+
 1. Assemble `dvc.yaml` into the unified 10-stage DAG:
    $$\text{ingest\_raw} \longrightarrow \text{validate\_raw\_gx} \longrightarrow \text{build\_features} \longrightarrow \text{fit\_baseline} \longrightarrow \text{generate\_dgp} \longrightarrow \text{validate\_training\_gx} \longrightarrow \text{train\_estimator} \longrightarrow \text{validate\_recovery} \longrightarrow \text{register\_candidate} \longrightarrow \text{version\_artifacts}$$
 2. Verify INV-3 DAG ordering: confirm that no stage producing versioned data can execute unless its upstream GX validation stage completes successfully.
@@ -561,6 +587,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 5. Prove bit-for-bit data reproducibility: run `dvc repro` twice from scratch on the same machine; verify that output hashes for cleaned data, DGP table, and truth sidecar are bit-identical.
 
 **Inputs / Dependencies:**
+
 - All features P2-F01 through P2-F11 completed.
 
 **ADR Implements:** ADR-015 (tiered reproducibility, DAG ordering); ADR-003 amendment; P2-D8, P2-D10.
@@ -577,6 +604,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 **Goal:** Close the loop between **decided $\to$ built $\to$ verified $\to$ recorded**, update the authoritative architecture ledger, complete the Post-Implementation Review, and verify that all conditions for advancing to Phase 3 are satisfied.
 
 **Actions:**
+
 1. Record final empirical qualification outcomes in `implementation_plan.md` §6:
    - Final chosen loss cap and excess load (closes Q1 / P2-D1a).
    - Final estimator scale, nuisance configuration, and runtime metrics (closes Q2 / P2-D5).
@@ -599,6 +627,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 7. Present complete audit evidence and obtain formal human sign-off for Phase 2 close-out.
 
 **Inputs / Dependencies:**
+
 - Stages 0 through 14 passed and evidenced.
 
 **ADR Implements:** ADR-012 … ADR-015 status finalization (marks Validated).
@@ -650,21 +679,21 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 
 ## 8. Summary Table & Stage Record
 
-| Stage | Name | Primary Deliverable | ADRs | Falsification | Hard Gate Summary | Status |
-|---|---|---|---|---|---|---|
-| **0** | Baseline & Preconditions | Verified environment, recorded V-checks | None | Evidence audit | All preconditions met; baseline stable | ✅ **PASSED** |
-| **1** | Raw Intake & Contract | Checksum manifest, raw GX suite | ADR-015 | Orphan severity halts DAG | Malformed raw data blocked before versioning | ✅ **PASSED** |
-| **2** | Feature Pipeline | Dual-view pipeline, clip logs | ADR-012 | None | Deterministic; clips logged; no leakage | ✅ **PASSED** |
-| **3** | GLM Loss-Cost Baseline | Parameterized Tweedie GLM & report | ADR-012 | None | Parameterized fit; deviance & A/E deciles | ✅ **PASSED** |
-| **4** | Segments & Tier 1 Schema | 36-cell grid, Pydantic schema | ADR-014 | Injected Δ rejected | No Δ field; merge floor met; ratio-of-sums | ✅ **PASSED** |
-| **5** | Qualification Q1 | Selected cap level & excess load | ADR-012 | None | Spearman $\ge 0.98$; deviance $\le 1\%$ | ✅ **PASSED** |
-| **6** | Semi-Synthetic DGP | Training table, truth sidecar, suite | ADR-013, 015 | Planted truth fails suite | DGP self-tests pass; truth isolation proven | ⬜ Not started |
-| **7** | Qualification Q2 | Scale, nuisance family & report | ADR-013 | None | Budget met; scale & nuisance family selected | ⬜ Not started |
-| **8** | Causal Estimator | Trained forest & segment intervals | ADR-013 | None | Finite, self-consistent segment intervals | ⬜ Not started |
-| **9** | Validation Harness & Q3 | Metric harness & frozen thresholds | ADR-013 | Negative controls fail | Controls fail; threshold separation proven | ⬜ Not started |
-| **10** | Final-Seed Validation | Multi-seed evaluation report (E1) | ADR-013 | Threshold tamper detected | Worst-seed & median beat frozen thresholds | ⬜ Not started |
-| **11** | Confounder Sensitivity | Degradation curve & robustness | ADR-013 | None | Full grid executed; robustness value recorded | ⬜ Not started |
-| **12** | Registry & Promotion | Packaged artifact, alias promotion | ADR-014 | Unapproved promotion fails | Pipeline sets candidate; approved needs review | ⬜ Not started |
-| **13** | Showcase Slice | 4 presets from `approved` (E2) | ADR-009, 014 | Response schema rejects Δ | 4 presets render; banner on all views | ⬜ Not started |
-| **14** | DAG, Config & CI Tiers | 10-stage DAG, CI-smoke (E5/E6) | ADR-015, 003 | None | Bit-identical repro; CI green ($\ge 65\%$ cov) | ⬜ Not started |
-| **15** | ADR Consolidation & Close | Validated ADRs, PIR, sign-off | ADR-012…015 | Documentation audit | E1–E6 verified; PIR complete; human sign-off | ⬜ Not started |
+| Stage  | Name                      | Primary Deliverable                     | ADRs         | Falsification              | Hard Gate Summary                              | Status         |
+| ------ | ------------------------- | --------------------------------------- | ------------ | -------------------------- | ---------------------------------------------- | -------------- |
+| **0**  | Baseline & Preconditions  | Verified environment, recorded V-checks | None         | Evidence audit             | All preconditions met; baseline stable         | ✅ **PASSED**  |
+| **1**  | Raw Intake & Contract     | Checksum manifest, raw GX suite         | ADR-015      | Orphan severity halts DAG  | Malformed raw data blocked before versioning   | ✅ **PASSED**  |
+| **2**  | Feature Pipeline          | Dual-view pipeline, clip logs           | ADR-012      | None                       | Deterministic; clips logged; no leakage        | ✅ **PASSED**  |
+| **3**  | GLM Loss-Cost Baseline    | Parameterized Tweedie GLM & report      | ADR-012      | None                       | Parameterized fit; deviance & A/E deciles      | ✅ **PASSED**  |
+| **4**  | Segments & Tier 1 Schema  | 36-cell grid, Pydantic schema           | ADR-014      | Injected Δ rejected        | No Δ field; merge floor met; ratio-of-sums     | ✅ **PASSED**  |
+| **5**  | Qualification Q1          | Selected cap level & excess load        | ADR-012      | None                       | Spearman $\ge 0.98$; deviance $\le 1\%$        | ✅ **PASSED**  |
+| **6**  | Semi-Synthetic DGP        | Training table, truth sidecar, suite    | ADR-013, 015 | Planted truth fails suite  | DGP self-tests pass; truth isolation proven    | ⬜ Not started |
+| **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ⬜ Not started |
+| **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | Finite, self-consistent segment intervals      | ⬜ Not started |
+| **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ⬜ Not started |
+| **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected  | Worst-seed & median beat frozen thresholds     | ⬜ Not started |
+| **11** | Confounder Sensitivity    | Degradation curve & robustness          | ADR-013      | None                       | Full grid executed; robustness value recorded  | ⬜ Not started |
+| **12** | Registry & Promotion      | Packaged artifact, alias promotion      | ADR-014      | Unapproved promotion fails | Pipeline sets candidate; approved needs review | ⬜ Not started |
+| **13** | Showcase Slice            | 4 presets from `approved` (E2)          | ADR-009, 014 | Response schema rejects Δ  | 4 presets render; banner on all views          | ⬜ Not started |
+| **14** | DAG, Config & CI Tiers    | 10-stage DAG, CI-smoke (E5/E6)          | ADR-015, 003 | None                       | Bit-identical repro; CI green ($\ge 65\%$ cov) | ⬜ Not started |
+| **15** | ADR Consolidation & Close | Validated ADRs, PIR, sign-off           | ADR-012…015  | Documentation audit        | E1–E6 verified; PIR complete; human sign-off   | ⬜ Not started |

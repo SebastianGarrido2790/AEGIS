@@ -52,6 +52,7 @@ def test_cli_parser_commands_structure() -> None:
         "build-glm",
         "build-segments",
         "run-q1",
+        "generate-dgp",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -355,3 +356,21 @@ def test_build_segments_cli_blocks_on_invalid_input(tmp_path: Path, config) -> N
         code = main()
     assert code == 1
     assert not (tmp_path / "segments.csv").exists()
+
+
+def test_generate_dgp_cli_dispatch() -> None:
+    """Verifies the generate-dgp subcommand routes to run_synthetic_dgp_pipeline."""
+    from unittest.mock import MagicMock
+
+    from aegis.schemas.dgp import DGPManifest
+
+    mock_manifest = MagicMock(spec=DGPManifest)
+    mock_manifest.sample_size = 413169
+    with (
+        patch("aegis.pipelines.cli.run_synthetic_dgp_pipeline", return_value=mock_manifest),
+        patch("sys.argv", ["cli.py", "generate-dgp"]),
+    ):
+        code = main()
+    assert code == 0
+
+

@@ -341,3 +341,39 @@ def test_cap_sweep_non_increasing_candidates_raise(tmp_path: Path) -> None:
         tmp_path, {"cap_candidates": [35432.0, 16109.0]}
     )
     assert "Configuration validation failed" in str(error)
+
+
+def test_synthetic_dgp_config_values() -> None:
+    """Verifies that approved Stage 6 DGP parameters load correctly."""
+    config = load_params()
+    dgp = config.tier1_ml.synthetic_dgp
+    assert dgp.random_seed == 42
+    assert dgp.corridor_width == 0.15
+    assert dgp.confounding_dial == 0.5
+    assert dgp.residual_std == 0.05
+    assert dgp.overlap_floor_var == 0.001
+    assert dgp.estimand_gap_tolerance == 0.02
+    assert dgp.dispersion_min_std == 0.010
+    assert dgp.homogeneity_max_corr == 0.05
+    assert dgp.elasticity_bound_product == 1.0
+    assert dgp.a_coeffs.base == 1.4
+    assert dgp.b_coeffs.base == 3.5
+
+    paths = config.tier1_ml.dgp_paths
+    assert paths.training_table == "data/processed/elasticity_training.csv"
+    assert paths.truth_sidecar == "data/processed/truth_sidecar.csv"
+    assert paths.manifest == "data/processed/dgp_manifest.json"
+
+
+def test_synthetic_dgp_invalid_corridor_raises(tmp_path: Path) -> None:
+    """Verifies that an out-of-range corridor width triggers ConfigurationError."""
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["synthetic_dgp"]["corridor_width"] = 1.5
+    target = tmp_path / "mutated_dgp_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(target)
+    assert "Configuration validation failed" in str(exc_info.value)
+

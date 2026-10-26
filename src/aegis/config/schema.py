@@ -207,6 +207,55 @@ class CapSweepConfig(BaseModel):
         return self
 
 
+class DGPACoeffsConfig(BaseModel):
+    """Parameters defining baseline renewal log-odds a(X) (Phase 2, P2-F04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base: float = Field(default=1.4)
+    driver_age_ge_25: float = Field(default=0.3)
+    car_age_lt_10: float = Field(default=0.2)
+
+
+class DGPBCoeffsConfig(BaseModel):
+    """Parameters defining price sensitivity slope b(X) (Phase 2, P2-F04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base: float = Field(default=3.5)
+    driver_age_ord: float = Field(default=-0.4)
+    car_age_ord: float = Field(default=0.3)
+    interaction: float = Field(default=-0.1)
+
+
+class SyntheticDGPConfig(BaseModel):
+    """Configuration for semi-synthetic data-generating process (Phase 2, P2-F04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    random_seed: int = Field(default=42)
+    corridor_width: float = Field(default=0.15, gt=0.0, lt=1.0)
+    confounding_dial: float = Field(default=0.5, ge=0.0, le=1.0)
+    residual_std: float = Field(default=0.05, gt=0.0)
+    overlap_floor_var: float = Field(default=0.001, gt=0.0)
+    estimand_gap_tolerance: float = Field(default=0.02, gt=0.0)
+    dispersion_min_std: float = Field(default=0.010, gt=0.0)
+    homogeneity_max_corr: float = Field(default=0.05, gt=0.0, le=1.0)
+    elasticity_bound_product: float = Field(default=1.0, gt=0.0)
+    a_coeffs: DGPACoeffsConfig = Field(default_factory=DGPACoeffsConfig)
+    b_coeffs: DGPBCoeffsConfig = Field(default_factory=DGPBCoeffsConfig)
+
+
+class DGPPathsConfig(BaseModel):
+    """Configuration for semi-synthetic DGP output paths (Phase 2, P2-F04)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    training_table: str = Field(default="data/processed/elasticity_training.csv")
+    truth_sidecar: str = Field(default="data/processed/truth_sidecar.csv")
+    manifest: str = Field(default="data/processed/dgp_manifest.json")
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -226,6 +275,8 @@ class Tier1MLConfig(BaseModel):
     cap_sweep: CapSweepConfig = Field(default_factory=CapSweepConfig)
     loss_cap: float | None = Field(default=None, gt=0.0)
     excess_load: float | None = Field(default=None, gt=1.0)
+    synthetic_dgp: SyntheticDGPConfig = Field(default_factory=SyntheticDGPConfig)
+    dgp_paths: DGPPathsConfig = Field(default_factory=DGPPathsConfig)
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":

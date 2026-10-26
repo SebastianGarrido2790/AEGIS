@@ -15,7 +15,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 3 | GLM Loss-Cost Baseline & Calibration Reporting | ✅ PASSED | 2026-10-21 | §Stage 3 |
 | 4 | Segment Definition & Tier 1 Output Contract | ✅ PASSED | 2026-10-21 | §Stage 4 |
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | ✅ PASSED | 2026-10-24 | §Stage 5 |
-| 6 | Semi-Synthetic DGP & Training Contract | Pending | — | — |
+| 6 | Semi-Synthetic DGP & Training Contract | ✅ PASSED | 2026-10-26 | §Stage 6 |
 | 7 | Qualification Q2: Estimator Training Scale & Budget | Pending | — | — |
 | 8 | Causal Estimator & Segment Inference | Pending | — | — |
 | 9 | Validation Harness & Q3 Threshold Calibration | Pending | — | — |
@@ -356,5 +356,47 @@ The sweep report is complete; the selected cap satisfies the Spearman ≥0.98 an
 ≤1% criteria; the excess-load distribution was computed and its material concentration
 recorded and escalated to the operator (uniform load + documented caveat); the cap and
 excess load are frozen in `params.yaml`. Stage 5 PASSED; Stage 6 is unlocked.
+
+---
+
+## Stage 6 — Semi-Synthetic DGP & Training Contract
+
+**Executed:** 2026-10-26 · **Gate 6:** ✅ PASSED · **Feature:** `P2-F04` (Full SDD)
+
+1. **Specification and plan:**
+   - `004_semi-synthetic-dgp/spec.md` APPROVED 2026-10-26 with OD-1 (bounded logistic retention $a(X)$ and price slope $b(X)$ with interaction), OD-2 (confounded pricing rule driven by standardized GLM loss cost plus noise), OD-3 (self-test thresholds: gap $\le 0.02$, overlap $\text{Var} \ge 0.001$, dispersion $\text{Std} \ge 0.010$, homogeneity $\max |\rho| \le 0.05$, bound $\max |\epsilon| \cdot 0.15 < 1.0$), and OD-4 (25 pre-treatment feature columns, `treatment_rate_change`, `renewed`, `segment_id`).
+   - `plan.md` and `tasks.md` written before implementation; all 8 tasks completed.
+
+2. **Automated DGP self-tests (empirical, 413,169 policies):**
+   - **Estimand gap:** Numerical integration of average slope over $[-0.15, +0.15]$ vs closed-form $\tau$: max segment gap = **0.00544** $\le 0.02000$ (worst segment: `D:25-44_C:5-9_Dens:501-2000`). ✅ PASSED.
+   - **Overlap:** Residual variance $\text{Var}(T \mid X) = \mathbf{0.00248} \ge 0.00100$ (residual std $\approx 0.0498$). ✅ PASSED.
+   - **Dispersion:** Between-segment standard deviation of ground truth $\tau_{\text{seg}} = \mathbf{0.11557} \ge 0.01000$. ✅ PASSED.
+   - **Within-segment homogeneity:** Max Pearson correlation between true elasticity $\epsilon_i$ and expected loss cost within segment = **0.00000** $\le 0.05000$ across all 35 segments (constant within segments by construction). ✅ PASSED.
+   - **Bound guarantee:** Max $|\epsilon_i| \cdot 0.15 = \mathbf{0.12166} < 1.00000$ (max $|\epsilon_i| \approx 0.811$). Volume never floors at zero. ✅ PASSED.
+
+3. **Data contracts and Falsification:**
+   - Re-based `data_contracts/elasticity_training_suite.json` with 12 expectations enforcing exact 29 columns, unique `PolicyID`, $T \in [-0.15, +0.15]$, $Y \in \{0, 1\}$, and prohibiting all truth columns.
+   - Full 413,169-row training table validated against suite: **12/12 expectations PASSED** (`data/validated/elasticity_training_validation_report.json`).
+   - **Falsification 1:** Planted truth column (`tau_ground_truth`) into training fixture failed GX checkpoint loudly with `DataContractError` and identified prohibited column.
+   - **Falsification 2:** AST import-boundary test verified that no module in `src/aegis` imports `truth_loader`; caught and halted injected import.
+
+4. **Artifacts (SHA-256):**
+   - `elasticity_training.csv` (45,779,288 B): `f08918631e891203f845f7107d9e7c33572d817b16f81d75b7f737424471cdb8`
+   - `truth_sidecar.csv` (25,145,399 B): `21b1713ba4089c536aea6d0b47770fb8683cd10f26d5efd7d7e64a7e231cda1e`
+   - `dgp_manifest.json` (1,805 B): `b735363459b337f0751ba56218e4c533205be8c92ce0afade475c3a164302121`
+   - Config fingerprint: `09ff04b0df4aa448ff5b643f8d0ddab57700308c14a58d24d6d5c37991fbc887`
+   - Two consecutive generation runs produced 100% bit-identical artifacts.
+
+5. **DVC:** added `generate_dgp` and `validate_training_gx` stages after `build_segments`; `uv run dvc repro` ran all 11 stages cleanly.
+
+6. **Verification:**
+   - `uv run pytest -q`: **194 passed, 2 skipped** (showcase presets pending Stage 8/12 model registration).
+   - `uv run ruff check .`: clean; `uv run pyright`: 0 errors, 0 warnings.
+   - `uv run python scripts/check_module_size.py`: **38/38 modules** within 1,000 lines (`synthetic_dgp.py` 493 lines, `cli.py` 598 lines).
+
+### Gate 6 outcome
+
+All 5 automated DGP self-tests passed within stated tolerances; training-table Great Expectations contract passed the full 413,169-row dataset and rejected the truth-column fixture; truth loader import boundary is verified; three separate physical artifacts are produced deterministically. Stage 6 PASSED; Stage 7 (Qualification Q2: Estimator Scale & Compute Benchmark) is unlocked.
+
 
 

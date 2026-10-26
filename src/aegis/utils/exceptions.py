@@ -52,3 +52,13 @@ class FallbackTriggeredError(AEGISError):
 
 class ModuleSizeExceededError(AEGISError):
     """Raised when a module exceeds the 1,000 line ceiling (INV-8)."""
+
+
+class DGPVerificationError(AEGISError):
+    """Raised when semi-synthetic DGP self-tests or generation constraints fail (P2-F04)."""
+
+
+class TruthIsolationError(AEGISError):
+    """Raised when truth sidecar access or truth column isolation boundaries are violated."""
+
+

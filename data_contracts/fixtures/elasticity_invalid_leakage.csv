@@ -1,4 +1,4 @@
-policy_id,driver_age,veh_age,annual_mileage,exposure,claim_count,claim_amount,premium,treatment_rate_change,post_treatment_retention,churn_flag
-POL-1001,35,3,12000,1.0,0,0.0,850.0,0.05,1,0
-POL-1002,52,7,15000,0.75,1,1200.5,1100.0,-0.02,0,1
-POL-1003,24,1,8000,0.50,0,0.0,1450.0,0.08,1,0
+PolicyID,driver_age_clipped,car_age_clipped,log_density,driver_age_band_ord,car_age_band_ord,power_ord,brand__renault_nissan_or_citroen,brand__japanese_except_nissan_or_korean,brand__opel_general_motors_or_ford,brand__volkswagen_audi_skoda_or_seat,brand__mercedes_chrysler_or_bmw,brand__fiat,brand__other,gas__regular,gas__diesel,region__centre,region__ile_de_france,region__bretagne,region__pays_de_la_loire,region__aquitaine,region__nord_pas_de_calais,region__poitou_charentes,region__basse_normandie,region__haute_normandie,region__limousin,treatment_rate_change,renewed,segment_id,tau_ground_truth
+1,46,0,4.330733,2,0,3,0,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0.045000,1,D:45-64_C:0-4_Dens:<=500,-0.250000
+2,46,0,4.330733,2,0,3,0,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,-0.020000,1,D:45-64_C:0-4_Dens:<=500,-0.250000
+3,38,2,8.131531,1,0,2,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0.080000,0,D:25-44_C:0-4_Dens:>2000,-0.280000

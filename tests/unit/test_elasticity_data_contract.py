@@ -36,7 +36,7 @@ def test_elasticity_valid_fixture_passes(config) -> None:
 
 
 def test_elasticity_range_violation_fixture_fails_specifically(config) -> None:
-    """Verifies that negative exposure triggers expect_column_values_to_be_between."""
+    """Verifies that out-of-corridor treatment triggers expect_column_values_to_be_between."""
     result = validate_elasticity_data(
         data_path=config.data_contracts.elasticity_invalid_range_fixture,
         suite_path=config.data_contracts.elasticity_suite_path,
@@ -46,12 +46,12 @@ def test_elasticity_range_violation_fixture_fails_specifically(config) -> None:
     assert len(result.failed_expectations) > 0
 
     failed_columns = [f["column"] for f in result.failed_expectations]
-    assert "exposure" in failed_columns
+    assert "treatment_rate_change" in failed_columns
     assert any("expect_column_values_to_be_between" in rule for rule in result.failure_rules)
 
 
 def test_elasticity_leakage_fixture_fails_specifically(config) -> None:
-    """Verifies that post-treatment feature leakage trips ExpectNoPostTreatmentLeakage."""
+    """Verifies that planted truth column (tau_ground_truth) trips ExpectNoPostTreatmentLeakage."""
     result = validate_elasticity_data(
         data_path=config.data_contracts.elasticity_invalid_leakage_fixture,
         suite_path=config.data_contracts.elasticity_suite_path,
@@ -66,7 +66,7 @@ def test_elasticity_leakage_fixture_fails_specifically(config) -> None:
     ]
     assert len(leakage_failures) == 1
     leaked_cols = leakage_failures[0]["result"]["details"]["leaked_columns"]
-    assert "post_treatment_retention" in leaked_cols or "churn_flag" in leaked_cols
+    assert "tau_ground_truth" in leaked_cols
 
 
 def test_elasticity_blocking_validation_raises_data_contract_error(config) -> None:

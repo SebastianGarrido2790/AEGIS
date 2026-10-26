@@ -83,6 +83,34 @@ stages:
       - data/processed/segment_definitions.json
       - data/processed/policy_segments.csv
 
+  generate_dgp:
+    cmd: uv run python -m aegis.pipelines.cli generate-dgp
+    deps:
+      - data/processed/features_forest.csv
+      - data/processed/policy_segments.csv
+      - data/processed/glm_fitted_loss_cost.csv
+      - params.yaml
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/synthetic_dgp.py
+      - src/aegis/config/schema.py
+      - src/aegis/schemas/dgp.py
+      - src/aegis/utils/exceptions.py
+    outs:
+      - data/processed/elasticity_training.csv
+      - data/processed/truth_sidecar.csv
+      - data/processed/dgp_manifest.json
+
+  validate_training_gx:
+    cmd: uv run python -m aegis.pipelines.cli validate-elasticity --data-path data/processed/elasticity_training.csv --suite-path data_contracts/elasticity_training_suite.json --report-path data/validated/elasticity_training_validation_report.json
+    deps:
+      - data/processed/elasticity_training.csv
+      - data_contracts/elasticity_training_suite.json
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/data_contracts.py
+      - src/aegis/pipelines/expectations.py
+    outs:
+      - data/validated/elasticity_training_validation_report.json
+
   # ==========================================
   # 2. Regulatory Corpus Data Pipeline Path
   # ==========================================

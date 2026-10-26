@@ -94,6 +94,30 @@ tier1_ml:
   # Frozen by Q1 (Stage 5): loss cap and uniform excess load.
   loss_cap: 100000.0
   excess_load: 1.1988
+  # Semi-synthetic DGP with known ground truth (P2-F04, ADR-013, P2-D2a/b).
+  synthetic_dgp:
+    random_seed: 42
+    corridor_width: 0.15
+    confounding_dial: 0.5
+    residual_std: 0.05
+    overlap_floor_var: 0.001
+    estimand_gap_tolerance: 0.02
+    dispersion_min_std: 0.010
+    homogeneity_max_corr: 0.05
+    elasticity_bound_product: 1.0
+    a_coeffs:
+      base: 1.4
+      driver_age_ge_25: 0.3
+      car_age_lt_10: 0.2
+    b_coeffs:
+      base: 3.5
+      driver_age_ord: -0.4
+      car_age_ord: 0.3
+      interaction: -0.1
+  dgp_paths:
+    training_table: "data/processed/elasticity_training.csv"
+    truth_sidecar: "data/processed/truth_sidecar.csv"
+    manifest: "data/processed/dgp_manifest.json"
 
 tier2_agents:
   groundedness_threshold: 0.85

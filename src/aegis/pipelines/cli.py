@@ -22,8 +22,10 @@ from aegis.pipelines.feature_pipeline import run_feature_pipeline
 from aegis.pipelines.glm_baseline import run_glm_baseline
 from aegis.pipelines.raw_intake import ingest_raw_data
 from aegis.pipelines.segments import run_segment_pipeline
+from aegis.pipelines.synthetic_dgp import run_synthetic_dgp_pipeline
 from aegis.utils.exceptions import (
     DataContractError,
+    DGPVerificationError,
     FeaturePipelineError,
     GLMBaselineError,
     SegmentError,
@@ -158,6 +160,17 @@ def run_q1_cap_sweep(
         return 0
     except (GLMBaselineError, SegmentError) as exc:
         print(f"[BLOCK] Cap sweep failed: {exc}")
+        return 1
+
+
+def generate_dgp() -> int:
+    """Generates semi-synthetic training and truth datasets with 5 self-tests (P2-F04)."""
+    try:
+        manifest = run_synthetic_dgp_pipeline()
+        print(f"[SUCCESS] Semi-synthetic DGP generated: {manifest.sample_size} policies.")
+        return 0
+    except DGPVerificationError as exc:
+        print(f"[BLOCK] DGP verification self-test failed: {exc}")
         return 1
 
 
@@ -524,6 +537,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown report destination (defaults to the Q1 report path)",
     )
 
+    subparsers.add_parser(
+        "generate-dgp",
+        help="Generate semi-synthetic DGP training data and truth sidecar (P2-F04)",
+    )
+
     return parser
 
 
@@ -570,6 +588,8 @@ def main() -> int:
         )
     if args.command == "run-q1":
         return run_q1_cap_sweep(args.input_path, args.work_dir, args.report_path)
+    if args.command == "generate-dgp":
+        return generate_dgp()
 
     return 1
 

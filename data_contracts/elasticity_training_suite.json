@@ -6,64 +6,77 @@
       "type": "expect_table_columns_to_match_set",
       "kwargs": {
         "column_set": [
-          "policy_id",
-          "driver_age",
-          "veh_age",
-          "exposure",
-          "claim_count",
-          "claim_amount",
-          "premium",
-          "treatment_rate_change"
+          "PolicyID",
+          "driver_age_clipped",
+          "car_age_clipped",
+          "log_density",
+          "driver_age_band_ord",
+          "car_age_band_ord",
+          "power_ord",
+          "brand__renault_nissan_or_citroen",
+          "brand__japanese_except_nissan_or_korean",
+          "brand__opel_general_motors_or_ford",
+          "brand__volkswagen_audi_skoda_or_seat",
+          "brand__mercedes_chrysler_or_bmw",
+          "brand__fiat",
+          "brand__other",
+          "gas__regular",
+          "gas__diesel",
+          "region__centre",
+          "region__ile_de_france",
+          "region__bretagne",
+          "region__pays_de_la_loire",
+          "region__aquitaine",
+          "region__nord_pas_de_calais",
+          "region__poitou_charentes",
+          "region__basse_normandie",
+          "region__haute_normandie",
+          "region__limousin",
+          "treatment_rate_change",
+          "renewed",
+          "segment_id"
         ],
-        "exact_match": false
+        "exact_match": true
       },
       "meta": {},
-      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3107",
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3101",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_no_post_treatment_leakage",
+      "kwargs": {
+        "prohibited_columns": [
+          "tau",
+          "epsilon",
+          "q0",
+          "true_effect",
+          "tau_ground_truth",
+          "fitted_loss_cost",
+          "baseline_renewal_q0",
+          "true_tau",
+          "true_epsilon"
+        ]
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3102",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "PolicyID"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3103",
       "severity": "critical"
     },
     {
       "type": "expect_column_values_to_not_be_null",
       "kwargs": {
-        "column": "policy_id"
+        "column": "PolicyID"
       },
       "meta": {},
-      "id": "594a0552-8d06-4db4-b374-05035e2e61e7",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "driver_age"
-      },
-      "meta": {},
-      "id": "0aa11542-7f15-45e1-b400-dff08cbd9f67",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "exposure"
-      },
-      "meta": {},
-      "id": "c9f8ce59-a512-4fa9-ae3c-03cb91f169f9",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "claim_count"
-      },
-      "meta": {},
-      "id": "7c97a82c-4ded-489b-b9e9-dd3269acf074",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "premium"
-      },
-      "meta": {},
-      "id": "81f06837-4293-4999-bd0d-0b556d3d945f",
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3104",
       "severity": "critical"
     },
     {
@@ -72,63 +85,76 @@
         "column": "treatment_rate_change"
       },
       "meta": {},
-      "id": "1147c2a8-fc73-4a4f-8be6-f8f20c64cf5c",
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3105",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "renewed"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3106",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "segment_id"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3107",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "driver_age_clipped"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3108",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "car_age_clipped"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3109",
+      "severity": "critical"
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "log_density"
+      },
+      "meta": {},
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3110",
       "severity": "critical"
     },
     {
       "type": "expect_column_values_to_be_between",
       "kwargs": {
-        "column": "driver_age",
-        "min_value": 16.0,
-        "max_value": 100.0
+        "column": "treatment_rate_change",
+        "min_value": -0.15,
+        "max_value": 0.15
       },
       "meta": {},
-      "id": "7c6c5033-02d3-4ad3-8da2-f83e265a9bc6",
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3111",
       "severity": "critical"
     },
     {
-      "type": "expect_column_values_to_be_between",
+      "type": "expect_column_values_to_be_in_set",
       "kwargs": {
-        "column": "exposure",
-        "min_value": 0.0
-      },
-      "meta": {},
-      "id": "eb9be41a-49ce-4f20-8065-44043a26c94c",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "claim_count",
-        "min_value": 0.0
-      },
-      "meta": {},
-      "id": "a8361c2e-d1b5-4008-b4c7-a71922d5f4ff",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "premium",
-        "min_value": 0.0
-      },
-      "meta": {},
-      "id": "ab7fb7f9-3149-406b-8e9e-7f2c8725afca",
-      "severity": "critical"
-    },
-    {
-      "type": "expect_no_post_treatment_leakage",
-      "kwargs": {
-        "prohibited_columns": [
-          "post_treatment_retention",
-          "post_loss_settlement",
-          "renewal_decision",
-          "post_policy_cancellation",
-          "churn_flag"
+        "column": "renewed",
+        "value_set": [
+          0,
+          1
         ]
       },
       "meta": {},
-      "id": "174f09f9-1aa5-49d8-b9dd-06b89cda89a8",
+      "id": "173b2e37-4496-42fc-b6f7-ce2c59bc3112",
       "severity": "critical"
     }
   ],
