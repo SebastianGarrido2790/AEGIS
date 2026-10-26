@@ -118,6 +118,12 @@ tier1_ml:
     training_table: "data/processed/elasticity_training.csv"
     truth_sidecar: "data/processed/truth_sidecar.csv"
     manifest: "data/processed/dgp_manifest.json"
+  # Frozen by Q2 (Stage 7, 2026-10-26): full-data GBT fit met the approved budgets.
+  estimator:
+    training_sample_size: 413169
+    nuisance_model: "gbt"
+    cv_folds: 5
+    runtime_budget_minutes: 30.0
 
 tier2_agents:
   groundedness_threshold: 0.85

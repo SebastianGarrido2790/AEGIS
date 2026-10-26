@@ -4,6 +4,8 @@ Strict Pydantic models for domain-nested parameters declared in params.yaml (ADR
 Fails loudly on missing keys, invalid types, or unexpected configuration fields.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -256,6 +258,28 @@ class DGPPathsConfig(BaseModel):
     manifest: str = Field(default="data/processed/dgp_manifest.json")
 
 
+class EstimatorConfig(BaseModel):
+    """Configuration for CausalForestDML estimator (Phase 2, Q2-frozen by Stage 7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    training_sample_size: int = Field(
+        default=413169,
+        gt=0,
+        description="Selected training sample size n* from Q2 qualification",
+    )
+    nuisance_model: Literal["gbt", "linear"] = Field(
+        default="gbt",
+        description="Nuisance model family selected by Q2: gbt or linear",
+    )
+    cv_folds: int = Field(default=5, gt=1)
+    runtime_budget_minutes: float = Field(
+        default=30.0,
+        gt=0.0,
+        description="Q2 runtime ceiling in minutes",
+    )
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -277,6 +301,7 @@ class Tier1MLConfig(BaseModel):
     excess_load: float | None = Field(default=None, gt=1.0)
     synthetic_dgp: SyntheticDGPConfig = Field(default_factory=SyntheticDGPConfig)
     dgp_paths: DGPPathsConfig = Field(default_factory=DGPPathsConfig)
+    estimator: EstimatorConfig = Field(default_factory=EstimatorConfig)
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":

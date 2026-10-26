@@ -475,9 +475,17 @@ A third variant (hidden confounder) is reserved for D7.
 
 > **APPROVED — Batch 3 (October 21, 2026):** Run Q2 at the four stated sample sizes and compare both nuisance-model families. The proposed 30-minute/80%-RAM budget and 0.02 recovery tolerance are approved as decision criteria. Q2 still selects the scale and configuration.
 
-**Approval.** Q2 method and budget criteria approved, October 21, 2026 (Batch 3); configuration is fixed by Q2. **Decision status.** Approved method; outcome unresolved — Q2.
+**Approval.** Q2 method and budget criteria approved, October 21, 2026 (Batch 3); configuration is fixed by Q2. **Decision status.** Approved method; outcome resolved by Q2 on October 26, 2026.
 
 **Consequences.** The Q2 report becomes the basis for K (seeds) in D6 and the grid in D7.
+
+**Q2 outcome — October 26, 2026.** All eight sample-size/family cells completed on seed 42.
+Both full-data fits met the 30-minute / 80%-RAM budget: GBT took 514.8 seconds and peaked at
+2,534.3 MB RSS; linear took 171.4 seconds and peaked at 2,792.3 MB RSS. Full-data segment
+Spearman was 0.9014 (GBT) and 0.9031 (linear), a 0.0017 gap within the approved 0.02
+tolerance. The tie-break therefore selects GBT at 413,169 policies with five-fold
+cross-fitting. The frozen values are in `params.yaml`; the full grid and checksums are in
+`q2_estimator_scale_report.md`.
 
 ---
 

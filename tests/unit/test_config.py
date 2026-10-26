@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from aegis.config.loader import load_params
-from aegis.config.schema import AEGISConfig
+from aegis.config.schema import AEGISConfig, EstimatorConfig
 from aegis.utils.exceptions import ConfigurationError
 
 
@@ -20,6 +20,15 @@ def test_load_valid_params(tmp_path: Path) -> None:
     assert config.governance.audit_storage_backend == "sqlite"
     assert config.data_contracts.fixtures_dir == "data_contracts/fixtures"
     assert config.dvc.remote_name == "local_storage"
+    assert config.tier1_ml.estimator.training_sample_size == 413169
+    assert config.tier1_ml.estimator.nuisance_model == "gbt"
+    assert config.tier1_ml.estimator.cv_folds == 5
+    assert config.tier1_ml.estimator.runtime_budget_minutes == 30.0
+
+
+def test_estimator_config_rejects_unknown_nuisance_family() -> None:
+    with pytest.raises(ValueError):
+        EstimatorConfig.model_validate({"nuisance_model": "random_forest"})
 
 
 def test_load_missing_file_raises_configuration_error(tmp_path: Path) -> None:
@@ -376,4 +385,3 @@ def test_synthetic_dgp_invalid_corridor_raises(tmp_path: Path) -> None:
     with pytest.raises(ConfigurationError) as exc_info:
         load_params(target)
     assert "Configuration validation failed" in str(exc_info.value)
-

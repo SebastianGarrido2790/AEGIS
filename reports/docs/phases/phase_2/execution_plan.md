@@ -47,9 +47,9 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **P2-F01** | `001_raw-intake-contract`         | Raw intake, checksum manifest & raw-table contract            | Light     | Stage 1                          | —             | ✅ Implemented |
 | **P2-F02** | `002_feature-pipeline`            | Deterministic dual-view feature pipeline & tail handling      | Full      | Stage 2                          | F01           | ✅ Implemented |
 | **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report            | Full      | Stage 3 (finalized Stage 5)      | F02           | ✅ Implemented |
-| **P2-F04** | `004_semi-synthetic-dgp`          | Semi-synthetic DGP, truth sidecar & training contract         | Full      | Stage 6                          | F02, F03      | ⬜ Not started |
+| **P2-F04** | `004_semi-synthetic-dgp`          | Semi-synthetic DGP, truth sidecar & training contract         | Full      | Stage 6                          | F02, F03      | ✅ Implemented |
 | **P2-F05** | `005_segments-tier1-contract`     | 36-cell segment definition & Tier 1 Pydantic schema           | Full      | Stage 4                          | F02, F03      | ✅ Implemented |
-| **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | ⬜ Not started |
+| **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | Stage 7 complete; Stage 8 pending |
 | **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ⬜ Not started |
 | **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ⬜ Not started |
 | **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ⬜ Not started |
@@ -155,7 +155,7 @@ For each feature folder in `reports/docs/phases/phase_2/`:
 
 ## 5. Implementation Stages
 
-### Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **PASSED**
+### Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **COMPLETED**
 
 **Goal:** Establish that the baseline repository state is verified, all preconditions are satisfied, open EDA gaps are closed or formally accepted, and the Q2 sample-size ambiguity is resolved before any code is written.
 
@@ -176,7 +176,7 @@ All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empiric
 
 ---
 
-### Stage 1 — Raw Intake & Raw Data Contract (P2-F01) ✅ **PASSED**
+### Stage 1 — Raw Intake & Raw Data Contract (P2-F01) ✅ **COMPLETED**
 
 **Goal:** Enforce INV-3 at the very first pipeline node: raw observational data cannot be versioned or processed without passing a Great Expectations contract grounded in the empirical EDA findings.
 
@@ -197,7 +197,7 @@ Raw GX suite passes clean on valid raw data; each malformed fixture fails its sp
 
 ---
 
-### Stage 2 — Deterministic Feature Pipeline (P2-F02) ✅ **PASSED**
+### Stage 2 — Deterministic Feature Pipeline (P2-F02) ✅ **COMPLETED**
 
 **Goal:** Establish a single, deterministic feature transformation pipeline that emits two distinct views (GLM categorical/banded view and Causal Forest numeric/ordinal view) with zero leverage-inducing composite indices and strict exclusion of claims history from elasticity covariates.
 
@@ -217,7 +217,7 @@ Pipeline produces identical outputs on repeated runs; all clips and exclusions a
 
 ---
 
-### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03) ✅ **PASSED**
+### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03) ✅ **COMPLETED**
 
 **Goal:** Build a single, cap-parameterized Tweedie GLM (compound Poisson-Gamma) as the foundational actuarial loss-cost baseline and $Losses_0$ source, with a standardized calibration reporting suite.
 
@@ -237,7 +237,7 @@ Tweedie GLM converges without numerical errors; holdout mean deviance and decile
 
 ---
 
-### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05) ✅ **PASSED**
+### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05) ✅ **COMPLETED**
 
 **Goal:** Formalize the 36-cell actuarial segment grid as the universal analysis unit across AEGIS, and define the typed Tier 1 Pydantic output contract with strict structural exclusion of proposed price adjustments.
 
@@ -257,7 +257,7 @@ All policies map to valid segments; every realized segment meets the ≥1,000-po
 
 ---
 
-### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration ✅ **PASSED**
+### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration ✅ **COMPLETED**
 
 **Goal:** Execute qualification test Q1 across EDA-grounded candidate thresholds to select the optimal loss cap and portfolio excess load, closing the open P2-D1a level.
 
@@ -277,7 +277,7 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 
 ---
 
-### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04) ✅ **PASSED**
+### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04) ✅ **COMPLETED**
 
 **Goal:** Construct the isolated semi-synthetic data-generating process (DGP) with known ground truth, enforce strict physical separation of truth from estimator inputs, and gate training data ingestion with a dedicated Great Expectations contract.
 
@@ -322,9 +322,11 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 
 ---
 
-### Stage 7 — Qualification Q2: Estimator Training Scale & Budget
+### Stage 7 — Qualification Q2: Estimator Training Scale & Budget ✅ **COMPLETED**
 
 **Goal:** Execute qualification test Q2 across sample sizes and nuisance-model configurations to establish the optimal estimator training scale within runtime and memory budgets, closing the open P2-D5 decision.
+
+**Evidence:**
 
 **Actions:**
 
@@ -687,8 +689,8 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **3**  | GLM Loss-Cost Baseline    | Parameterized Tweedie GLM & report      | ADR-012      | None                       | Parameterized fit; deviance & A/E deciles      | ✅ **PASSED**  |
 | **4**  | Segments & Tier 1 Schema  | 36-cell grid, Pydantic schema           | ADR-014      | Injected Δ rejected        | No Δ field; merge floor met; ratio-of-sums     | ✅ **PASSED**  |
 | **5**  | Qualification Q1          | Selected cap level & excess load        | ADR-012      | None                       | Spearman $\ge 0.98$; deviance $\le 1\%$        | ✅ **PASSED**  |
-| **6**  | Semi-Synthetic DGP        | Training table, truth sidecar, suite    | ADR-013, 015 | Planted truth fails suite  | DGP self-tests pass; truth isolation proven    | ⬜ Not started |
-| **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ⬜ Not started |
+| **6**  | Semi-Synthetic DGP        | Training table, truth sidecar, suite    | ADR-013, 015 | Planted truth fails suite  | DGP self-tests pass; truth isolation proven    | ✅ **PASSED**  |
+| **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ✅ **PASSED** — N=413,169, GBT, 10.16 min |
 | **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | Finite, self-consistent segment intervals      | ⬜ Not started |
 | **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ⬜ Not started |
 | **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected  | Worst-seed & median beat frozen thresholds     | ⬜ Not started |

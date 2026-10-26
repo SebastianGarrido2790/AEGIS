@@ -16,7 +16,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 4 | Segment Definition & Tier 1 Output Contract | ✅ PASSED | 2026-10-21 | §Stage 4 |
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | ✅ PASSED | 2026-10-24 | §Stage 5 |
 | 6 | Semi-Synthetic DGP & Training Contract | ✅ PASSED | 2026-10-26 | §Stage 6 |
-| 7 | Qualification Q2: Estimator Training Scale & Budget | Pending | — | — |
+| 7 | Qualification Q2: Estimator Training Scale & Budget | ✅ PASSED | 2026-10-26 | §Stage 7 |
 | 8 | Causal Estimator & Segment Inference | Pending | — | — |
 | 9 | Validation Harness & Q3 Threshold Calibration | Pending | — | — |
 | 10 | Final-Seed Validation Gate | Pending | — | — |
@@ -398,5 +398,43 @@ excess load are frozen in `params.yaml`. Stage 5 PASSED; Stage 6 is unlocked.
 
 All 5 automated DGP self-tests passed within stated tolerances; training-table Great Expectations contract passed the full 413,169-row dataset and rejected the truth-column fixture; truth loader import boundary is verified; three separate physical artifacts are produced deterministically. Stage 6 PASSED; Stage 7 (Qualification Q2: Estimator Scale & Compute Benchmark) is unlocked.
 
+## Stage 7 — Qualification Q2: Estimator Training Scale & Budget
 
+**Executed:** 2026-10-26 · **Gate 7:** ✅ PASSED · **Feature:** `P2-F06` (Q2 qualification)
 
+1. **Experiment:** `uv run python scripts/q2_estimator_scale.py` completed all eight
+   combinations of N ∈ {25,000, 100,000, 250,000, 413,169} and nuisance family
+   (`gbt`, `linear`) with no skipped cells. Each N was stratified by `segment_id` and
+   split 80/20; seed 42 was used for sampling, nuisance estimators, and CausalForestDML.
+2. **Full-grid results:** 35/35 held-out segments were evaluated in each cell. Across the
+   eight cells, wall times were 24.4–514.8 seconds, peak RSS was 601.3–2,792.3 MB,
+   segment Spearman ranged from -0.1217 to 0.9031, and nominal 95% interval coverage was
+   1.000 in every cell. The full-data GBT fit took 514.8 seconds (8.58 minutes) with
+   2,534.3 MB peak RSS; the full-data linear fit took 171.4 seconds (2.86 minutes) with
+   2,792.3 MB peak RSS. Both linear nuisance estimators used five-fold regularization CV;
+   CausalForestDML also used five-fold cross-fitting.
+3. **Budget and selection:** V8 reports 47.93 GB total RAM and a 38.34 GB (80%) ceiling;
+   the run environment reported 49,077.6 MB RAM and a 39,262.1 MB ceiling. Both full-data
+   fits were below the 30-minute and RAM limits. Full-data Spearman was 0.9014 (GBT) and
+   0.9031 (linear); the 0.0017 gap is within the approved 0.02 tolerance, so the approved
+   tie-break selects GBT at N=413,169 with cv_folds=5.
+4. **Frozen parameters:** `params.yaml` now records `training_sample_size: 413169`,
+   `nuisance_model: "gbt"`, `cv_folds: 5`, and `runtime_budget_minutes: 30.0`.
+5. **Artifacts:** The full metrics, selection rationale, memory methodology, and SHA-256
+   input hashes are in `q2_estimator_scale_report.md`.
+6. **Verification:** `uv run pytest -q`: **203 passed, 2 skipped** (187 existing GX
+   deprecation warnings). `uv run pyright`: **0 errors, 0 warnings**.
+   `uv run python scripts/check_module_size.py`: all **38/38** source modules within the
+   limit. `uv run ruff check scripts/q2_estimator_scale.py
+   tests/unit/test_q2_estimator_scale.py tests/unit/test_config.py`: passed.
+   Repository-wide `uv run ruff check .` reports an existing E501 in the unchanged
+   `src/aegis/pipelines/truth_loader.py:78`; it is unrelated to Stage 7 and was not altered.
+   The Q2 config loaded successfully; the real Stage 6 table validated as 29 columns with
+   25 estimator features and no truth leakage. Regression tests cover EconML's N×1
+   single-treatment effect output shape and reject truth columns at the estimator boundary.
+
+### Gate 7 outcome
+
+All eight cells completed; the full-data configuration met approved time and memory
+budgets; GBT and the full 413,169-policy scale were selected and frozen. Stage 7 PASSED;
+Stage 8 (Causal Estimator & Segment Inference) is unlocked.
