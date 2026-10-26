@@ -328,6 +328,17 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 
 **Evidence:**
 
+On 2026-10-26, `uv run python scripts/q2_estimator_scale.py` completed all 8 cells
+(seed 42; stratified 80/20 split; 35 held-out segments per cell). Both full-data fits met
+the 30-minute/80%-RAM budget. Spearman was 0.9014 (GBT) and 0.9031 (linear); the 0.0017
+difference is within the approved 0.02 tolerance, so GBT at N=413,169 was selected.
+Frozen config: `training_sample_size: 413169`, `nuisance_model: "gbt"`, `cv_folds: 5`.
+
+Full metrics and input hashes: [`q2_estimator_scale_report.md`](./q2_estimator_scale_report.md).
+Validation: pytest **203 passed, 2 skipped**; Pyright **0 errors**; focused Ruff and
+module-size checks passed. Repository Ruff has an unrelated existing E501 at
+`src/aegis/pipelines/truth_loader.py:78`.
+
 **Actions:**
 
 1. Using the Stage 6 DGP training data and Stage 4 segment definitions, run `CausalForestDML` across the sample sizes resolved in Stage 0 (e.g. $n \in \{25\text{k}, 100\text{k}, 250\text{k}, n_{\text{max}}\}$) on pilot seeds.
@@ -355,7 +366,7 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 
 **Falsification:** None (empirical qualification experiment).
 
-**Gate 7 — Hard Close:**
+**Gate 7 — Hard Close:** ✅ **PASSED (2026-10-26)**
 Q2 report written with zero skipped cells; scale and nuisance models selected per budget criteria; chosen parameters frozen in `params.yaml`; dated result recorded in `implementation_plan.md` §6.
 
 ---
