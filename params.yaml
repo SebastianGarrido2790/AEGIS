@@ -124,6 +124,21 @@ tier1_ml:
     nuisance_model: "gbt"
     cv_folds: 5
     runtime_budget_minutes: 30.0
+    # P2-F06 Stage 8: effective Q2 forest configuration, made explicit for auditability.
+    n_estimators: 100
+    min_samples_leaf: 5
+    min_samples_split: 10
+    max_depth: null
+    max_samples: 0.45
+    subforest_size: 4
+    ci_alpha: 0.05
+    q0_floor: 0.000001
+    n_jobs: -1
+  estimator_paths:
+    segment_estimates: "data/processed/segment_elasticity_estimates.csv"
+    metadata: "data/processed/causal_estimator_metadata.json"
+    model_artifact: "artifacts/causal_estimator/estimator.joblib"
+    run_manifest: "artifacts/causal_estimator/run_manifest.json"
 
 tier2_agents:
   groundedness_threshold: 0.85

@@ -24,11 +24,54 @@ def test_load_valid_params(tmp_path: Path) -> None:
     assert config.tier1_ml.estimator.nuisance_model == "gbt"
     assert config.tier1_ml.estimator.cv_folds == 5
     assert config.tier1_ml.estimator.runtime_budget_minutes == 30.0
+    assert config.tier1_ml.estimator.n_estimators == 100
+    assert config.tier1_ml.estimator.min_samples_leaf == 5
+    assert config.tier1_ml.estimator.min_samples_split == 10
+    assert config.tier1_ml.estimator.max_depth is None
+    assert config.tier1_ml.estimator.max_samples == 0.45
+    assert config.tier1_ml.estimator.subforest_size == 4
+    assert config.tier1_ml.estimator.ci_alpha == 0.05
+    assert config.tier1_ml.estimator.q0_floor == pytest.approx(1e-6)
+    assert config.tier1_ml.estimator.n_jobs == -1
+    assert config.tier1_ml.estimator_paths.segment_estimates == (
+        "data/processed/segment_elasticity_estimates.csv"
+    )
+    assert config.tier1_ml.estimator_paths.metadata == (
+        "data/processed/causal_estimator_metadata.json"
+    )
+    assert config.tier1_ml.estimator_paths.model_artifact == (
+        "artifacts/causal_estimator/estimator.joblib"
+    )
+    assert config.tier1_ml.estimator_paths.run_manifest == (
+        "artifacts/causal_estimator/run_manifest.json"
+    )
 
 
 def test_estimator_config_rejects_unknown_nuisance_family() -> None:
     with pytest.raises(ValueError):
         EstimatorConfig.model_validate({"nuisance_model": "random_forest"})
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"n_jobs": 0},
+        {"ci_alpha": 1.0},
+        {"q0_floor": 0.0},
+        {"q0_floor": 1.0},
+        {"n_estimators": 0},
+        {"min_samples_leaf": 0},
+        {"min_samples_split": 1},
+        {"max_depth": 0},
+        {"max_samples": 0.0},
+        {"max_samples": 1.5},
+        {"subforest_size": 0},
+    ],
+)
+def test_estimator_config_rejects_invalid_values(mutation: dict) -> None:
+    """Verifies Stage 8 estimator settings fail closed at config load."""
+    with pytest.raises(ValueError):
+        EstimatorConfig.model_validate(mutation)
 
 
 def test_load_missing_file_raises_configuration_error(tmp_path: Path) -> None:

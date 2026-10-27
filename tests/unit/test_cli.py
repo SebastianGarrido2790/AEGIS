@@ -26,7 +26,7 @@ from aegis.pipelines.cli import (
     validate_file,
     version_file,
 )
-from aegis.utils.exceptions import DataContractError
+from aegis.utils.exceptions import CausalEstimatorError, DataContractError
 
 
 @pytest.fixture
@@ -53,6 +53,7 @@ def test_cli_parser_commands_structure() -> None:
         "build-segments",
         "run-q1",
         "generate-dgp",
+        "train-estimator",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -372,5 +373,84 @@ def test_generate_dgp_cli_dispatch() -> None:
     ):
         code = main()
     assert code == 0
+
+
+def test_train_estimator_cli_dispatch() -> None:
+    """Verifies the train-estimator subcommand routes to the causal pipeline."""
+    from unittest.mock import MagicMock
+
+    from aegis.schemas.causal import CausalEstimatorMetadata
+
+    mock_metadata = MagicMock(spec=CausalEstimatorMetadata)
+    mock_metadata.model_version = "cfdml-gbt-cv5-test"
+    mock_metadata.segment_count = 35
+    mock_metadata.test_rows = 82633
+    mock_metadata.finite_interval_rate = 1.0
+    with (
+        patch(
+            "aegis.pipelines.cli.run_causal_estimator_pipeline",
+            return_value=mock_metadata,
+        ),
+        patch("sys.argv", ["cli.py", "train-estimator"]),
+    ):
+        code = main()
+    assert code == 0
+
+
+def test_train_estimator_cli_blocks_on_failure() -> None:
+    """Verifies the train-estimator subcommand returns 1 on pipeline failure."""
+    with (
+        patch(
+            "aegis.pipelines.cli.run_causal_estimator_pipeline",
+            side_effect=CausalEstimatorError("boom"),
+        ),
+        patch("sys.argv", ["cli.py", "train-estimator"]),
+    ):
+        code = main()
+    assert code == 1
+
+
+def test_train_estimator_cli_applies_output_overrides(tmp_path: Path) -> None:
+    """Verifies the train-estimator subcommand overrides all four artifact paths."""
+    from unittest.mock import MagicMock
+
+    from aegis.schemas.causal import CausalEstimatorMetadata
+
+    mock_metadata = MagicMock(spec=CausalEstimatorMetadata)
+    mock_metadata.model_version = "cfdml-gbt-cv5-test"
+    mock_metadata.segment_count = 35
+    mock_metadata.test_rows = 82633
+    mock_metadata.finite_interval_rate = 1.0
+    table_path = tmp_path / "segments.csv"
+    metadata_path = tmp_path / "metadata.json"
+    artifact_path = tmp_path / "estimator.joblib"
+    manifest_path = tmp_path / "manifest.json"
+    test_args = [
+        "cli.py",
+        "train-estimator",
+        "--segment-estimates",
+        str(table_path),
+        "--metadata",
+        str(metadata_path),
+        "--model-artifact",
+        str(artifact_path),
+        "--run-manifest",
+        str(manifest_path),
+    ]
+    with (
+        patch(
+            "aegis.pipelines.cli.run_causal_estimator_pipeline",
+            return_value=mock_metadata,
+        ) as pipeline,
+        patch("sys.argv", test_args),
+    ):
+        code = main()
+    assert code == 0
+    passed_config = pipeline.call_args.args[0]
+    paths = passed_config.tier1_ml.estimator_paths
+    assert paths.segment_estimates == str(table_path)
+    assert paths.metadata == str(metadata_path)
+    assert paths.model_artifact == str(artifact_path)
+    assert paths.run_manifest == str(manifest_path)
 
 

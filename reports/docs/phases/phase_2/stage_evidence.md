@@ -17,7 +17,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 5 | Qualification Q1: Loss Cap Sweep & Final Calibration | ✅ PASSED | 2026-10-24 | §Stage 5 |
 | 6 | Semi-Synthetic DGP & Training Contract | ✅ PASSED | 2026-10-26 | §Stage 6 |
 | 7 | Qualification Q2: Estimator Training Scale & Budget | ✅ PASSED | 2026-10-26 | §Stage 7 |
-| 8 | Causal Estimator & Segment Inference | Pending | — | — |
+| 8 | Causal Estimator & Segment Inference | ✅ PASSED | 2026-10-26 | §Stage 8 |
 | 9 | Validation Harness & Q3 Threshold Calibration | Pending | — | — |
 | 10 | Final-Seed Validation Gate | Pending | — | — |
 | 11 | Hidden-Confounder Sensitivity Analysis | Pending | — | — |
@@ -438,3 +438,68 @@ All 5 automated DGP self-tests passed within stated tolerances; training-table G
 All eight cells completed; the full-data configuration met approved time and memory
 budgets; GBT and the full 413,169-policy scale were selected and frozen. Stage 7 PASSED;
 Stage 8 (Causal Estimator & Segment Inference) is unlocked.
+
+---
+
+## Stage 8 — Causal Estimator & Segment Inference
+
+**Executed:** 2026-10-26 · **Gate 8:** ✅ PASSED · **Feature:** `P2-F06` (Full SDD)
+
+1. **Specification and plan:**
+   - `006_causal-estimator/spec.md`, `plan.md`, and `tasks.md` approved 2026-10-26 (OD-1 … OD-5 as recommended).
+   - T1–T9 completed in order. No scope expansion; one reproducibility-only inference pin was added after the determinism diagnosis (plan §5). Implementation status is recorded in all three feature artifacts.
+2. **Production pipeline (`src/aegis/pipelines/causal_estimator.py`, `causal_artifacts.py`, `src/aegis/schemas/causal.py`):**
+   - Validates the exact 29-column Stage 6 contract, rejects all nine truth columns before fit, and enforces the 25-feature boundary.
+   - Reproduces the frozen stratified 80/20 split and fits the Q2-frozen `CausalForestDML` on training rows only.
+   - Estimates truth-free `q0` from cross-fitted nuisance models, aggregates held-out policies by segment, and builds segment-mean τ intervals via `ate_inference(...).conf_int_mean`; ε intervals are the τ interval scaled by the segment `q0` point estimate (OD-3).
+   - Persists the segment CSV, deterministic metadata, non-promotable joblib artifact, and run-only manifest.
+3. **Full-data execution:**
+   - Command: `uv run python -m aegis.pipelines.cli train-estimator`
+   - Model version: `cfdml-gbt-cv5-n100-leaf5-split10-depthnone-ms0.45-sub4-dataf08918631e89`
+   - Rows: **330,535 training / 82,634 held-out**; segments: **35**.
+   - `segment_elasticity_estimates.csv` (5,997 B): `SHA-256 48ee4db2c9557ec4778b9126a82bd633828c05731ffa818f2f3a401d02d75ad5`
+   - `causal_estimator_metadata.json`: `SHA-256 60baa589aa6dbaa738217b29acc962ddcb12a1cd0653ec16e467261030de3ee4`
+   - `artifacts/causal_estimator/estimator.joblib`: **290,221,911 B**; current run SHA-256 `a1585837a22df532890ab1753ca311c290d015547235593b96528d45792455b3`
+   - `artifacts/causal_estimator/run_manifest.json`: `SHA-256 9e34c9aa92918d5e8a4a471bacaa1f00a086688558c54782cb3ca4f49a57e8f3`; fit **625.81 s**, pipeline **637.83 s**.
+   - Peak process memory was not separately instrumented; no memory failure occurred, and the 290 MB artifact is non-promotable and gitignored.
+4. **Gate 8 interval and estimate checks:**
+   - 35 rows, exact nine-column contract, sorted by `segment_id`; all numeric values finite.
+   - All 35 rows validate against `SegmentElasticityEstimate`; `segment_id` values are sorted and unique; metadata validates against `CausalEstimatorMetadata`.
+   - `inference_policy_count` range **213–8,862**, sum **82,634**; held-out count is non-zero for every segment.
+   - `baseline_retention_q0` range **0.807704–0.874939**.
+   - `tau_hat` range **-0.877755…-0.064519**; `epsilon_hat` range **-1.085789…-0.074297**.
+   - τ interval width range **2.540543–3.263501** (mean 2.824379); ε interval width range **2.914320–3.965046** (mean 3.318752).
+   - 100% of τ and ε intervals contain their point estimate; `finite_interval_rate = 1.0` and `interval_self_consistency_rate = 1.0`.
+   - Maximum per-row deviation from `epsilon_hat = tau_hat / baseline_retention_q0` is **2.22e-16**.
+5. **AC-4 independent hand calculation:**
+   - Segment: `D:18-24_C:0-4_Dens:501-2000`; 213 held-out policies.
+   - Independent per-policy effects and fold-averaged `q0` from the persisted artifact:
+     - `sum(tau_i) = -124.3663230298657`
+     - `sum(q0_i) = 176.98368858901182`
+     - `sum(tau_i) / sum(q0_i) = -0.7026993505523937`
+   - Published CSV: `tau_hat = -0.5838794508444399`, `baseline_retention_q0 = 0.830909336098647`, `epsilon_hat = -0.7026993505523937`.
+   - Absolute and relative difference: **0.0** (exact match).
+6. **Determinism (AC-7):**
+   - Initial full runs produced different segment CSVs (`0cb42a0347e43cb78974322d9fe2b04177c68e5ba2afddfb0a1e2fea46f3db4d` vs `97808435f09f23a128cdd540c89c591f097692e8ddc6c0eb31d4a3582245b946`).
+   - Diagnosis: EconML accumulates per-tree predictions under a lock when `n_jobs != 1`; thread scheduling changed floating-point summation order by last-bit amounts. The 10k probe reproduced differing hashes with `n_jobs=-1` and identical hashes with `n_jobs=1`.
+   - Fix: tree fitting remains parallel (`n_jobs=-1`); fitted-forest inference is pinned to one thread after fit (`_pin_forest_inference_to_one_thread`). The 10k probe then produced identical hashes on repeated runs (`0f2e616f763485c260b4cc08dc3caa189b961dd38cc2dd529710d3013b436cba`).
+   - Final two consecutive full runs produced byte-identical segment CSVs: both `48ee4db2c9557ec4778b9126a82bd633828c05731ffa818f2f3a401d02d75ad5`.
+   - Run-1 wall times were fit **497.96 s** / pipeline **509.94 s**; run-2 wall times were fit **625.81 s** / pipeline **637.83 s**. Both are within the 30-minute budget.
+   - Joblib artifact hashes differ across runs (`e34ef8fb…` vs `a1585837…`); artifact bytes are run-only and are not claimed deterministic (plan §5). The CSV and metadata are the reproducibility contract.
+7. **Isolation and persistence:**
+   - `tests/unit/test_stage8_isolation.py`: 4 tests; API modules do not import the estimator, `econml`, `joblib`, or `pickle`; estimator modules do not import the truth loader or API; injected forbidden imports are detected.
+   - Existing `tests/unit/test_truth_isolation.py` continues to scan all `src/aegis` modules and passes.
+   - `artifacts/` remains gitignored (`.gitignore:43`); `data/processed/estimator.joblib` does not exist; the estimator artifact is present only under `artifacts/causal_estimator/`.
+   - No truth column appears in the CSV, metadata, or manifest; metadata contains no timings or artifact hashes.
+8. **Verification:**
+   - `uv run pytest -q`: **287 passed, 2 skipped** in 368.34 s (187 existing GX deprecation warnings).
+   - Stage 8 focused suite: **96 passed** in 16.81 s (`test_causal_estimator.py`, `test_cli.py`, `test_stage8_isolation.py`).
+   - Final focused rerun including `test_truth_isolation.py`: **108 passed** in 22.75 s.
+   - `uv run ruff check` on all changed Python files: **All checks passed**.
+   - `uv run pyright`: **0 errors, 0 warnings, 0 informations**.
+   - `uv run python scripts/check_module_size.py`: **41/41 modules** within 1,000 lines (`causal_estimator.py` 858, `causal_artifacts.py` 209, `schemas/causal.py` 155).
+   - Repository-wide `uv run ruff check .` still reports the unchanged pre-existing `E501` at `src/aegis/pipelines/truth_loader.py:78`.
+
+### Gate 8 outcome
+
+The full-data estimator produced 35 segment-average estimates with 100% finite, ordered, self-consistent intervals; an independent hand calculation confirmed the ratio-of-sums identity exactly; two consecutive full runs produced byte-identical segment CSVs; serving and truth isolation tests pass; the fitted estimator is confined to gitignored non-promotable artifacts. Stage 8 PASSED; Stage 9 is unlocked.

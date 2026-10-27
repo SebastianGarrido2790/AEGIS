@@ -13,6 +13,7 @@ from pathlib import Path
 
 from aegis.config.loader import get_config
 from aegis.pipelines.cap_sweep import run_cap_sweep
+from aegis.pipelines.causal_estimator import run_causal_estimator_pipeline
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
     validate_raw_policy_data,
@@ -24,6 +25,7 @@ from aegis.pipelines.raw_intake import ingest_raw_data
 from aegis.pipelines.segments import run_segment_pipeline
 from aegis.pipelines.synthetic_dgp import run_synthetic_dgp_pipeline
 from aegis.utils.exceptions import (
+    CausalEstimatorError,
     DataContractError,
     DGPVerificationError,
     FeaturePipelineError,
@@ -172,6 +174,42 @@ def generate_dgp() -> int:
     except DGPVerificationError as exc:
         print(f"[BLOCK] DGP verification self-test failed: {exc}")
         return 1
+
+
+def train_estimator(
+    segment_estimates: Path | None = None,
+    metadata: Path | None = None,
+    model_artifact: Path | None = None,
+    run_manifest: Path | None = None,
+) -> int:
+    """Trains the Stage 8 causal estimator and writes segment inference artifacts."""
+    config = get_config()
+    if any(
+        path is not None
+        for path in (segment_estimates, metadata, model_artifact, run_manifest)
+    ):
+        config = config.model_copy(deep=True)
+        paths = config.tier1_ml.estimator_paths
+        if segment_estimates is not None:
+            paths.segment_estimates = str(segment_estimates)
+        if metadata is not None:
+            paths.metadata = str(metadata)
+        if model_artifact is not None:
+            paths.model_artifact = str(model_artifact)
+        if run_manifest is not None:
+            paths.run_manifest = str(run_manifest)
+    try:
+        result = run_causal_estimator_pipeline(config)
+    except CausalEstimatorError as exc:
+        print(f"[BLOCK] Causal estimator failed: {exc}")
+        return 1
+    print(f"[SUCCESS] Causal estimator trained: {result.model_version}")
+    print(
+        f"[ARTIFACT] segments={result.segment_count} "
+        f"test_rows={result.test_rows} "
+        f"finite_rate={result.finite_interval_rate:.4f}"
+    )
+    return 0
 
 
 def validate_file(
@@ -541,6 +579,34 @@ def build_parser() -> argparse.ArgumentParser:
         "generate-dgp",
         help="Generate semi-synthetic DGP training data and truth sidecar (P2-F04)",
     )
+    p_est = subparsers.add_parser(
+        "train-estimator",
+        help="Train the Stage 8 CausalForestDML and estimate segment elasticities",
+    )
+    p_est.add_argument(
+        "--segment-estimates",
+        type=Path,
+        default=None,
+        help="Segment table CSV (defaults to params.yaml)",
+    )
+    p_est.add_argument(
+        "--metadata",
+        type=Path,
+        default=None,
+        help="Deterministic metadata JSON (defaults to params.yaml)",
+    )
+    p_est.add_argument(
+        "--model-artifact",
+        type=Path,
+        default=None,
+        help="Non-promotable joblib artifact (defaults to params.yaml)",
+    )
+    p_est.add_argument(
+        "--run-manifest",
+        type=Path,
+        default=None,
+        help="Run-only manifest JSON (defaults to params.yaml)",
+    )
 
     return parser
 
@@ -590,6 +656,13 @@ def main() -> int:
         return run_q1_cap_sweep(args.input_path, args.work_dir, args.report_path)
     if args.command == "generate-dgp":
         return generate_dgp()
+    if args.command == "train-estimator":
+        return train_estimator(
+            args.segment_estimates,
+            args.metadata,
+            args.model_artifact,
+            args.run_manifest,
+        )
 
     return 1
 

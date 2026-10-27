@@ -62,3 +62,7 @@ class TruthIsolationError(AEGISError):
     """Raised when truth sidecar access or truth column isolation boundaries are violated."""
 
 
+class CausalEstimatorError(AEGISError):
+    """Raised when causal estimator training, inference, or artifacts violate P2-F06 contracts."""
+
+

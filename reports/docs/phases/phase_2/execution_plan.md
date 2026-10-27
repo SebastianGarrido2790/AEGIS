@@ -49,7 +49,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **P2-F03** | `003_glm-baseline-loss-treatment` | Cap-parameterized Tweedie GLM & calibration report            | Full      | Stage 3 (finalized Stage 5)      | F02           | ✅ Implemented |
 | **P2-F04** | `004_semi-synthetic-dgp`          | Semi-synthetic DGP, truth sidecar & training contract         | Full      | Stage 6                          | F02, F03      | ✅ Implemented |
 | **P2-F05** | `005_segments-tier1-contract`     | 36-cell segment definition & Tier 1 Pydantic schema           | Full      | Stage 4                          | F02, F03      | ✅ Implemented |
-| **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | Stage 7 complete; Stage 8 pending |
+| **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | ✅ Implemented |
 | **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ⬜ Not started |
 | **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ⬜ Not started |
 | **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ⬜ Not started |
@@ -74,7 +74,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **5**  | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report             | ADR-012          | None (evidence-gathering qualification)                                 | ✅ **PASSED** — Cap €100,000; Spearman ≥0.98 / deviance ≤1%; excess concentration escalated              |
 | **6**  | Semi-Synthetic DGP & Training Contract   | Training table, truth sidecar, manifest, GX suite         | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds                                 |
 | **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | All grid cells run; budget criteria met; scale and nuisance family selected                              |
-| **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | Segment intervals are finite, self-consistent, and on the segment average                                |
+| **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | ✅ **PASSED** — 35 segments; 100% finite/self-consistent; repeated CSV byte-identical                    |
 | **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | Controls fail; positive control passes; thresholds frozen with margin                                    |
 | **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | Worst-seed & median pass frozen thresholds on held-out policies; E1 met                                  |
 | **11** | Hidden-Confounder Sensitivity            | Degradation curve & robustness value                      | ADR-013          | None (skipped-cell guard asserted in gate)                              | Full grid run with no skips; robustness value recorded; S4 strength identified                           |
@@ -371,9 +371,13 @@ Q2 report written with zero skipped cells; scale and nuisance models selected pe
 
 ---
 
-### Stage 8 — Causal Estimator & Segment Inference (P2-F06)
+### Stage 8 — Causal Estimator & Segment Inference (P2-F06) ✅ **COMPLETED**
 
 **Goal:** Implement the production `CausalForestDML` training pipeline and segment-level inference engine under the frozen Q2 configuration, generating finite, self-consistent confidence intervals on segment-average treatment effects.
+
+**Evidence:**
+
+The full-data run produced 35 segments (82,634 held-out policies) with 100% finite and self-consistent intervals; the segment CSV was byte-identical across two consecutive full runs (`SHA-256: 48ee4db2c9557ec4778b9126a82bd633828c05731ffa818f2f3a401d02d75ad5`); the independent hand calculation matched `epsilon_hat = sum(tau_i) / sum(q0_i)` exactly; the fitted artifact is confined to gitignored `artifacts/` and serving isolation tests pass. Evidence: [`stage_evidence.md`](stage_evidence.md#stage-8--causal-estimator--segment-inference).
 
 **Actions:**
 
@@ -396,7 +400,7 @@ Q2 report written with zero skipped cells; scale and nuisance models selected pe
 
 **Falsification:** None.
 
-**Gate 8 — Hard Close:**
+**Gate 8 — Hard Close:** ✅ **PASSED** (2026-10-26)
 Estimator fits cleanly on training data; segment-average point estimates and intervals generated; 100% of segment intervals are finite and self-consistent; serving dependencies do not import the estimator model directly.
 
 ---
@@ -702,7 +706,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **5**  | Qualification Q1          | Selected cap level & excess load        | ADR-012      | None                       | Spearman $\ge 0.98$; deviance $\le 1\%$        | ✅ **PASSED**  |
 | **6**  | Semi-Synthetic DGP        | Training table, truth sidecar, suite    | ADR-013, 015 | Planted truth fails suite  | DGP self-tests pass; truth isolation proven    | ✅ **PASSED**  |
 | **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ✅ **PASSED** — N=413,169, GBT, 10.16 min |
-| **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | Finite, self-consistent segment intervals      | ⬜ Not started |
+| **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | 35 segments; 100% finite/self-consistent; byte-identical CSV | ✅ **PASSED** |
 | **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ⬜ Not started |
 | **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected  | Worst-seed & median beat frozen thresholds     | ⬜ Not started |
 | **11** | Confounder Sensitivity    | Degradation curve & robustness          | ADR-013      | None                       | Full grid executed; robustness value recorded  | ⬜ Not started |

@@ -278,6 +278,37 @@ class EstimatorConfig(BaseModel):
         gt=0.0,
         description="Q2 runtime ceiling in minutes",
     )
+    n_estimators: int = Field(default=100, gt=0)
+    min_samples_leaf: int = Field(default=5, gt=0)
+    min_samples_split: int = Field(default=10, gt=1)
+    max_depth: int | None = Field(default=None, gt=0)
+    max_samples: float = Field(default=0.45, gt=0.0, le=1.0)
+    subforest_size: int = Field(default=4, gt=0)
+    ci_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
+    q0_floor: float = Field(default=1e-6, gt=0.0, lt=1.0)
+    n_jobs: int = Field(default=-1, ge=-1)
+
+    @model_validator(mode="after")
+    def _validate_estimator_settings(self) -> "EstimatorConfig":
+        """Rejects an invalid worker count and inconsistent tree split settings."""
+        if self.n_jobs == 0:
+            raise ValueError("n_jobs must be -1 or a positive integer")
+        if self.min_samples_split < 2:
+            raise ValueError("min_samples_split must be at least 2")
+        return self
+
+
+class EstimatorPathsConfig(BaseModel):
+    """Configuration for Stage 8 causal estimator artifacts (P2-F06)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    segment_estimates: str = Field(
+        default="data/processed/segment_elasticity_estimates.csv"
+    )
+    metadata: str = Field(default="data/processed/causal_estimator_metadata.json")
+    model_artifact: str = Field(default="artifacts/causal_estimator/estimator.joblib")
+    run_manifest: str = Field(default="artifacts/causal_estimator/run_manifest.json")
 
 
 class Tier1MLConfig(BaseModel):
@@ -302,6 +333,9 @@ class Tier1MLConfig(BaseModel):
     synthetic_dgp: SyntheticDGPConfig = Field(default_factory=SyntheticDGPConfig)
     dgp_paths: DGPPathsConfig = Field(default_factory=DGPPathsConfig)
     estimator: EstimatorConfig = Field(default_factory=EstimatorConfig)
+    estimator_paths: EstimatorPathsConfig = Field(
+        default_factory=EstimatorPathsConfig
+    )
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":
