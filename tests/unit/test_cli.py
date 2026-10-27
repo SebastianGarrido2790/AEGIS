@@ -454,3 +454,63 @@ def test_train_estimator_cli_applies_output_overrides(tmp_path: Path) -> None:
     assert paths.run_manifest == str(manifest_path)
 
 
+def test_validate_causal_cli_success() -> None:
+    """Verifies validate-causal CLI subcommand dispatches successfully."""
+    from unittest.mock import MagicMock
+
+    mock_report = MagicMock()
+    mock_report.segment_details = [1] * 35
+    mock_report.metrics.m1_tau_spearman = 0.90
+    mock_report.metrics.m1_epsilon_spearman = 0.90
+    mock_report.metrics.m1b_policy_spearman = 0.85
+    mock_report.metrics.m2_mean_abs_bias = 0.05
+    mock_report.metrics.m3_tau_coverage = 0.95
+    mock_report.metrics.m3_epsilon_coverage = 0.95
+    mock_report.metrics.m4_self_consistency = 1.0
+    mock_report.metrics.m5_sign_agreement = 1.0
+
+    with (
+        patch("pandas.read_csv"),
+        patch(
+            "aegis.pipelines.causal_estimator.stratified_sample_split",
+            return_value=(MagicMock(), MagicMock()),
+        ),
+        patch(
+            "aegis.pipelines.validation_harness.compute_validation_metrics",
+            return_value=mock_report,
+        ),
+        patch("sys.argv", ["cli.py", "validate-causal"]),
+    ):
+        code = main()
+    assert code == 0
+
+
+def test_calibrate_q3_cli_success(tmp_path: Path) -> None:
+    """Verifies calibrate-q3 CLI subcommand dispatches successfully."""
+    from unittest.mock import MagicMock
+
+    mock_report = MagicMock()
+    mock_report.recommended_thresholds.m1_tau_spearman_floor = 0.75
+    mock_report.recommended_thresholds.m1_tau_spearman_target = 0.85
+
+    report_file = tmp_path / "q3_report.md"
+    test_args = [
+        "cli.py",
+        "calibrate-q3",
+        "--report-path",
+        str(report_file),
+        "--pilot-sample-size",
+        "1000",
+    ]
+    with (
+        patch(
+            "aegis.pipelines.validation_harness.calibrate_q3_pipeline",
+            return_value=mock_report,
+        ) as mock_calib,
+        patch("sys.argv", test_args),
+    ):
+        code = main()
+    assert code == 0
+    assert mock_calib.call_args.kwargs["pilot_sample_size"] == 1000
+
+

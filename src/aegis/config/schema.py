@@ -311,6 +311,38 @@ class EstimatorPathsConfig(BaseModel):
     run_manifest: str = Field(default="artifacts/causal_estimator/run_manifest.json")
 
 
+class ValidationThresholdsConfig(BaseModel):
+    """Configuration for frozen Stage 9 causal validation thresholds (P2-F07)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    m1_tau_spearman_floor: float = Field(ge=-1.0, le=1.0)
+    m1_tau_spearman_target: float = Field(ge=-1.0, le=1.0)
+    m1_epsilon_spearman_floor: float = Field(ge=-1.0, le=1.0)
+    m1_epsilon_spearman_target: float = Field(ge=-1.0, le=1.0)
+    m1b_policy_spearman_floor: float = Field(ge=-1.0, le=1.0)
+    m1b_policy_spearman_target: float = Field(ge=-1.0, le=1.0)
+    m2_mean_abs_bias_ceiling: float = Field(ge=0.0)
+    m2_mean_abs_bias_target: float = Field(ge=0.0)
+    m3_tau_coverage_floor: float = Field(default=0.90, ge=0.0, le=1.0)
+    m3_epsilon_coverage_floor: float = Field(default=0.90, ge=0.0, le=1.0)
+    m4_self_consistency_floor: float = Field(default=1.0, ge=0.0, le=1.0)
+    m5_sign_agreement_floor: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _validate_ordering(self) -> "ValidationThresholdsConfig":
+        """Rejects floor/target or target/ceiling inversions."""
+        if self.m1_tau_spearman_floor > self.m1_tau_spearman_target:
+            raise ValueError("m1_tau_spearman_floor must not exceed target")
+        if self.m1_epsilon_spearman_floor > self.m1_epsilon_spearman_target:
+            raise ValueError("m1_epsilon_spearman_floor must not exceed target")
+        if self.m1b_policy_spearman_floor > self.m1b_policy_spearman_target:
+            raise ValueError("m1b_policy_spearman_floor must not exceed target")
+        if self.m2_mean_abs_bias_target > self.m2_mean_abs_bias_ceiling:
+            raise ValueError("m2_mean_abs_bias_target must not exceed ceiling")
+        return self
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -336,6 +368,8 @@ class Tier1MLConfig(BaseModel):
     estimator_paths: EstimatorPathsConfig = Field(
         default_factory=EstimatorPathsConfig
     )
+    pilot_seeds: list[int] = Field(default_factory=lambda: [42, 101, 202])
+    validation_thresholds: ValidationThresholdsConfig | None = Field(default=None)
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":

@@ -45,6 +45,15 @@ def test_load_valid_params(tmp_path: Path) -> None:
     assert config.tier1_ml.estimator_paths.run_manifest == (
         "artifacts/causal_estimator/run_manifest.json"
     )
+    assert config.tier1_ml.pilot_seeds == [42, 101, 202]
+    thresholds = config.tier1_ml.validation_thresholds
+    assert thresholds is not None
+    assert thresholds.m1_tau_spearman_floor == 0.8428
+    assert thresholds.m1_tau_spearman_target == 0.8954
+    assert thresholds.m1_epsilon_spearman_floor == 0.8831
+    assert thresholds.m1b_policy_spearman_floor == 0.7784
+    assert thresholds.m2_mean_abs_bias_ceiling == 0.1167
+    assert thresholds.m5_sign_agreement_floor == 0.90
 
 
 def test_estimator_config_rejects_unknown_nuisance_family() -> None:
@@ -428,3 +437,57 @@ def test_synthetic_dgp_invalid_corridor_raises(tmp_path: Path) -> None:
     with pytest.raises(ConfigurationError) as exc_info:
         load_params(target)
     assert "Configuration validation failed" in str(exc_info.value)
+
+
+def test_validation_thresholds_config_validation(tmp_path: Path) -> None:
+    """Verifies that validation thresholds validate against schema when populated."""
+    from aegis.config.schema import ValidationThresholdsConfig
+
+    thresh = ValidationThresholdsConfig(
+        m1_tau_spearman_floor=0.75,
+        m1_tau_spearman_target=0.85,
+        m1_epsilon_spearman_floor=0.75,
+        m1_epsilon_spearman_target=0.85,
+        m1b_policy_spearman_floor=0.65,
+        m1b_policy_spearman_target=0.75,
+        m2_mean_abs_bias_ceiling=0.15,
+        m2_mean_abs_bias_target=0.10,
+        m3_tau_coverage_floor=0.90,
+        m3_epsilon_coverage_floor=0.90,
+        m4_self_consistency_floor=1.0,
+        m5_sign_agreement_floor=0.95,
+    )
+    assert thresh.m1_tau_spearman_floor == 0.75
+
+    base = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    base["tier1_ml"]["validation_thresholds"] = thresh.model_dump()
+    target = tmp_path / "valid_thresh_params.yaml"
+    with target.open("w", encoding="utf-8") as f:
+        yaml.dump(base, f)
+
+    loaded = load_params(target)
+    assert loaded.tier1_ml.validation_thresholds is not None
+    assert loaded.tier1_ml.validation_thresholds.m1_tau_spearman_floor == 0.75
+
+
+def test_validation_thresholds_reject_inverted_bounds() -> None:
+    """Verifies that floor above target and target above ceiling are rejected."""
+    from pydantic import ValidationError
+
+    from aegis.config.schema import ValidationThresholdsConfig
+
+    common = {
+        "m1_tau_spearman_floor": 0.80,
+        "m1_tau_spearman_target": 0.90,
+        "m1_epsilon_spearman_floor": 0.80,
+        "m1_epsilon_spearman_target": 0.90,
+        "m1b_policy_spearman_floor": 0.70,
+        "m1b_policy_spearman_target": 0.80,
+        "m2_mean_abs_bias_ceiling": 0.15,
+        "m2_mean_abs_bias_target": 0.10,
+        "m5_sign_agreement_floor": 0.90,
+    }
+    with pytest.raises(ValidationError):
+        ValidationThresholdsConfig(**{**common, "m1_tau_spearman_floor": 0.95})
+    with pytest.raises(ValidationError):
+        ValidationThresholdsConfig(**{**common, "m2_mean_abs_bias_target": 0.20})

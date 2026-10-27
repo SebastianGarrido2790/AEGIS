@@ -66,3 +66,7 @@ class CausalEstimatorError(AEGISError):
     """Raised when causal estimator training, inference, or artifacts violate P2-F06 contracts."""
 
 
+class ValidationHarnessError(AEGISError):
+    """Raised when validation metrics, negative controls, or Q3 calibration fail (P2-F07)."""
+
+

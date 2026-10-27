@@ -119,10 +119,10 @@ def test_falsification_dynamic_truth_columns_rejected(forbidden_col: str) -> Non
 
 
 def test_import_boundary_existing_codebase() -> None:
-    """Asserts that zero modules in aegis.pipelines (except tests) import truth_loader."""
+    """Asserts that zero modules in aegis (except validation_harness) import truth_loader."""
     src_dir = Path("src/aegis")
     for py_file in src_dir.rglob("*.py"):
-        if py_file.name in ("truth_loader.py", "__init__.py"):
+        if py_file.name in ("truth_loader.py", "__init__.py", "validation_harness.py"):
             continue
         source = py_file.read_text(encoding="utf-8")
         # Should not raise TruthIsolationError

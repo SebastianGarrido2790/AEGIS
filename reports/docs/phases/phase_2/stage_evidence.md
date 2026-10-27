@@ -18,7 +18,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 6 | Semi-Synthetic DGP & Training Contract | ✅ PASSED | 2026-10-26 | §Stage 6 |
 | 7 | Qualification Q2: Estimator Training Scale & Budget | ✅ PASSED | 2026-10-26 | §Stage 7 |
 | 8 | Causal Estimator & Segment Inference | ✅ PASSED | 2026-10-26 | §Stage 8 |
-| 9 | Validation Harness & Q3 Threshold Calibration | Pending | — | — |
+| 9 | Validation Harness & Q3 Threshold Calibration | ✅ PASSED | 2026-10-26 | §Stage 9 |
 | 10 | Final-Seed Validation Gate | Pending | — | — |
 | 11 | Hidden-Confounder Sensitivity Analysis | Pending | — | — |
 | 12 | MLflow Artifact Packaging & Human-Gated Promotion | Pending | — | — |
@@ -503,3 +503,54 @@ Stage 8 (Causal Estimator & Segment Inference) is unlocked.
 ### Gate 8 outcome
 
 The full-data estimator produced 35 segment-average estimates with 100% finite, ordered, self-consistent intervals; an independent hand calculation confirmed the ratio-of-sums identity exactly; two consecutive full runs produced byte-identical segment CSVs; serving and truth isolation tests pass; the fitted estimator is confined to gitignored non-promotable artifacts. Stage 8 PASSED; Stage 9 is unlocked.
+
+---
+
+## Stage 9 — Validation Harness & Q3 Threshold Calibration
+
+**Executed:** 2026-10-26 · **Gate 9:** ✅ PASSED · **Feature:** `P2-F07` (Full SDD)
+
+1. **Specification and plan:**
+   - `007_validation-gate/spec.md`, `plan.md`, and `tasks.md` approved 2026-10-26 (OD-1 … OD-4).
+   - OD-5 amended 2026-10-26: `m5` fixed at `0.90` and excluded from empirical separation after seed 42 showed estimator `1.0000`, `c1=0.9429`, `c2=1.0000` (gap `0.0000`).
+   - T1–T7 completed in order.
+
+2. **Implementation:**
+   - Added `src/aegis/pipelines/validation_harness.py` (995 lines) and `src/aegis/schemas/validation.py` (162 lines).
+   - Implements `m1`, `m1ε`, `m1b`, `m2`, `m3τ`, `m3ε`, `m4`, `m5`; controls `c1`/`c2`/`c3`; positive control; separation gaps; threshold freezing; markdown reporting.
+   - Added `ValidationHarnessError`, `ValidationThresholdsConfig`, `pilot_seeds`, CLI commands `validate-causal` and `calibrate-q3`.
+   - Truth isolation preserved: `validation_harness.py` is the only authorized consumer of `truth_loader.py`.
+
+3. **Q3 execution:**
+   - Command: `uv run python -m aegis.pipelines.cli calibrate-q3`
+   - Pilot seeds: `[42, 101, 202]`; seed 42 reused the Stage 8 full-sample estimates, 101/202 were refit on 413,169 rows.
+   - Estimator metrics:
+     - Seed 42: `m1=0.8858`, `m1ε=0.8983`, `m1b=0.7853`, `m2=0.0976`, `m3/m4=1.0`, `m5=1.0`.
+     - Seed 101: `m1=0.9479`, `m1ε=0.9447`, `m1b=0.8776`, `m2=0.0823`, `m3/m4=1.0`, `m5=0.971`.
+     - Seed 202: `m1=0.9537`, `m1ε=0.9551`, `m1b=0.9342`, `m2=0.0909`, `m3/m4=1.0`, `m5=1.0`.
+   - Negative controls all failed as required:
+     - `c1`: `m1=0.6928`, `m2=0.1667`, `m5=0.9429`.
+     - `c2`: `m1=-0.0402`, `m2=0.2114`, `m5=1.0000`.
+     - `c3`: false-discovery rate `0.000`, `m1=-0.3727`, `m2=0.3900`, `m5=0.6857`.
+   - Positive control passed: `m1=0.9152`, `m2=0.0727`, `m5=1.0000`. A reduced 100k/48-tree attempt recovered only `m1=0.4013` and was rejected; the full frozen configuration was used.
+   - Separation gaps: `m1=0.1930`, `m1ε=0.1652`, `m1b=0.1568`, `m2=0.0692`; all exceed margins.
+
+4. **Frozen thresholds (`params.yaml`):**
+   - `m1_tau_spearman_floor=0.8428`, target `0.8954`
+   - `m1_epsilon_spearman_floor=0.8831`, target `0.9139`
+   - `m1b_policy_spearman_floor=0.7784`, target `0.8280`
+   - `m2_mean_abs_bias_ceiling=0.1167`, target `0.1038`
+   - `m3_tau_coverage_floor=0.90`, `m3_epsilon_coverage_floor=0.90`, `m4_self_consistency_floor=1.00`
+   - `m5_sign_agreement_floor=0.90` (fixed absolute gate, OD-5)
+
+5. **Verification:**
+   - `uv run pytest -q`: **308 passed, 2 skipped** in 393.67 s (187 existing GX deprecation warnings).
+   - Stage 9 focused suite: **17 passed** (`test_validation_harness.py`).
+   - Config/CLI/truth boundary: **39 config + 28 CLI + 12 truth-isolation tests passed**.
+   - `uv run ruff check .`: **All checks passed**.
+   - `uv run pyright`: **0 errors, 0 warnings, 0 informations**.
+   - `uv run python scripts/check_module_size.py`: **43/43 modules** within 1,000 lines (`validation_harness.py` 995, `config/schema.py` 476).
+
+### Gate 9 outcome
+
+Q3 executed across the three pilot seeds; all three negative controls failed; the positive control passed; `m1`, `m1ε`, `m1b`, and `m2` show separation above the approved margins; `m5` remains a fixed `0.90` gate under OD-5; thresholds are frozen in `params.yaml`. Stage 9 PASSED; Stage 10 final-seed validation is unlocked.

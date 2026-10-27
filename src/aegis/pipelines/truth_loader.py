@@ -75,7 +75,8 @@ def load_truth_sidecar(
     if len(df) == 0:
         raise TruthIsolationError("Truth sidecar table is empty")
 
-    if bool((df["baseline_renewal_q0"] < 0.0).any()) or bool((df["baseline_renewal_q0"] > 1.0).any()):
+    q0_values = df["baseline_renewal_q0"]
+    if bool((q0_values < 0.0).any()) or bool((q0_values > 1.0).any()):
         raise TruthIsolationError("baseline_renewal_q0 values must be in [0.0, 1.0]")
 
     if not bool(df["true_tau"].notnull().all()):

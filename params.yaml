@@ -139,6 +139,22 @@ tier1_ml:
     metadata: "data/processed/causal_estimator_metadata.json"
     model_artifact: "artifacts/causal_estimator/estimator.joblib"
     run_manifest: "artifacts/causal_estimator/run_manifest.json"
+  # Stage 9 (P2-F07): pilot seeds for Q3 calibration, disjoint from Stage 10 final seeds.
+  pilot_seeds: [42, 101, 202]
+  # Frozen by Q3 (Stage 9, 2026-10-26) from pilot seeds 42/101/202.
+  validation_thresholds:
+    m1_tau_spearman_floor: 0.8428
+    m1_tau_spearman_target: 0.8954
+    m1_epsilon_spearman_floor: 0.8831
+    m1_epsilon_spearman_target: 0.9139
+    m1b_policy_spearman_floor: 0.7784
+    m1b_policy_spearman_target: 0.8280
+    m2_mean_abs_bias_ceiling: 0.1167
+    m2_mean_abs_bias_target: 0.1038
+    m3_tau_coverage_floor: 0.90
+    m3_epsilon_coverage_floor: 0.90
+    m4_self_consistency_floor: 1.00
+    m5_sign_agreement_floor: 0.90
 
 tier2_agents:
   grounding_threshold: 0.85

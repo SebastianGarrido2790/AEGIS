@@ -291,6 +291,7 @@ def generate_semi_synthetic_dataset(
     segments_path: Path | str,
     glm_loss_path: Path | str,
     config: Any | None = None,
+    run_self_tests: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, DGPManifest]:
     """Generates semi-synthetic training and truth sidecar datasets (FR-1..FR-12).
 
@@ -387,23 +388,25 @@ def generate_semi_synthetic_dataset(
     tau = q0 * (1.0 - q0) * b_x
     epsilon = (1.0 - q0) * b_x
 
-    # 4. Execute five automated self-tests
-    self_test_results = run_dgp_self_tests(
-        df=merged,
-        treatment=treatment,
-        mu_t=mu_t,
-        q0=q0,
-        tau=tau,
-        epsilon=epsilon,
-        a_x=a_x,
-        b_x=b_x,
-        corridor_width=dgp_cfg.corridor_width,
-        estimand_gap_tolerance=dgp_cfg.estimand_gap_tolerance,
-        overlap_floor_var=dgp_cfg.overlap_floor_var,
-        dispersion_min_std=dgp_cfg.dispersion_min_std,
-        homogeneity_max_corr=dgp_cfg.homogeneity_max_corr,
-        elasticity_bound_product=dgp_cfg.elasticity_bound_product,
-    )
+    # 4. Execute five automated self-tests (skipped for control DGP variants)
+    self_test_results: dict[str, SelfTestResult] = {}
+    if run_self_tests:
+        self_test_results = run_dgp_self_tests(
+            df=merged,
+            treatment=treatment,
+            mu_t=mu_t,
+            q0=q0,
+            tau=tau,
+            epsilon=epsilon,
+            a_x=a_x,
+            b_x=b_x,
+            corridor_width=dgp_cfg.corridor_width,
+            estimand_gap_tolerance=dgp_cfg.estimand_gap_tolerance,
+            overlap_floor_var=dgp_cfg.overlap_floor_var,
+            dispersion_min_std=dgp_cfg.dispersion_min_std,
+            homogeneity_max_corr=dgp_cfg.homogeneity_max_corr,
+            elasticity_bound_product=dgp_cfg.elasticity_bound_product,
+        )
 
     # 5. Build Training Table (strictly pre-treatment features, T, Y, segment_id; drop exposure)
     feature_cols = [c for c in forest_df.columns if c not in ("PolicyID", "exposure_capped")]

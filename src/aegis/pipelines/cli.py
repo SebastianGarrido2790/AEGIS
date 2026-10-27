@@ -31,6 +31,7 @@ from aegis.utils.exceptions import (
     FeaturePipelineError,
     GLMBaselineError,
     SegmentError,
+    ValidationHarnessError,
 )
 
 
@@ -208,6 +209,83 @@ def train_estimator(
         f"[ARTIFACT] segments={result.segment_count} "
         f"test_rows={result.test_rows} "
         f"finite_rate={result.finite_interval_rate:.4f}"
+    )
+    return 0
+
+
+def validate_causal(
+    segment_estimates: Path | None = None,
+    truth_sidecar: Path | None = None,
+    training_table: Path | None = None,
+) -> int:
+    """Validates segment elasticity estimates against the ground truth sidecar (Stage 9)."""
+    import pandas as pd
+
+    from aegis.pipelines.causal_estimator import stratified_sample_split
+    from aegis.pipelines.validation_harness import compute_validation_metrics
+
+    config = get_config()
+    seg_path = segment_estimates or Path(config.tier1_ml.estimator_paths.segment_estimates)
+    truth_path = truth_sidecar or Path(config.tier1_ml.dgp_paths.truth_sidecar)
+    train_path = training_table or Path(config.tier1_ml.dgp_paths.training_table)
+
+    try:
+        seg_df = pd.read_csv(seg_path)
+        train_df = pd.read_csv(train_path)
+        _, held_out_test = stratified_sample_split(
+            train_df,
+            config.tier1_ml.estimator.training_sample_size,
+            test_size=config.tier1_ml.test_size,
+            random_state=config.tier1_ml.random_state,
+        )
+        report = compute_validation_metrics(
+            segment_estimates=seg_df,
+            truth_sidecar=str(truth_path),
+            held_out_test=held_out_test,
+        )
+    except ValidationHarnessError as exc:
+        print(f"[BLOCK] Validation harness failed: {exc}")
+        return 1
+    except Exception as exc:
+        print(f"[ERROR] Unexpected validation error: {exc}")
+        return 1
+
+    m = report.metrics
+    print(f"[SUCCESS] Causal validation complete for {len(report.segment_details)} segments")
+    print(
+        f"[METRICS] m1_tau={m.m1_tau_spearman:.4f} m1_eps={m.m1_epsilon_spearman:.4f} "
+        f"m1b={m.m1b_policy_spearman:.4f} m2_bias={m.m2_mean_abs_bias:.4f} "
+        f"m3_tau_cov={m.m3_tau_coverage:.3f} m3_eps_cov={m.m3_epsilon_coverage:.3f} "
+        f"m4_cons={m.m4_self_consistency:.3f} m5_sign={m.m5_sign_agreement:.3f}"
+    )
+    return 0
+
+
+def calibrate_q3(
+    report_path: Path | None = None,
+    pilot_sample_size: int | None = None,
+) -> int:
+    """Executes Qualification Q3 threshold calibration on pilot seeds (P2-F07)."""
+    from aegis.pipelines.validation_harness import calibrate_q3_pipeline
+
+    dest = report_path or Path("reports/docs/phases/phase_2/q3_threshold_calibration_report.md")
+    try:
+        report = calibrate_q3_pipeline(
+            report_path=dest,
+            pilot_sample_size=pilot_sample_size,
+        )
+    except ValidationHarnessError as exc:
+        print(f"[BLOCK] Q3 threshold calibration failed: {exc}")
+        return 1
+    except Exception as exc:
+        print(f"[ERROR] Unexpected Q3 calibration error: {exc}")
+        return 1
+
+    print("[SUCCESS] Q3 threshold calibration complete")
+    print(f"[REPORT] Report written to: {dest}")
+    print(
+        f"[THRESHOLDS] m1_floor={report.recommended_thresholds.m1_tau_spearman_floor:.4f} "
+        f"m1_target={report.recommended_thresholds.m1_tau_spearman_target:.4f}"
     )
     return 0
 
@@ -608,6 +686,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run-only manifest JSON (defaults to params.yaml)",
     )
 
+    p_val = subparsers.add_parser(
+        "validate-causal",
+        help="Validate causal elasticity estimates against ground truth sidecar (Stage 9)",
+    )
+    p_val.add_argument(
+        "--segment-estimates",
+        type=Path,
+        default=None,
+        help="Segment table CSV (defaults to params.yaml)",
+    )
+    p_val.add_argument(
+        "--truth-sidecar",
+        type=Path,
+        default=None,
+        help="Ground truth sidecar CSV (defaults to params.yaml)",
+    )
+    p_val.add_argument(
+        "--training-table",
+        type=Path,
+        default=None,
+        help="Training table CSV (defaults to params.yaml)",
+    )
+
+    p_q3 = subparsers.add_parser(
+        "calibrate-q3",
+        help="Execute Qualification Q3 threshold calibration on pilot seeds (P2-F07)",
+    )
+    p_q3.add_argument(
+        "--report-path",
+        type=Path,
+        default=None,
+        help="Destination markdown report path",
+    )
+    p_q3.add_argument(
+        "--pilot-sample-size",
+        type=int,
+        default=None,
+        help="Optional pilot sample size override",
+    )
+
     return parser
 
 
@@ -662,6 +780,17 @@ def main() -> int:
             args.metadata,
             args.model_artifact,
             args.run_manifest,
+        )
+    if args.command == "validate-causal":
+        return validate_causal(
+            args.segment_estimates,
+            args.truth_sidecar,
+            args.training_table,
+        )
+    if args.command == "calibrate-q3":
+        return calibrate_q3(
+            args.report_path,
+            args.pilot_sample_size,
         )
 
     return 1

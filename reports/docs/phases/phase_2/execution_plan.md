@@ -50,7 +50,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **P2-F04** | `004_semi-synthetic-dgp`          | Semi-synthetic DGP, truth sidecar & training contract         | Full      | Stage 6                          | F02, F03      | ✅ Implemented |
 | **P2-F05** | `005_segments-tier1-contract`     | 36-cell segment definition & Tier 1 Pydantic schema           | Full      | Stage 4                          | F02, F03      | ✅ Implemented |
 | **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | ✅ Implemented |
-| **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ⬜ Not started |
+| **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ✅ Implemented |
 | **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ⬜ Not started |
 | **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ⬜ Not started |
 | **P2-F10** | `010_pipeline-config-ci-tiers`    | DVC DAG extension, config expansion & CI tiers                | Light     | Stage 14 (evolves across stages) | F01–F09       | ⬜ Not started |
@@ -75,7 +75,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **6**  | Semi-Synthetic DGP & Training Contract   | Training table, truth sidecar, manifest, GX suite         | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds                                 |
 | **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | All grid cells run; budget criteria met; scale and nuisance family selected                              |
 | **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | ✅ **PASSED** — 35 segments; 100% finite/self-consistent; repeated CSV byte-identical                    |
-| **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | Controls fail; positive control passes; thresholds frozen with margin                                    |
+| **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | ✅ **PASSED** — controls fail; positive passes (`m1=0.9152`); thresholds frozen with margin              |
 | **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | Worst-seed & median pass frozen thresholds on held-out policies; E1 met                                  |
 | **11** | Hidden-Confounder Sensitivity            | Degradation curve & robustness value                      | ADR-013          | None (skipped-cell guard asserted in gate)                              | Full grid run with no skips; robustness value recorded; S4 strength identified                           |
 | **12** | Registry & Human-Gated Promotion         | Packaged artifact, SQLite tracking, alias promotion       | ADR-014          | Promotion to `approved` without human review/lineage is rejected        | Pipeline sets `candidate`; `approved` requires review + lineage; serving is plain data                   |
@@ -400,14 +400,18 @@ The full-data run produced 35 segments (82,634 held-out policies) with 100% fini
 
 **Falsification:** None.
 
-**Gate 8 — Hard Close:** ✅ **PASSED** (2026-10-26)
+**Gate 8 — Hard Close:** ✅ **PASSED (2026-10-26)**
 Estimator fits cleanly on training data; segment-average point estimates and intervals generated; 100% of segment intervals are finite and self-consistent; serving dependencies do not import the estimator model directly.
 
 ---
 
-### Stage 9 — Validation Harness & Q3 Threshold Calibration (P2-F07)
+### Stage 9 — Validation Harness & Q3 Threshold Calibration (P2-F07) ✅ **COMPLETED**
 
 **Goal:** Construct the multi-seed validation harness, prove its sensitivity by executing required negative controls, and calibrate numeric gate thresholds on pilot seeds (Q3) without peeking at final validation seeds.
+
+**Evidence:**
+
+Q3 executed on pilot seeds `[42, 101, 202]`; all three negative controls failed as required; the positive control passed with `m1=0.9152`; separation gaps were `m1=0.1930`, `m1ε=0.1652`, `m1b=0.1568`, `m2=0.0692`; `m5` was fixed at `0.90` under OD-5 and excluded from separation; thresholds were frozen in `params.yaml`. Evidence: [`stage_evidence.md`](stage_evidence.md#stage-9--validation-harness--q3-threshold-calibration).
 
 **Actions:**
 
@@ -440,8 +444,8 @@ Estimator fits cleanly on training data; segment-average point estimates and int
 **Falsification:**
 Run the three negative controls ($c_1$, $c_2$, $c_3$) through the validation harness. Confirm that each control independently fails the gate metrics. This provides concrete evidence that the gate cannot be passed by a trivial or defective estimator.
 
-**Gate 9 — Hard Close:**
-All three negative controls demonstrably fail the harness; positive control passes; Q3 report proves clear statistical separation between controls and estimator; numeric thresholds frozen in `params.yaml` before final-seed evaluation.
+**Gate 9 — Hard Close:** ✅ **PASSED (2026-10-27)**
+All three negative controls demonstrably fail the harness; the positive control passes (`m1=0.9152`); Q3 proves separation on `m1`, `m1ε`, `m1b`, and `m2`; `m5` is fixed at `0.90` under OD-5; numeric thresholds are frozen in `params.yaml` before final-seed evaluation.
 
 ---
 
@@ -707,7 +711,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **6**  | Semi-Synthetic DGP        | Training table, truth sidecar, suite    | ADR-013, 015 | Planted truth fails suite  | DGP self-tests pass; truth isolation proven    | ✅ **PASSED**  |
 | **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ✅ **PASSED** — N=413,169, GBT, 10.16 min |
 | **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | 35 segments; 100% finite/self-consistent; byte-identical CSV | ✅ **PASSED** |
-| **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ⬜ Not started |
+| **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ✅ **PASSED** |
 | **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected  | Worst-seed & median beat frozen thresholds     | ⬜ Not started |
 | **11** | Confounder Sensitivity    | Degradation curve & robustness          | ADR-013      | None                       | Full grid executed; robustness value recorded  | ⬜ Not started |
 | **12** | Registry & Promotion      | Packaged artifact, alias promotion      | ADR-014      | Unapproved promotion fails | Pipeline sets candidate; approved needs review | ⬜ Not started |
