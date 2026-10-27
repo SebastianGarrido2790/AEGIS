@@ -36,13 +36,13 @@ AEGIS is built upon strict architectural guardrails and engineering invariants:
 | **INV-3** | **Data contracts are blocking.** No dataset or corpus document is DVC-versioned or indexed without first passing its Great Expectations suite. A failed suite halts the pipeline. | ADR-003 | GX validation is a hard upstream dependency of every downstream DVC stage. |
 | **INV-4** | **No autonomous publication.** The system recommends a premium adjustment; it never publishes one. Every recommendation terminates at auto-approved-for-review or HITL escalation. | PRD §4; `scoping_doc.md` §§3,7 | Governance output schema has no "published" state; publication is manual, out-of-system. |
 | **INV-5** | **Causal output is advisory, not authoritative.** Elasticity/bandit output is never surfaced without accompanying Compliance and Revenue/Loss-Ratio Impact context. | PRD §6; `scoping_doc.md` §11 | Governance output schema and recommendation record require non-null Compliance and Impact fields. (Phase 2 model diagnostic showcase carries an explicit developer-only exemption — $\epsilon$/recovery metrics only, never a proposed adjustment; ADR-011). |
-| **INV-6** | **Grounding failure triggers fallback, not guessing.** Groundedness is a joint read across Faithfulness, Answer Relevancy, Context Recall, Context Precision — never a single score. Below threshold: fall back to the last compliance-approved rate table and escalate. | ADR-003 rationale; `scoping_doc.md` §11; refined by ADR-010 | Threshold check raises a typed exception in the Compliance node, caught by the governance fallback handler. |
+| **INV-6** | **Grounding failure triggers fallback, not guessing.** Grounding is a joint read across Faithfulness, Answer Relevancy, Context Recall, Context Precision — never a single score. Below threshold: fall back to the last compliance-approved rate table and escalate. | ADR-003 rationale; `scoping_doc.md` §11; refined by ADR-010 | Threshold check raises a typed exception in the Compliance node, caught by the governance fallback handler. |
 | **INV-7** | **Complete audit record, no exceptions.** Every recommendation produces one complete, structured, independently reconstructable audit record. | PRD FR-7, PRD §11 | Audit schema validation is the last gate before any API response; failure raises. |
 | **INV-8** | **Module size ceiling.** No file under `src/` exceeds 1,000 lines. Decompose, don't extend. | Project router (Phase 1) | `uv run python scripts/check_module_size.py`; over-limit fails the build. |
 | **INV-9** | **Single-jurisdiction scope is explicit, never implied.** Every compliance verdict states the corpus models one illustrative jurisdiction. | PRD §12, User Story §7 | Fixed disclaimer field in every Compliance output schema. |
 | **INV-10** | **No live core-system integration in v1.** Carrier core-system contracts are modeled/mocked, never connected live. | PRD §12 | No production carrier credential slot exists in configuration. |
 
-**Amendment record:** INV-6 was refined from an ad hoc single groundedness score to the four-metric joint read above, recorded as ADR-010 — not a silent edit. The current `tier2_agents.groundedness_threshold` / `evidence_coverage_threshold` fields in `params.yaml` are Phase 1-era placeholders (ADR-005) and MUST be replaced with the full four-metric threshold set before the Compliance Agent ships (Phase 5/6).
+**Amendment record:** INV-6 was refined from an ad hoc single grounding score to the four-metric joint read above, recorded as ADR-010 — not a silent edit. The current `tier2_agents.grounding_threshold` / `evidence_coverage_threshold` fields in `params.yaml` are Phase 1-era placeholders (ADR-005) and MUST be replaced with the full four-metric threshold set before the Compliance Agent ships (Phase 5/6).
 ---
 
 ## 🏗️ Architecture Overview
@@ -89,7 +89,7 @@ tiers downstream of this registered deterministic output.
 - **Data Versioning & Contracts:** DVC, Great Expectations (GX)
 - **Experiment Tracking:** MLflow
 - **API & Serving:** FastAPI, Docker, Docker Compose
-- **Quality & Evaluation:** Ruff, Pyright, Pytest, Retrieval-Quality Groundedness Harness, LLM-as-Judge Suite
+- **Quality & Evaluation:** Ruff, Pyright, Pytest, Retrieval-Quality Grounding Harness, LLM-as-Judge Suite
 
 ---
 

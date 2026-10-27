@@ -156,7 +156,7 @@ Phase 4: LLM Gateway & Prompt Caching
        │
 Phase 5: Regulatory Compliance Agent & RAG Evaluation
   ├── RedisVL Vector Store HNSW Retrieval Precision Tests
-  ├── Compliance Groundedness & Evidence Coverage Harness (INV-6)
+  ├── Compliance Grounding & Evidence Coverage Harness (INV-6)
   └── Adversarial Prohibited Rating Factor Proxy Detection Tests
        │
 Phase 6: Revenue/Loss-Ratio Impact Agent & Orchestration

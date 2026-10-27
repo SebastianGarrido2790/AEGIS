@@ -141,7 +141,7 @@ tier1_ml:
     run_manifest: "artifacts/causal_estimator/run_manifest.json"
 
 tier2_agents:
-  groundedness_threshold: 0.85
+  grounding_threshold: 0.85
   evidence_coverage_threshold: 0.80
   max_tool_calls: 5
   execution_timeout_seconds: 60

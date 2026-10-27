@@ -53,7 +53,7 @@ Capabilities:
 - MLflow tracking and registry; four-preset validation showcase reading the `approved` segment artifact (no bandit output or proposed adjustment)
 
 Exit criteria:
-- causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`groundedness/scoping_doc.md` §0, §2)
+- causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`grounding/scoping_doc.md` §0, §2)
 - showcase slice renders correctly, clearly labeled demo rather than production view (carries an explicit developer-diagnostic exemption from INV-5 — $\epsilon$/recovery metrics only, never a proposed $\Delta$ — which strictly binds pricing recommendations)
 
 Carryover into the redo — the confirmed Phase 2 findings stand and constrain the new design:
@@ -114,7 +114,7 @@ Capabilities:
 - retrieval-quality harness: the four-metric diagnostic matrix (ADR-010) on curated compliant/violating scenarios
 
 Exit criteria:
-- harness meets the defined four-metric thresholds on the curated set — highest-priority gate in this roadmap, since RAG grounding is the system's highest-severity failure mode (`groundedness/scoping_doc.md` §11)
+- harness meets the defined four-metric thresholds on the curated set — highest-priority gate in this roadmap, since RAG grounding is the system's highest-severity failure mode (`grounding/scoping_doc.md` §11)
 
 Dependencies:
 Phase 1 (corpus gate), Phase 4 (Gateway/Redis).
@@ -137,7 +137,7 @@ Capabilities:
 - interim (no persistence/fallback engine yet): grounding failure yields `ESCALATED` with no proposal presented as a recommendation
 
 Exit criteria:
-- Primary Scenario (`groundedness/prd.md` §10) runs end-to-end on both auto-approved and escalated branches, each emitting a complete in-memory record flagged non-persisted (persistence lands in Phase 7)
+- Primary Scenario (`grounding/prd.md` §10) runs end-to-end on both auto-approved and escalated branches, each emitting a complete in-memory record flagged non-persisted (persistence lands in Phase 7)
 - trace panel visibly distinguishes the branches
 
 Dependencies:
@@ -200,7 +200,7 @@ Capabilities:
 - full GitHub Actions pipeline; as-built `architecture/system_design.md`; runbook populated with actually-encountered challenges
 
 Exit criteria:
-- `groundedness/scoping_doc.md` §3 definition of done fully satisfied
+- `grounding/scoping_doc.md` §3 definition of done fully satisfied
 - system runs end-to-end via `docker-compose up`
 
 Dependencies:

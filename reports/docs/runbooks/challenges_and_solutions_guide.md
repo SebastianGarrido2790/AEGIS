@@ -5,7 +5,7 @@ Author: Sebastián Garrido Arévalo | Date: August 21, 2026
 
 This is the master engineering procedures and troubleshooting manual for AEGIS. Each entry records a challenge domain, the problem/symptom observed, its root cause, the implemented solution, and the governing authority (invariant, ADR, or PRD/scoping-doc section) that justified the resolution.
 
-**Status note:** Phase 1 implementation challenges and post-implementation review remediations are documented below in Section 2. Section 1 retains remaining entries **anticipated** from the `../groundedness/scoping_doc.md` §11 and PRD §14 risk registers for Phases 2–7. Anticipated entries are marked `[ANTICIPATED]` and must be replaced or confirmed with an actual resolution once encountered during implementation; they are not to be treated as already resolved.
+**Status note:** Phase 1 implementation challenges and post-implementation review remediations are documented below in Section 2. Section 1 retains remaining entries **anticipated** from the `../grounding/scoping_doc.md` §11 and PRD §14 risk registers for Phases 2–7. Anticipated entries are marked `[ANTICIPATED]` and must be replaced or confirmed with an actual resolution once encountered during implementation; they are not to be treated as already resolved.
 
 ---
 
@@ -31,7 +31,7 @@ This is the master engineering procedures and troubleshooting manual for AEGIS. 
 | Problem / Symptom | Elasticity estimates that look plausible but may reflect unmeasured confounding rather than a genuine treatment effect. |
 | Root Cause | The public dataset is observational, not experimental; confounders affecting both price and retention may not be fully captured in available features. |
 | Implemented Solution | *(To be confirmed in Phase 2.)* Planned mitigation: a formal sensitivity analysis on the causal estimate, and treating the model's output strictly as a recommendation input to the agentic layer — never as ground truth passed through unchallenged. |
-| Governing Authority | `../groundedness/scoping_doc.md` §11 (risk register); PRD §14 (open question) |
+| Governing Authority | `../grounding/scoping_doc.md` §11 (risk register); PRD §14 (open question) |
 
 ### `[ANTICIPATED]` Entry 2 — RAG Grounding
 
@@ -40,8 +40,8 @@ This is the master engineering procedures and troubleshooting manual for AEGIS. 
 | Challenge Domain | Regulatory Compliance Agent / RAG Retrieval |
 | Problem / Symptom | The Compliance Agent could generate a plausible-sounding but ungrounded or misattributed regulatory citation. |
 | Root Cause | Standard RAG failure mode — retrieval returning topically related but not sufficiently authoritative chunks, or the generation step drifting from the retrieved evidence. |
-| Implemented Solution | *(To be confirmed in Phase 5.)* Planned mitigation: a dedicated retrieval-quality evaluation harness (groundedness, evidence coverage) gating the Compliance Agent's release, an upstream Great Expectations suite rejecting malformed/duplicate corpus chunks before indexing (ADR-003), and a deterministic fallback to the last compliance-approved rate table if the Compliance Agent's confidence falls below threshold. |
-| Governing Authority | ADR-003 (`../architecture/system_design.md`); `../groundedness/scoping_doc.md` §11; PRD §6 (Functional Requirement 6) |
+| Implemented Solution | *(To be confirmed in Phase 5.)* Planned mitigation: a dedicated retrieval-quality evaluation harness (grounding, evidence coverage) gating the Compliance Agent's release, an upstream Great Expectations suite rejecting malformed/duplicate corpus chunks before indexing (ADR-003), and a deterministic fallback to the last compliance-approved rate table if the Compliance Agent's confidence falls below threshold. |
+| Governing Authority | ADR-003 (`../architecture/system_design.md`); `../grounding/scoping_doc.md` §11; PRD §6 (Functional Requirement 6) |
 
 ### `[ANTICIPATED]` Entry 3 — Governance Calibration
 
@@ -51,7 +51,7 @@ This is the master engineering procedures and troubleshooting manual for AEGIS. 
 | Problem / Symptom | The escalation rate could be miscalibrated — too high, creating a review bottleneck that defeats the system's purpose; too low, letting risky proposals through with insufficient scrutiny. |
 | Root Cause | The bounded exploration corridor and escalation thresholds are initially set from design assumptions, not observed production behavior. |
 | Implemented Solution | *(To be confirmed in Phase 7.)* Planned mitigation: measure the HITL escalation rate against the synthetic production-analog stream as an explicit exit-criterion check, and treat threshold tuning as an expected post-launch iteration, not a one-time setting. |
-| Governing Authority | `../groundedness/scoping_doc.md` §11 (scope constraint); PRD §14 (open question) |
+| Governing Authority | `../grounding/scoping_doc.md` §11 (scope constraint); PRD §14 (open question) |
 
 ### `[ANTICIPATED]` Entry 4 — Scope Management
 
@@ -61,7 +61,7 @@ This is the master engineering procedures and troubleshooting manual for AEGIS. 
 | Problem / Symptom | Three agents, two ML sub-layers, and a full evaluation/observability layer represent a large surface for a single contributor; risk of an unfinished or over-scoped system. |
 | Root Cause | The system's governance and reliability requirements (Gateway, RAG evaluation, drift detection, audit logging) are non-negotiable given the regulated domain, leaving few areas to trim without compromising the project's core thesis. |
 | Implemented Solution | Strict phase gating (no phase begins before the prior phase's exit criteria are met) and a hard `src/` line-count ceiling per module, both enforced from Phase 1 onward. |
-| Governing Authority | `../groundedness/scoping_doc.md` §11; `../implementation_roadmap.md` (phase-gated structure) |
+| Governing Authority | `../grounding/scoping_doc.md` §11; `../implementation_roadmap.md` (phase-gated structure) |
 
 ---
 

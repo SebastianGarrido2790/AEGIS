@@ -24,7 +24,7 @@ This is a different question from one already settled. PRD §12 excludes a "full
 
 Option A costs nothing further but has a real weakness for exactly the audience being asked about: a non-technical recruiter doing an initial screen is not going to read `../architecture/system_design.md` before deciding whether to move a candidate forward. The system's actual differentiator — that it's _governed_, not just agentic — is invisible in a code listing. You can't see an escalation trigger fire, or a fallback engage, or an audit record assemble, by reading a schema definition.
 
-Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly _against_ being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since the risk register (`../groundedness/scoping_doc.md` §11), for a component that doesn't strengthen the technical story more than a much cheaper option would.
+Option C is the wrong instinct for this specific project, and worth being direct about why: the positioning established since this project's first planning session was explicitly _against_ being read as "wrapper for an LLM," and a polished console is the single fastest way to make a governed agentic platform look like a CRUD app with a model bolted on — undercutting the exact narrative this whole project exists to demonstrate. It also reopens the solo-practitioner scope risk flagged repeatedly since the risk register (`../grounding/scoping_doc.md` §11), for a component that doesn't strengthen the technical story more than a much cheaper option would.
 
 Option B is the one that actually serves the stated goal: making the governance mechanics — the parts that are genuinely differentiated — visible, without pretending to be a production interface or competing for engineering time against Phases 2–9's real work.
 
@@ -66,9 +66,9 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 - **Option A — Fully free-form input.** Let the evaluator type in arbitrary policy data.
 - **Option B — Read-only, fixed walkthrough.** A single canned scenario, static.
-- **Option C — A curated set of preset scenarios** (3–5), selected from a dropdown, each engineered to demonstrate a specific governance behavior — one within-bounds-and-compliant approval, one bounds violation triggering escalation, one low-groundedness case triggering the fallback.
+- **Option C — A curated set of preset scenarios** (3–5), selected from a dropdown, each engineered to demonstrate a specific governance behavior — one within-bounds-and-compliant approval, one bounds violation triggering escalation, one low-grounding case triggering the fallback.
 
-**Trade-off:** Option A sounds most impressive but is mostly theater here — since INV-10 means there's no live data source, "free-form" really just means typing numbers into a form that still resolves against the same synthetic/fixture-backed logic underneath, with the added cost of needing real input validation and graceful handling of nonsense input for no real benefit. Option B is cheap but only shows the happy path, missing the actual differentiator. Option C costs a bit more scenario design work than B, but it's the only option that puts governance itself on screen — an evaluator watching the fallback deliberately engage on a bad-groundedness scenario sees INV-6 working, which is a stronger demonstration of "governed system" than any number of successful approvals would be.
+**Trade-off:** Option A sounds most impressive but is mostly theater here — since INV-10 means there's no live data source, "free-form" really just means typing numbers into a form that still resolves against the same synthetic/fixture-backed logic underneath, with the added cost of needing real input validation and graceful handling of nonsense input for no real benefit. Option B is cheap but only shows the happy path, missing the actual differentiator. Option C costs a bit more scenario design work than B, but it's the only option that puts governance itself on screen — an evaluator watching the fallback deliberately engage on a bad-grounding scenario sees INV-6 working, which is a stronger demonstration of "governed system" than any number of successful approvals would be.
 
 **Recommendation:** Option C. Specifically include at least one scenario engineered to fail gracefully — the escalation and fallback paths are the actual point of this system, and a demo that only shows success stories undersells exactly what makes it different from a plain pricing model.
 
@@ -78,7 +78,7 @@ Option B is the one that actually serves the stated goal: making the governance 
 
 ## Downstream Document Updates — Completed
 
-- **`../groundedness/scoping_doc.md` (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
+- **`../grounding/scoping_doc.md` (Solution):** showcase interface added as a component, explicitly distinguished from the excluded production UI.
 - **`prd.md` §12 (Out of Scope):** clarified that "full production UI" refers to a real underwriting console, distinct from this demo interface.
 - **`../implementation_roadmap.md`:** incremental UI slice added as a deliverable and exit-criterion item at the close of Phases 2, 6, and 7.
 - **`../architecture/system_design.md`:** recorded as ADR-009.

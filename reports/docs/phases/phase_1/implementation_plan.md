@@ -94,7 +94,7 @@ A note on **latency**: it isn't a live factor in any Phase 1 decision. Nothing i
 
 #### P1-D2a — Section structure `[RESOLVED — Option B]`
 
-- **Option A — Flat namespace.** All keys at one level (e.g., `groundedness_threshold`, `bandit_corridor_width`, `gateway_fallback_chain`), disambiguated by naming convention alone.
+- **Option A — Flat namespace.** All keys at one level (e.g., `grounding_threshold`, `bandit_corridor_width`, `gateway_fallback_chain`), disambiguated by naming convention alone.
 - **Option B — Nested by domain (APPROVED).** Top-level sections mirroring the architecture tiers — `gateway:`, `tier1_ml:`, `tier2_agents:`, `governance:`, `data_contracts:`, `dvc:` — with related settings grouped under each.
 
 **Trade-off:** Option A is marginally simpler to grep for a single key, but as the project grows through Phases 2–9 (this file will eventually hold GLM/causal-model hyperparameters, bandit corridor bounds, Gateway routing config, GX thresholds, and governance escalation rules all at once), a flat namespace becomes hard to scan and invites naming collisions between tiers.
@@ -152,7 +152,7 @@ A note on **latency**: it isn't a live factor in any Phase 1 decision. Nothing i
 
 **Trade-off:** Option A is GX's own default serialization and diffs reasonably cleanly in git; Option B gives more flexibility for programmatically generated expectations (useful if the leakage check in the elasticity suite ends up needing custom logic beyond GX's built-in expectation types) at the cost of being slightly less declarative/scannable.
 
-**Recommendation:** Option A for the regulatory corpus suite (its checks — non-empty chunks, required metadata, duplicates — are all standard, declarative expectation types with no custom logic needed). Option B for the elasticity training suite specifically, since the post-treatment leakage check (`../../groundedness/scoping_doc.md` §11; PRD §6) is domain-specific logic unlikely to map cleanly onto a built-in GX expectation type and will likely need a custom expectation function. This is the one place in this document I'm recommending a genuine split rather than one answer for both suites — flag if you'd rather keep both suites in the same format for consistency, even at the cost of forcing the leakage check into a less natural shape.
+**Recommendation:** Option A for the regulatory corpus suite (its checks — non-empty chunks, required metadata, duplicates — are all standard, declarative expectation types with no custom logic needed). Option B for the elasticity training suite specifically, since the post-treatment leakage check (`../../grounding/scoping_doc.md` §11; PRD §6) is domain-specific logic unlikely to map cleanly onto a built-in GX expectation type and will likely need a custom expectation function. This is the one place in this document I'm recommending a genuine split rather than one answer for both suites — flag if you'd rather keep both suites in the same format for consistency, even at the cost of forcing the leakage check into a less natural shape.
 
 **Outcome:** **RESOLVED — Option A.** Native JSON expectation-suite files committed to `data_contracts/` for both data pipelines (recorded in ADR-006).
 

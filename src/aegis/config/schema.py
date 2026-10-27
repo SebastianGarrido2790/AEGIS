@@ -373,7 +373,7 @@ class Tier2AgentsConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    groundedness_threshold: float = Field(default=0.85, ge=0.0, le=1.0)
+    grounding_threshold: float = Field(default=0.85, ge=0.0, le=1.0)
     evidence_coverage_threshold: float = Field(default=0.80, ge=0.0, le=1.0)
     max_tool_calls: int = Field(default=5, gt=0)
     execution_timeout_seconds: int = Field(default=60, gt=0)

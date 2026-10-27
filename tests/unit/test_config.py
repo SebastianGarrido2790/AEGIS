@@ -16,7 +16,7 @@ def test_load_valid_params(tmp_path: Path) -> None:
     assert isinstance(config, AEGISConfig)
     assert config.gateway.model_name == "gpt-4o-mini"
     assert config.tier1_ml.test_size == 0.20
-    assert config.tier2_agents.groundedness_threshold == 0.85
+    assert config.tier2_agents.grounding_threshold == 0.85
     assert config.governance.audit_storage_backend == "sqlite"
     assert config.data_contracts.fixtures_dir == "data_contracts/fixtures"
     assert config.dvc.remote_name == "local_storage"
@@ -119,7 +119,7 @@ def test_invalid_type_raises_validation_error(tmp_path: Path) -> None:
             "temperature": "not-a-number",  # Should be float
         },
         "tier1_ml": {"test_size": 0.2},
-        "tier2_agents": {"groundedness_threshold": 0.85},
+        "tier2_agents": {"grounding_threshold": 0.85},
         "governance": {"audit_storage_backend": "sqlite"},
         "data_contracts": {
             "elasticity_suite_path": "data_contracts/elasticity_suite.json",

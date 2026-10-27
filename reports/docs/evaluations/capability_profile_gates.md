@@ -4,7 +4,7 @@
 **Why it exists:** these questions are meant to be answered before planning documents specify how to build the agent — to decide whether an agent is justified at all and at what complexity level.
 **How to use it:** as the record of that decision. Where this exercise finds AEGIS already correctly scoped, it says so and moves on. Where it finds a gap, the gap is stated plainly and left open — not quietly fixed by this document.
 
-**Honest sequencing note, stated rather than glossed over:** this gate exercise is being completed *after* AEGIS's Tier 2 architecture already exists in `../architecture/system_design.md` and `../groundedness/prd.md` — not before, as the gate sequencing intends. That's out of order. The value of doing it now is that it can check the *existing* design against the gate's questions honestly, including finding real gaps the original build didn't surface — which is what happened here (see Part 1, Gate 5, and Part 3, Alignment). It is not, and should not be read as, a claim that this was done in the right order the first time.
+**Honest sequencing note, stated rather than glossed over:** this gate exercise is being completed *after* AEGIS's Tier 2 architecture already exists in `../architecture/system_design.md` and `../grounding/prd.md` — not before, as the gate sequencing intends. That's out of order. The value of doing it now is that it can check the *existing* design against the gate's questions honestly, including finding real gaps the original build didn't surface — which is what happened here (see Part 1, Gate 5, and Part 3, Alignment). It is not, and should not be read as, a claim that this was done in the right order the first time.
 
 ---
 
@@ -42,15 +42,15 @@ Part 2 classified Compliance as Level 3 (Bounded Agent) under the premise that t
 
 ### 1. Measurable Success
 
-The Primary Scenario (`../groundedness/prd.md` §10) runs end-to-end on both branches — auto-approved-for-review and escalated — each emitting a complete in-memory record flagged non-persisted at Phase 6 (full INV-7 persistence lands in Phase 7), with 100% completeness the standing target. Supporting metrics: HITL escalation rate reflecting genuine ambiguity rather than over- or under-triggering; the Compliance Agent's four-metric diagnostic matrix (ADR-010) meeting its threshold once Phase 5/6 ships.
+The Primary Scenario (`../grounding/prd.md` §10) runs end-to-end on both branches — auto-approved-for-review and escalated — each emitting a complete in-memory record flagged non-persisted at Phase 6 (full INV-7 persistence lands in Phase 7), with 100% completeness the standing target. Supporting metrics: HITL escalation rate reflecting genuine ambiguity rather than over- or under-triggering; the Compliance Agent's four-metric diagnostic matrix (ADR-010) meeting its threshold once Phase 5/6 ships.
 
 ### 2. Blast Radius / Worst-Case Failure
 
-Worst case: the system recommends a regulatorily non-compliant or financially unsound premium adjustment, and that recommendation reaches a published state without human review. This is structurally bounded two ways already on record: INV-4 (the governance output schema has no "published" state at all — publication is a manual, out-of-system action) and INV-6 (a grounding failure below threshold triggers fallback and escalation, never a guess). The single highest-severity variant of this failure — a hallucinated compliance citation producing a false "pass" — is already named as the system's worst failure mode in the risk register (see `../groundedness/scoping_doc.md` §11) and ADR-010.
+Worst case: the system recommends a regulatorily non-compliant or financially unsound premium adjustment, and that recommendation reaches a published state without human review. This is structurally bounded two ways already on record: INV-4 (the governance output schema has no "published" state at all — publication is a manual, out-of-system action) and INV-6 (a grounding failure below threshold triggers fallback and escalation, never a guess). The single highest-severity variant of this failure — a hallucinated compliance citation producing a false "pass" — is already named as the system's worst failure mode in the risk register (see `../grounding/scoping_doc.md` §11) and ADR-010.
 
 ### 3. Session Economics & Cost Ceiling
 
-**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `../groundedness/scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), covering both the Compliance Agent and (when enabled post-Phase 7) the Briefing Generator, using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
+**Not yet set.** This gate exercise doesn't resolve it — it confirms the gap already flagged in `../grounding/scoping_doc.md` §8's constraints table ("Cost per request: Not yet set"). Recommendation, not a decision: a per-session cost ceiling should be set once the Gateway's OTel cost export exists (Phase 4), covering both the Compliance Agent and (when enabled post-Phase 7) the Briefing Generator, using real token-cost data rather than an estimate made before the Gateway is built. Tracked as an open item, not resolved here.
 
 ### 4. Evaluation Harness
 
@@ -138,7 +138,7 @@ AEGIS's safety layering nests, outermost to innermost: Off-Switch-Compatible →
 
 **What this exercise found that wasn't previously documented:**
 1. No off-switch/kill-switch mechanism exists for Tier 2 (found three separate ways — Part 1 Gate 5, Part 3, Part 6).
-2. No per-session or per-request cost ceiling has been set (Part 1 Gate 3) — consistent with, not new beyond, the gap already on record in `../groundedness/scoping_doc.md` §8.
+2. No per-session or per-request cost ceiling has been set (Part 1 Gate 3) — consistent with, not new beyond, the gap already on record in `../grounding/scoping_doc.md` §8.
 3. No adversarial/red-team test suite exists for the Compliance Agent (Part 3) — tracked here as an open item.
 
 None of these three are resolved by this document. They're recorded here as findings, to be picked up as their own dated decisions — consistent with how every other gap this project has surfaced has been handled.
