@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+import yaml
 
 from aegis.config.loader import get_config
 from aegis.pipelines.cli import (
@@ -54,6 +55,10 @@ def test_cli_parser_commands_structure() -> None:
         "run-q1",
         "generate-dgp",
         "train-estimator",
+        "validate-causal",
+        "calibrate-q3",
+        "run-final-validation",
+        "verify-final-validation",
     ]
     for cmd in expected_commands:
         args = parser.parse_args([cmd])
@@ -512,5 +517,150 @@ def test_calibrate_q3_cli_success(tmp_path: Path) -> None:
         code = main()
     assert code == 0
     assert mock_calib.call_args.kwargs["pilot_sample_size"] == 1000
+
+
+def test_run_final_validation_cli_success(tmp_path: Path) -> None:
+    """Verifies run-final-validation dispatches and persists the Exit E1 artifact."""
+    from unittest.mock import MagicMock
+
+    from aegis.pipelines.final_seed_validation import FinalSeedGateSummary
+
+    gate = MagicMock(value=0.90, threshold=0.84, margin=0.06)
+    summary = MagicMock()
+    summary.campaign_gates = MagicMock(
+        spec=FinalSeedGateSummary,
+        k_seeds=5,
+        failed_seeds=[],
+        worst_seed_name=501,
+        median_seed_name=503,
+        worst_seed_all_floors_cleared=True,
+        all_seeds_pass_frozen_thresholds=True,
+    )
+    summary.campaign_gates.worst_seed = {
+        name: gate
+        for name in (
+            "m1_tau_spearman",
+            "m1_epsilon_spearman",
+            "m1b_policy_spearman",
+            "m2_mean_abs_bias",
+        )
+    }
+    artifact = tmp_path / "summary.json"
+    report = tmp_path / "report.md"
+
+    with (
+        patch(
+            "aegis.pipelines.final_seed_validation.run_final_seed_campaign",
+            return_value=summary,
+        ) as mock_run,
+        patch(
+            "aegis.pipelines.final_seed_validation.persist_summary",
+            return_value=(artifact, report),
+        ),
+        patch("sys.argv", ["cli.py", "run-final-validation", "--sample-size", "1000"]),
+    ):
+        code = main()
+    assert code == 0
+    assert mock_run.call_args.kwargs["sample_size"] == 1000
+
+
+def test_run_final_validation_exits_nonzero_when_gates_fail() -> None:
+    """A campaign that breaches frozen floors must not report success."""
+    from unittest.mock import MagicMock
+
+    gate = MagicMock(value=0.60, threshold=0.84, margin=-0.24)
+    summary = MagicMock()
+    summary.campaign_gates.k_seeds = 5
+    summary.campaign_gates.failed_seeds = [501]
+    summary.campaign_gates.worst_seed_name = None
+    summary.campaign_gates.median_seed_name = 503
+    summary.campaign_gates.worst_seed_all_floors_cleared = False
+    summary.campaign_gates.all_seeds_pass_frozen_thresholds = False
+    summary.campaign_gates.worst_seed = {
+        name: gate
+        for name in (
+            "m1_tau_spearman",
+            "m1_epsilon_spearman",
+            "m1b_policy_spearman",
+            "m2_mean_abs_bias",
+        )
+    }
+    with (
+        patch(
+            "aegis.pipelines.final_seed_validation.run_final_seed_campaign",
+            return_value=summary,
+        ),
+        patch(
+            "aegis.pipelines.final_seed_validation.persist_summary",
+            return_value=(Path("a.json"), Path("r.md")),
+        ),
+        patch("sys.argv", ["cli.py", "run-final-validation"]),
+    ):
+        code = main()
+    assert code == 1
+
+
+def test_verify_final_validation_cli_fails_on_tampered_threshold(tmp_path: Path) -> None:
+    """Gate 10 falsification at CLI level: a tampered threshold yields exit code 1."""
+    from aegis.pipelines.final_seed_validation import (
+        build_final_seed_summary,
+        evaluate_seed_gate,
+    )
+    from aegis.schemas.final_validation import FinalSeedRunResult
+    from aegis.schemas.validation import ValidationMetrics, ValidationThresholds
+
+    live = get_config()
+    thresholds_cfg = live.tier1_ml.validation_thresholds
+    assert thresholds_cfg is not None
+    thresholds = ValidationThresholds.model_validate(thresholds_cfg.model_dump())
+    metrics = ValidationMetrics.model_validate(
+        {
+            "m1_tau_spearman": 0.90,
+            "m1_epsilon_spearman": 0.92,
+            "m1b_policy_spearman": 0.84,
+            "m2_mean_abs_bias": 0.09,
+            "m3_tau_coverage": 1.0,
+            "m3_epsilon_coverage": 1.0,
+            "m4_self_consistency": 1.0,
+            "m5_sign_agreement": 1.0,
+        }
+    )
+    runs = [
+        FinalSeedRunResult(
+            seed=seed,
+            dgp_noise_seed=seed + 10000,
+            metrics=metrics,
+            gates=evaluate_seed_gate(metrics, thresholds),
+            held_out_policy_count=1,
+            held_out_policy_ids=[str(seed)],
+            passes_frozen_thresholds=True,
+            segment_count=35,
+        )
+        for seed in live.tier1_ml.final_seeds
+    ]
+    summary = build_final_seed_summary(
+        live, Path("params.yaml"), runs, thresholds, sample_size=1000
+    )
+    artifact = tmp_path / "summary.json"
+    artifact.write_text(json.dumps(summary.model_dump(mode="json")), encoding="utf-8")
+
+    tampered = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    tampered["tier1_ml"]["validation_thresholds"]["m1_tau_spearman_floor"] = 0.50
+    config_copy = tmp_path / "params.yaml"
+    config_copy.write_text(yaml.safe_dump(tampered, sort_keys=False), encoding="utf-8")
+
+    with patch(
+        "sys.argv",
+        [
+            "cli.py",
+            "verify-final-validation",
+            "--summary-path",
+            str(artifact),
+            "--config-path",
+            str(config_copy),
+        ],
+    ):
+        code = main()
+    assert code == 1
 
 

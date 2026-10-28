@@ -19,7 +19,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 7 | Qualification Q2: Estimator Training Scale & Budget | ✅ PASSED | 2026-10-26 | §Stage 7 |
 | 8 | Causal Estimator & Segment Inference | ✅ PASSED | 2026-10-26 | §Stage 8 |
 | 9 | Validation Harness & Q3 Threshold Calibration | ✅ PASSED | 2026-10-26 | §Stage 9 |
-| 10 | Final-Seed Validation Gate | Pending | — | — |
+| 10 | Final-Seed Validation Gate | ❌ FAILED | 2026-10-28 | §Stage 10 |
 | 11 | Hidden-Confounder Sensitivity Analysis | Pending | — | — |
 | 12 | MLflow Artifact Packaging & Human-Gated Promotion | Pending | — | — |
 | 13 | Diagnostic Showcase Slice | Pending | — | — |
@@ -554,3 +554,56 @@ The full-data estimator produced 35 segment-average estimates with 100% finite, 
 ### Gate 9 outcome
 
 Q3 executed across the three pilot seeds; all three negative controls failed; the positive control passed; `m1`, `m1ε`, `m1b`, and `m2` show separation above the approved margins; `m5` remains a fixed `0.90` gate under OD-5; thresholds are frozen in `params.yaml`. Stage 9 PASSED; Stage 10 final-seed validation is unlocked.
+
+---
+
+## Stage 10 — Final-Seed Validation Gate
+
+**Executed:** 2026-10-27 (campaign), 2026-10-28 (verdict) · **Gate 10:** ❌ FAILED · **Exit E1:** NOT MET · **Feature:** `P2-F07`
+
+1. **Implementation:**
+   - Added `src/aegis/pipelines/final_seed_validation.py` and `src/aegis/schemas/final_validation.py`.
+   - Added `run-final-validation` and `verify-final-validation` CLI commands; `final_seeds: [501, 502, 503, 504, 505]` and `synthetic_dgp.seed_offset_noise: 10000` in `params.yaml`.
+   - Gate aggregation corrected before the verdict: `passes_floor` and `meets_target` are now distinct, worst-seed naming is recorded, and median targets are reported rather than gated. Under either framing the seed-level verdict is unchanged.
+   - `final_seed_validation.py` is an offline validation module and is added to the truth-isolation allowlist alongside `validation_harness.py`; it never feeds truth values to an estimator, and it stays under the INV-8 ceiling by keeping DGP-table loading local rather than in `validation_harness.py` (995 lines, unchanged).
+
+2. **Campaign:**
+   - Command: `uv run python -m aegis.pipelines.cli run-final-validation`
+   - K = 5 seeds `[501…505]`, disjoint from pilot seeds; each seed sets the stratified split and estimator `random_state`, with DGP noise at `seed + 10000`.
+   - Artifact: `artifacts/causal_validation_summary.json`, 18,699 B, SHA-256 `a716acb72971e58959efdf0de168b0d2b18d950931ff473bd939b3181269e789`.
+   - Frozen config SHA-256: `2eb6ff23488041e933d4d5cb00dbc6d481b9f4d2dccbc3e7c1ab0d1618fb5f18`.
+
+3. **Result — 4 of 5 seeds breach the frozen floors:**
+
+   | Seed | m1(τ) | m1(ε) | m1b | m2 | Floors |
+   |---:|---:|---:|---:|---:|:---:|
+   | 501 | 0.8737 | 0.8910 | 0.8854 | 0.0795 | ✅ |
+   | 502 | 0.6813 | 0.7234 | 0.5775 | 0.0729 | ❌ |
+   | 503 | 0.6796 | 0.7308 | 0.7621 | 0.0723 | ❌ |
+   | 504 | 0.5517 | 0.6345 | 0.7308 | 0.0783 | ❌ |
+   | 505 | 0.7762 | 0.7878 | 0.7017 | 0.0681 | ❌ |
+
+   `m3`/`m4`/`m5` were `1.000` on every seed and `m2` stayed within ceiling throughout — the failure is confined to rank recovery.
+
+4. **Root cause (measured):**
+   - D1 probe refit on fixed seed-42 DGP tables with failing split/estimator seeds recovered `m1 = 0.9046 / 0.9295` → variation sits on the DGP-noise axis, not the split or estimator seed.
+   - Independent noise-draw sweep (full n = 413,169, split seed 42): noise 42 `0.8858`, 10042 `0.8193`, 10101 `0.6956`, 10202 `0.8023`; on draw 10101 across split seeds `0.6956 / 0.5941 / 0.6587`.
+   - `true_tau` is constant across draws (mean −0.3680, sd 0.0758, between-segment sd 0.1156), so the estimand does not move — only the realized noise does. **Noise draw 42 is the optimistic tail**, and it is the only draw Q3 calibrated on.
+   - Bias (0.068–0.080) is 0.6–0.7× the between-segment spread, which is why ranking is fragile while bias, coverage and sign are stable.
+
+5. **Recalibration rejected:**
+   - Proposed amendment (3 noise draws × 3 seeds, unchanged separation gap, Δmin = 0.15) cannot pass: pooled gap is `−0.0987` (no separation); fresh-draws-only gap is `0.0317` (< margin); the per-draw paired variant separating correctly yields floor `≈0.7124`, still above four of five observed seeds.
+   - Every passing variant required lowering a floor to fit the result — forbidden by P2-D6a. **Frozen thresholds were left unchanged.**
+
+6. **Falsification:** threshold-tamper detection verified at unit level (`test_falsification_threshold_tamper_is_detected`, `test_cli.py` tamper case): edit a frozen threshold → verification exits 1; restore → exits 0. Mechanism valid; verdict unaffected.
+   - **Disclosed limitation:** the persisted artifact is `artifact_version: 1.0`, written before the gate-aggregation correction, so `verify-final-validation` rejects it as `malformed_summary` (extra `median_seed_all_floors_cleared`; missing `median_seed_targets_met` and `campaign_passed`). It fails closed — this is schema drift, not a tamper result. The artifact is retained unmodified; the E1 verdict rests on its per-seed metric values (unaffected) and the unmodified frozen floors. Artifact-level tamper verification would require rerunning the campaign and would not change the verdict.
+
+7. **Verification:**
+   - `uv run pytest tests/unit/test_validation_harness.py tests/unit/test_final_seed_validation.py tests/unit/test_cli.py -q`: **63 passed**.
+   - `uv run pytest` full suite: see commit record.
+   - `uv run ruff check .`: **All checks passed**.
+   - `uv run pyright`: **0 errors, 0 warnings, 0 informations**.
+
+### Gate 10 outcome
+
+❌ **FAILED.** Campaign executed exactly as specified; 4/5 seeds breach the frozen rank floors. Exit Criterion **E1 is NOT met**. The gate caught a real property — rank recovery is unstable across DGP-noise realizations — and the finding is recorded rather than tuned away. Escalated to the estimator-family decision (**P2-D5**). Stages 11–15 remain blocked; Phase 3 may not begin. Full analysis: `stage10_failure_analysis.md`.

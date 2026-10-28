@@ -76,7 +76,7 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | All grid cells run; budget criteria met; scale and nuisance family selected                              |
 | **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | ✅ **PASSED** — 35 segments; 100% finite/self-consistent; repeated CSV byte-identical                    |
 | **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | ✅ **PASSED** — controls fail; positive passes (`m1=0.9152`); thresholds frozen with margin              |
-| **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | Worst-seed & median pass frozen thresholds on held-out policies; E1 met                                  |
+| **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | ❌ **FAILED** — 4/5 seeds breach frozen rank floors (m1 0.5517–0.8737 vs 0.8428); E1 NOT met; escalated to P2-D5 |
 | **11** | Hidden-Confounder Sensitivity            | Degradation curve & robustness value                      | ADR-013          | None (skipped-cell guard asserted in gate)                              | Full grid run with no skips; robustness value recorded; S4 strength identified                           |
 | **12** | Registry & Human-Gated Promotion         | Packaged artifact, SQLite tracking, alias promotion       | ADR-014          | Promotion to `approved` without human review/lineage is rejected        | Pipeline sets `candidate`; `approved` requires review + lineage; serving is plain data                   |
 | **13** | Showcase Slice                           | Four curated presets rendering from `approved` (E2 close) | ADR-009, ADR-014 | Response schema rejects Δ field; banner presence asserted               | 4 presets render from `approved`; no Δ field; model validation banner present; E2 met                    |
@@ -480,6 +480,8 @@ Attempt to tamper with a frozen threshold in `params.yaml` after the final seed 
 **Gate 10 — Hard Close:**
 Worst-seed and median-seed metrics beat frozen thresholds across all $K$ seeds; zero failed seeds; tamper check blocks post-hoc threshold edits; Roadmap Exit Criterion E1 is fully satisfied with recorded evidence.
 
+> **❌ GATE 10 FAILED (2026-10-28).** Campaign executed as specified (K = 5, seeds 501–505, independent DGP noise per seed). 4 of 5 seeds breached the frozen rank floors; only seed 501 cleared them. `m2`/`m3`/`m4`/`m5` passed on every seed, so the failure is confined to rank recovery ($m_1$, $m_{1b}$). Root cause: rank recovery spans 0.55–0.95 across DGP-noise draws with the estimand held fixed; noise draw 42 — the only draw Q3 calibrated on — is the optimistic tail. The proposed recalibration cannot pass without lowering a frozen floor to fit the result (P2-D6a forbids this), so thresholds were left untouched. **E1 is NOT met.** Analysis and escalation: `reports/docs/phases/phase_2/stage10_failure_analysis.md`. Stages 11–15 remain blocked.
+
 ---
 
 ### Stage 11 — Hidden-Confounder Sensitivity Analysis (P2-F08)
@@ -685,7 +687,7 @@ All 15 stages passed; all 7 falsifications confirmed detected and reverted; Post
 
 Before Phase 2 can be declared complete at Stage 15, evidence for each item must be recorded:
 
-- [ ] **E1 (Causal Recovery):** `artifacts/causal_validation_summary.json` confirms worst-seed and median Spearman correlation and bias pass frozen thresholds across $K \ge 5$ seeds on held-out data.
+- [ ] **E1 (Causal Recovery):** `artifacts/causal_validation_summary.json` confirms worst-seed and median Spearman correlation and bias pass frozen thresholds across $K \ge 5$ seeds on held-out data. **FAILED 2026-10-28** — 4/5 seeds below the frozen rank floors; see `stage10_failure_analysis.md`.
 - [ ] **E2 (Showcase Slice):** FastAPI application renders presets S1–S4 from `approved` artifact; test confirms zero proposed adjustment fields in API schema; persistent disclaimer banner present.
 - [ ] **E3 (GLM Baseline):** Holdout Tweedie deviance, decile A/E ratios, and segment loss-cost report persisted; excess load calculation documented.
 - [ ] **E4 (Promotable Artifact):** MLflow registry contains packaged segment table with full lineage; alias promotion script enforces human-review gate; serving loads plain data.
@@ -712,7 +714,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **7**  | Qualification Q2          | Scale, nuisance family & report         | ADR-013      | None                       | Budget met; scale & nuisance family selected   | ✅ **PASSED** — N=413,169, GBT, 10.16 min |
 | **8**  | Causal Estimator          | Trained forest & segment intervals      | ADR-013      | None                       | 35 segments; 100% finite/self-consistent; byte-identical CSV | ✅ **PASSED** |
 | **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ✅ **PASSED** |
-| **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected  | Worst-seed & median beat frozen thresholds     | ⬜ Not started |
+| **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected ✅ (unit-level; artifact is schema-v1) | Worst-seed & median beat frozen thresholds     | ❌ **FAILED** — 4/5 seeds breach rank floors; E1 not met |
 | **11** | Confounder Sensitivity    | Degradation curve & robustness          | ADR-013      | None                       | Full grid executed; robustness value recorded  | ⬜ Not started |
 | **12** | Registry & Promotion      | Packaged artifact, alias promotion      | ADR-014      | Unapproved promotion fails | Pipeline sets candidate; approved needs review | ⬜ Not started |
 | **13** | Showcase Slice            | 4 presets from `approved` (E2)          | ADR-009, 014 | Response schema rejects Δ  | 4 presets render; banner on all views          | ⬜ Not started |

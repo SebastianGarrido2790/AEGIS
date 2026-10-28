@@ -199,7 +199,7 @@ The table records issues as observed during plan drafting. Their approved resolu
 | P2-D4 | Feature pipeline and tail handling | — | Heavy-tail carryover | Required | **Approved — Batch 2; bounds follow raw-distribution check** |
 | P2-D5 | Estimator configuration and training scale | — | Runtime budget; validation cost | Required (budget); config by Q2 | **Q2 method and proposed budget criteria approved — Batch 3; scale/configuration unresolved — Q2** |
 | P2-D6 | Validation protocol and gate design | — | E1 | Required | **Approved — Batch 2** |
-| P2-D6a | Gate thresholds | D6 | E1 | Required (method); values by Q3 | **Q3 calibration method approved — Batch 3; numeric thresholds unresolved — Q3** |
+| P2-D6a | Gate thresholds | D6 | E1 | Required (method); values by Q3 | **Q3 method approved — Batch 3; thresholds frozen at Stage 9. Recalibration amendment PROPOSED 2026-10-27, WITHDRAWN 2026-10-28 (cannot pass without lowering a floor). Gate 10 FAILED → escalated to P2-D5** |
 | P2-D7 | Confounding sensitivity method | — | PRD §14 Q1 | Required | **Approved — Batch 2** |
 | P2-D8 | Elasticity-side data contracts and DAG ordering | — | Amends ADR-003 (INV-3) | Required | **Approved — Batch 1** |
 | P2-D9 | Raw data identity, source and pinning | — | Document corrections; reproducibility | Not required | **Accepted as the factual correction — Batch 1** |
@@ -536,6 +536,8 @@ cross-fitting. The frozen values are in `params.yaml`; the full grid and checksu
 
 **Consequences.** The frozen values and the Q3 report are part of the registered artifact's validation summary.
 
+> **OUTCOME — Gate 10 FAILED (October 28, 2026).** The Stage 10 campaign (K = 5, seeds 501–505) produced 4 of 5 seeds below the frozen rank floors. A recalibration amendment was proposed on October 27 and **withdrawn on October 28** after measurement showed it could not pass: pooling estimator runs and controls across DGP-noise draws gives a negative separation gap, and the only variant that separates correctly yields a floor above four of the five observed seeds. Every passing variant required lowering a floor to fit the result, which this decision forbids. Thresholds are unchanged. Per this decision's own recommendation ("that finding returns to D2b/D5"), the failure is escalated to **P2-D5** (estimator configuration) and **P2-D2b** (benchmark design). See `stage10_failure_analysis.md`.
+
 ---
 
 ### P2-D7 — Confounding sensitivity method
@@ -759,7 +761,7 @@ This section stays open until implementation has been independently reviewed aga
 | Segments and contract | Size floors met; GLM-aggregated loss cost; ratio-of-sums; schema has no Δ field (D3) | | | | | |
 | Feature pipeline | Deterministic; exclusions logged; no composite index; claims variables absent from elasticity covariates; artifacts versioned (D4) | | | | | |
 | Estimator scale | Q2 verdict recorded; budget met or subsample choice documented (D5) | | | | | |
-| Validation gate | Thresholds frozen before final seeds; controls fail; estimator passes on worst seed and median (D6, D6a) | | | | | |
+| Validation gate | Thresholds frozen before final seeds; controls fail; estimator passes on worst seed and median (D6, D6a) | Campaign run K=5 (seeds 501–505); 4/5 seeds breach frozen rank floors | Rank recovery spans 0.55–0.95 across DGP-noise draws with the estimand fixed; noise draw 42, the sole Q3 draw, is the optimistic tail | Critical | Escalate to P2-D5 (estimator precision) / P2-D2b (benchmark); recalibration withdrawn as it cannot pass without lowering a floor | ❌ NOT MET | |
 | Sensitivity | Degradation curve and robustness value; no skipped cells (D7) | | | | | |
 | Data contracts | INV-3 ordering visible in the DAG; failing fixture per suite; ADR-003 amended (D8) | | | | | |
 | Reproducibility | Data products bit-identical; model outputs within tolerance; CI-smoke green with coverage floor (D10) | | | | | |

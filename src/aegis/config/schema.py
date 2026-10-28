@@ -236,6 +236,9 @@ class SyntheticDGPConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     random_seed: int = Field(default=42)
+    # Stage 10: each final seed s draws DGP noise with seed s + seed_offset_noise, so
+    # both the DGP noise and the estimator seed vary across the campaign (P2-D6).
+    seed_offset_noise: int = Field(default=10000)
     corridor_width: float = Field(default=0.15, gt=0.0, lt=1.0)
     confounding_dial: float = Field(default=0.5, ge=0.0, le=1.0)
     residual_std: float = Field(default=0.05, gt=0.0)
@@ -343,6 +346,17 @@ class ValidationThresholdsConfig(BaseModel):
         return self
 
 
+class FinalValidationPathsConfig(BaseModel):
+    """Configuration for the Stage 10 final-seed validation artifacts (P2-F07)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str = Field(default="artifacts/causal_validation_summary.json")
+    report: str = Field(
+        default="reports/docs/phases/phase_2/final_seed_validation_report.md"
+    )
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -369,7 +383,22 @@ class Tier1MLConfig(BaseModel):
         default_factory=EstimatorPathsConfig
     )
     pilot_seeds: list[int] = Field(default_factory=lambda: [42, 101, 202])
+    # Stage 10 final seeds (OD-3): disjoint from pilot_seeds; K >= 5 is a Gate 10 condition.
+    final_seeds: list[int] = Field(default_factory=lambda: [501, 502, 503, 504, 505])
     validation_thresholds: ValidationThresholdsConfig | None = Field(default=None)
+    final_validation_paths: FinalValidationPathsConfig = Field(
+        default_factory=FinalValidationPathsConfig
+    )
+
+    @model_validator(mode="after")
+    def _validate_seed_families(self) -> "Tier1MLConfig":
+        """Rejects final-seed sets that repeat seeds or overlap the Q3 pilot seeds."""
+        if len(set(self.final_seeds)) != len(self.final_seeds):
+            raise ValueError("final_seeds must be unique")
+        overlap = sorted(set(self.final_seeds) & set(self.pilot_seeds))
+        if overlap:
+            raise ValueError(f"final_seeds must be disjoint from pilot_seeds; overlap {overlap}")
+        return self
 
     @model_validator(mode="after")
     def _validate_segment_merges(self) -> "Tier1MLConfig":

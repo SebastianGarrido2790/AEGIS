@@ -290,6 +290,88 @@ def calibrate_q3(
     return 0
 
 
+def run_final_validation(sample_size: int | None = None) -> int:
+    """Executes the Stage 10 final-seed campaign and persists the Exit E1 artifact."""
+    from aegis.pipelines.final_seed_validation import (
+        persist_summary,
+        run_final_seed_campaign,
+    )
+
+    config = get_config()
+    try:
+        summary = run_final_seed_campaign(config, sample_size=sample_size, progress=print)
+        artifact, report = persist_summary(summary, config)
+    except ValidationHarnessError as exc:
+        print(f"[BLOCK] Final-seed validation failed: {exc}")
+        return 1
+
+    gates = summary.campaign_gates
+    outcome = (
+        "PASSED"
+        if gates.worst_seed_all_floors_cleared and gates.all_seeds_pass_frozen_thresholds
+        else "FAILED"
+    )
+    print(f"[{outcome}] Final-seed campaign complete: K={gates.k_seeds}")
+    print(
+        f"[GATES] worst_seed={gates.worst_seed_name} median_seed={gates.median_seed_name} "
+        f"failed_seeds={gates.failed_seeds} "
+        f"worst_floors_cleared={gates.worst_seed_all_floors_cleared}"
+    )
+    for name in (
+        "m1_tau_spearman",
+        "m1_epsilon_spearman",
+        "m1b_policy_spearman",
+        "m2_mean_abs_bias",
+    ):
+        worst = gates.worst_seed[name]
+        print(
+            f"[GATE {name}] worst={worst.value:.4f} threshold={worst.threshold:.4f} "
+            f"margin={worst.margin:+.4f}"
+        )
+    print(f"[ARTIFACT] {artifact}")
+    print(f"[REPORT] {report}")
+    return 0 if outcome == "PASSED" else 1
+
+
+def verify_final_validation(
+    summary_path: Path | None = None,
+    config_path: Path | None = None,
+) -> int:
+    """Verifies the persisted Exit E1 artifact against the live frozen configuration."""
+    from aegis.config.loader import find_project_root, load_params
+    from aegis.pipelines.final_seed_validation import (
+        compute_file_sha256,
+        load_summary_from_payload,
+        verify_final_validation_summary,
+    )
+
+    defaults = get_config()
+    artifact = Path(summary_path or defaults.tier1_ml.final_validation_paths.summary)
+    resolved_config = Path(config_path) if config_path else find_project_root() / "params.yaml"
+    try:
+        if not artifact.is_file():
+            raise ValidationHarnessError(f"Validation artifact not found: {artifact}")
+        summary = load_summary_from_payload(artifact.read_bytes())
+        live_config = load_params(resolved_config)
+        problems = verify_final_validation_summary(summary, live_config, resolved_config)
+    except ValidationHarnessError as exc:
+        print(f"[BLOCK] Final-seed verification failed: {exc}")
+        return 1
+
+    if problems:
+        print("[BLOCK] Final-seed validation artifact is INVALID:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+    print("[SUCCESS] Final-seed validation artifact verified")
+    print(f"[CONFIG] params.yaml sha256={compute_file_sha256(resolved_config)}")
+    print(
+        f"[GATES] K={summary.campaign_gates.k_seeds} "
+        f"failed_seeds={summary.campaign_gates.failed_seeds}"
+    )
+    return 0
+
+
 def validate_file(
     data_type: str,
     data_path: Path | None,
@@ -726,6 +808,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional pilot sample size override",
     )
 
+    p_final = subparsers.add_parser(
+        "run-final-validation",
+        help="Run the Stage 10 final-seed campaign and persist the Exit E1 artifact",
+    )
+    p_final.add_argument(
+        "--sample-size",
+        type=int,
+        default=None,
+        help="Optional sample size override (defaults to the Q2-frozen scale)",
+    )
+
+    p_verify = subparsers.add_parser(
+        "verify-final-validation",
+        help="Verify the Exit E1 artifact against the live frozen config and test data",
+    )
+    p_verify.add_argument(
+        "--summary-path",
+        type=Path,
+        default=None,
+        help="Summary artifact JSON (defaults to params.yaml)",
+    )
+    p_verify.add_argument(
+        "--config-path",
+        type=Path,
+        default=None,
+        help="Configuration file to verify against (defaults to project params.yaml)",
+    )
+
     return parser
 
 
@@ -792,6 +902,10 @@ def main() -> int:
             args.report_path,
             args.pilot_sample_size,
         )
+    if args.command == "run-final-validation":
+        return run_final_validation(args.sample_size)
+    if args.command == "verify-final-validation":
+        return verify_final_validation(args.summary_path, args.config_path)
 
     return 1
 

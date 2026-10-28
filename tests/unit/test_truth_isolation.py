@@ -118,11 +118,14 @@ def test_falsification_dynamic_truth_columns_rejected(forbidden_col: str) -> Non
 # ==========================================
 
 
+OFFLINE_VALIDATION_MODULES = frozenset({"validation_harness.py", "final_seed_validation.py"})
+
+
 def test_import_boundary_existing_codebase() -> None:
-    """Asserts that zero modules in aegis (except validation_harness) import truth_loader."""
+    """Asserts that only the offline validation modules import truth_loader."""
     src_dir = Path("src/aegis")
     for py_file in src_dir.rglob("*.py"):
-        if py_file.name in ("truth_loader.py", "__init__.py", "validation_harness.py"):
+        if py_file.name in ("truth_loader.py", "__init__.py", *OFFLINE_VALIDATION_MODULES):
             continue
         source = py_file.read_text(encoding="utf-8")
         # Should not raise TruthIsolationError

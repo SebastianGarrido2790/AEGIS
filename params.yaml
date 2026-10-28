@@ -97,6 +97,8 @@ tier1_ml:
   # Semi-synthetic DGP with known ground truth (P2-F04, ADR-013, P2-D2a/b).
   synthetic_dgp:
     random_seed: 42
+    # Stage 10: final seed s uses DGP noise seed s + seed_offset_noise (P2-D6).
+    seed_offset_noise: 10000
     corridor_width: 0.15
     confounding_dial: 0.5
     residual_std: 0.05
@@ -141,6 +143,8 @@ tier1_ml:
     run_manifest: "artifacts/causal_estimator/run_manifest.json"
   # Stage 9 (P2-F07): pilot seeds for Q3 calibration, disjoint from Stage 10 final seeds.
   pilot_seeds: [42, 101, 202]
+  # Stage 10 final-seed family (OD-3: K = 5, disjoint from pilot seeds).
+  final_seeds: [501, 502, 503, 504, 505]
   # Frozen by Q3 (Stage 9, 2026-10-26) from pilot seeds 42/101/202.
   validation_thresholds:
     m1_tau_spearman_floor: 0.8428

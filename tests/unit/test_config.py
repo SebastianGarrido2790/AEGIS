@@ -46,6 +46,11 @@ def test_load_valid_params(tmp_path: Path) -> None:
         "artifacts/causal_estimator/run_manifest.json"
     )
     assert config.tier1_ml.pilot_seeds == [42, 101, 202]
+    assert config.tier1_ml.final_seeds == [501, 502, 503, 504, 505]
+    assert config.tier1_ml.synthetic_dgp.seed_offset_noise == 10000
+    assert config.tier1_ml.final_validation_paths.summary == (
+        "artifacts/causal_validation_summary.json"
+    )
     thresholds = config.tier1_ml.validation_thresholds
     assert thresholds is not None
     assert thresholds.m1_tau_spearman_floor == 0.8428
@@ -54,6 +59,17 @@ def test_load_valid_params(tmp_path: Path) -> None:
     assert thresholds.m1b_policy_spearman_floor == 0.7784
     assert thresholds.m2_mean_abs_bias_ceiling == 0.1167
     assert thresholds.m5_sign_agreement_floor == 0.90
+
+
+def test_tier1_config_rejects_final_seed_pilot_overlap(tmp_path: Path) -> None:
+    """Final seeds must stay disjoint from the Q3 pilot seeds (ADR-013)."""
+    raw = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    raw["tier1_ml"]["final_seeds"] = [42, 501, 502, 503, 504]
+    bad_path = tmp_path / "params.yaml"
+    bad_path.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_params(bad_path)
+    assert "disjoint" in str(exc_info.value)
 
 
 def test_estimator_config_rejects_unknown_nuisance_family() -> None:
