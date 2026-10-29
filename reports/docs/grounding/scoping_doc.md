@@ -21,7 +21,9 @@ Author: Sebastián Garrido Arévalo | Date: September 28, 2026
 **Primary users:** actuarial/pricing analysts and underwriting/compliance reviewers (in-universe personas Elena, Marco, Renata — `user_story.md`).
 **Secondary users:** hiring managers, technical evaluators, and academic reviewers assessing this as portfolio evidence (`prd.md` §5; ADR-009's showcase interface exists specifically for this audience).
 
-**Pain point:** under statutory rate-filing regimes with review cycles often lasting many months, a rate change justified by the data still has to travel physically between an actuarial desk, a compliance/legal desk, and a finance desk, in sequence, each waiting on the last — a process that takes weeks, and produces no single record of why a given change was approved or rejected.
+**Pain point:** under statutory rate-filing regimes with review cycles often lasting many months, a rate change justified by the data still has to travel physically between an actuarial desk, a compliance/legal desk, and a finance desk, in sequence, each waiting on the last — a process that takes weeks, and produces no single record of why a given change was approved or rejected. This is a qualitative description, not a measured baseline for a specific insurer. Before an insurer-specific build, establish the current process's cycle time and fully loaded cost, including review, rework, and delay, for the decision workflow being targeted.
+
+**Decision and users:** the primary decision is whether to advance, revise, or escalate a proposed personal-auto premium adjustment for a policy segment. Pricing/actuarial analysts prepare and assess proposals; underwriting/compliance reviewers assess regulatory evidence and exceptions; pricing leadership evaluates portfolio impact. A human underwriter retains final authority.
 
 **Why an agentic approach, not traditional software or classical ML alone:** the task requires synthesizing three distinct domains of judgment — actuarial, regulatory, financial — into one governed decision before a human acts on it, where the regulatory piece specifically requires reasoning over free-text source material a fixed rule engine cannot generalize over. **This question is now resolved:** the companion Pre-Build Validation Gates (`../evaluations/capability_profile_gates.md`, amended by ADR-011) confirm that probabilistic reasoning is required strictly at the Compliance node for free-text statutory interpretation, while Pricing Strategy and Financial Impact are deterministic code nodes (Option C), completed by a post-governance underwriter briefing narrative.
 
@@ -48,11 +50,12 @@ AEGIS is a governed, three-tier agentic platform that recommends personal auto i
 
 ## 5. The ROI Situation
 
-Brutally honest: as a solo portfolio project, this system generates no direct revenue. Its ROI is demonstrative — a reusable architectural template proving that causal inference, RAG-grounded compliance, and HITL governance can be integrated into one auditable pipeline. If deployed inside a real insurer, the ROI case would rest on cycle-time reduction and reduced compliance exposure — a claim this project cannot substantiate without real loss-ratio data it does not have.
+Brutally honest: as a solo portfolio project, this system generates no direct revenue. Its ROI is demonstrative — a reusable architectural template proving that causal inference, RAG-grounded compliance, and HITL governance can be integrated into one auditable pipeline. If deployed inside a real insurer, the ROI case would rest on cycle-time reduction and reduced compliance exposure — a claim this project cannot substantiate without real loss-ratio data it does not have. The cost of an incorrect estimate is also unquantified: it depends on the insurer's portfolio, premium and retention response, loss experience, and the cost of regulatory remediation. Before an insurer-specific build, quantify plausible error consequences with the decision owner and record the assumptions; do not infer them from this portfolio's synthetic treatment effects or public benchmark data.
 
 ## 6. Prior Work
 
 - **Tier 1 baseline:** one capped-pure-premium Tweedie GLM (compound Poisson-Gamma) provides the loss-cost baseline. A separate severity model and severity-driven pricing are out of scope; the approved cap and portfolio excess load are chosen by Q1. The source is the original French MTPL benchmark, not freMTPL2.
+- **Available data and label meaning:** the current public benchmark supplies policy exposure, claim-frequency, and claim-severity/loss observations and rating factors; the causal treatment and its known effect are constructed for the semi-synthetic experiment, not observed historical premium changes. These labels support the stated benchmark and synthetic-recovery evaluations, not a claim that real premium elasticity has been identified. Before an insurer-specific build, document each source, label definition, observation period, exclusions, and segment coverage, then assess whether they represent the intended book of business and decision. The public benchmark's limited rating factors and lack of observed price variation make it insufficient on its own to establish production representativeness.
 - **Portfolio precedent:** ACRAS (Agentic Credit Risk Assessment System), a sibling project in this same portfolio, applies the same deterministic-ML-plus-agentic-orchestration thesis to a different regulated domain (credit risk) via a relay-agent pattern. AEGIS extends the thesis with a heavier emphasis on RAG-grounded regulatory compliance and a parallel fan-out (not relay) orchestration topology.
 - **No existing system** addresses this specific problem — a governed, auditable link between causal elasticity, regulatory compliance, and financial impact — directly; today's heuristic solution is the disconnected manual review chain described in §1.
 
@@ -60,6 +63,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 
 - **Input:** a policy/segment submitted for pricing review (driver age, vehicle age/power, exposure, region, Density, and available rating factors in the original French MTPL data; no BonusMalus or Area); regulatory corpus documents (jurisdiction, section, effective date, chunk text) feeding the Compliance Agent's retrieval index (Phase 5, not yet built).
 - **Output:** a structured recommendation record — proposed premium adjustment, causal justification with confidence interval, compliance verdict with evidence citation, first-order financial impact projection (assuming homogeneous retention risk), validated underwriter briefing narrative, and final disposition (`READY_FOR_REVIEW` or `ESCALATED`, with operational fallback flagged if active). The system never outputs a published rate directly (INV-4).
+- **Reject versus escalate:** define these cases before an insurer-specific build. At minimum, reject malformed, unsupported, or out-of-scope requests with an explicit reason and no recommendation; escalate otherwise valid requests when evidence is insufficient, compliance is conflicting, or a proposed adjustment falls outside pre-approved bounds. Do not treat rejection and human review as interchangeable outcomes.
 - **Storage:** DVC-versioned training and regulatory data; MLflow-tracked and registered models; a SQLite-backed structured audit log (Tier 3, Phase 7); a Redis Stack-backed regulatory vector index (Phase 5).
 
 ## 8. Constraints
@@ -74,9 +78,10 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 
 ## 9. Success Metrics
 
-- **User-facing:** not applicable in the strict sense — no live users. The closest analog is the showcase interface's ability to let a technical evaluator directly observe governance mechanics (an escalation firing, a fallback engaging) within a single demo session.
+- **User-facing:** not applicable in the strict sense — no live users. The closest analog is the showcase interface's ability to let a technical evaluator directly observe governance mechanics (an escalation firing, a fallback engaging) within a single demo session. This demonstrates system behavior, not a measured reduction in insurer cycle time, cost, or pricing error.
 - **Technical:** *(amended)* causal estimator's held-out, multi-seed per-segment and Spearman recovery of the known synthetic effect, finite/self-consistent intervals and control performance, with numeric thresholds calibrated before final seeds; GLM calibration by holdout mean Tweedie deviance and actual-versus-expected by predicted-loss decile and segment (MAE/RMSE secondary); the future four-metric Compliance Agent diagnostic matrix; judge calibration (Spearman correlation, MAE, bias) for any continuous-score judge feeding a gate or a dashboard.
 - **System:** 100% audit-record completeness (Tier 3); full CI and DVC reproducibility; the module-size ceiling (INV-8) held everywhere.
+- **Business evidence for an insurer-specific build:** compare against the measured current-process baseline and define an acceptable decision-level success threshold before implementation. Evidence must address the targeted users and decision, cycle time and cost, the consequences of incorrect estimates, data/label suitability, reject/escalate behavior, and measurable outcomes. No business-impact threshold or measured baseline is asserted for this portfolio project.
 
 ## 10. Checklist
 
@@ -85,6 +90,7 @@ Brutally honest: as a solo portfolio project, this system generates no direct re
 - [x] Goals and metrics align with stakeholder priorities — aligned with the sole practitioner's stated career-positioning goal (governed agentic systems engineering in regulated domains).
 - [x] Scope shared with relevant stakeholders — limited in practice to the sole practitioner and the academic stakeholder; noted honestly rather than skipped.
 - [x] Decisions and trade-offs recorded in the decision log — `../architecture/system_design.md`'s ADR-001 through ADR-011 (and counting), plus the `decisions/` and `phases/` pillars.
+- [ ] Before any insurer-specific build, document the intended users and decision, current-process time/cost baseline, cost of an incorrect estimate, available data and label semantics/representativeness, reject-versus-escalate criteria, and measurable success evidence. This gate is not applicable to the portfolio demonstrator and is not evidence of production readiness.
 
 ## 11. What Could Go Wrong Along the Way
 
