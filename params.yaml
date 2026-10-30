@@ -171,6 +171,30 @@ tier1_ml:
   sensitivity_paths:
     summary_artifact: "artifacts/sensitivity_summary.json"
     report_markdown: "reports/docs/phases/phase_2/confounder_sensitivity_report.md"
+  # Stage 12 (P2-F09, ADR-014, P2-D11a): local SQLite registry with mutable aliases.
+  # The pipeline may assign only `candidate`; `approved` requires a human review record.
+  registry:
+    model_name: "aegis-causal-elasticity"
+    tracking_uri: "sqlite:///artifacts/mlflow.db"
+    experiment_name: "aegis-tier1-registry"
+    candidate_alias: "candidate"
+    approved_alias: "approved"
+    required_lineage_tags:
+      - "git_commit"
+      - "dvc_data_hash"
+      - "dgp_manifest_id"
+      - "calibration_hash"
+      - "validation_status"
+  registry_paths:
+    segment_loss_cost: "data/processed/segment_loss_cost.csv"
+    segment_estimates: "data/processed/segment_elasticity_estimates.csv"
+    estimator_metadata: "data/processed/causal_estimator_metadata.json"
+    dgp_manifest: "data/processed/dgp_manifest.json"
+    calibration_report: "data/processed/glm_calibration_report.json"
+    validation_summary: "artifacts/causal_validation_summary.json"
+    sensitivity_summary: "artifacts/sensitivity_summary.json"
+    dvc_lock: "dvc.lock"
+    staging_dir: "artifacts/registry_staging"
 
 tier2_agents:
   grounding_threshold: 0.85

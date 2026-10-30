@@ -397,6 +397,57 @@ class SensitivityPathsConfig(BaseModel):
     )
 
 
+class RegistryConfig(BaseModel):
+    """Configuration for the local MLflow registry and alias promotion (P2-F09, P2-D11a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    model_name: str = Field(default="aegis-causal-elasticity", min_length=1)
+    # Default only: MLFLOW_TRACKING_URI always wins when set (no secrets in config).
+    tracking_uri: str = Field(default="sqlite:///artifacts/mlflow.db", min_length=1)
+    experiment_name: str = Field(default="aegis-tier1-registry", min_length=1)
+    candidate_alias: str = Field(default="candidate", min_length=1)
+    approved_alias: str = Field(default="approved", min_length=1)
+    required_lineage_tags: list[str] = Field(
+        default_factory=lambda: [
+            "git_commit",
+            "dvc_data_hash",
+            "dgp_manifest_id",
+            "calibration_hash",
+            "validation_status",
+        ]
+    )
+
+    @model_validator(mode="after")
+    def _validate_aliases(self) -> "RegistryConfig":
+        """Rejects an alias collision and an empty required-tag set."""
+        if self.candidate_alias == self.approved_alias:
+            raise ValueError("candidate_alias and approved_alias must differ")
+        if not self.required_lineage_tags:
+            raise ValueError("required_lineage_tags must not be empty")
+        if len(set(self.required_lineage_tags)) != len(self.required_lineage_tags):
+            raise ValueError("required_lineage_tags must be unique")
+        return self
+
+
+class RegistryPathsConfig(BaseModel):
+    """Paths for the Stage 12 registry packaging inputs and staging area."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    segment_loss_cost: str = Field(default="data/processed/segment_loss_cost.csv")
+    segment_estimates: str = Field(
+        default="data/processed/segment_elasticity_estimates.csv"
+    )
+    estimator_metadata: str = Field(default="data/processed/causal_estimator_metadata.json")
+    dgp_manifest: str = Field(default="data/processed/dgp_manifest.json")
+    calibration_report: str = Field(default="data/processed/glm_calibration_report.json")
+    validation_summary: str = Field(default="artifacts/causal_validation_summary.json")
+    sensitivity_summary: str = Field(default="artifacts/sensitivity_summary.json")
+    dvc_lock: str = Field(default="dvc.lock")
+    staging_dir: str = Field(default="artifacts/registry_staging")
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -433,6 +484,8 @@ class Tier1MLConfig(BaseModel):
     sensitivity_paths: SensitivityPathsConfig = Field(
         default_factory=SensitivityPathsConfig
     )
+    registry: RegistryConfig = Field(default_factory=RegistryConfig)
+    registry_paths: RegistryPathsConfig = Field(default_factory=RegistryPathsConfig)
 
     @model_validator(mode="after")
     def _validate_seed_families(self) -> "Tier1MLConfig":

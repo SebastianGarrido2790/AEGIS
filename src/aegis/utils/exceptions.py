@@ -74,3 +74,17 @@ class SensitivityAnalysisError(AEGISError):
     """Raised when hidden-confounder sensitivity sweep fails or cells are skipped (P2-F08)."""
 
 
+class RegistryPackagingError(AEGISError):
+    """Raised when Tier 1 artifacts cannot be packaged into a validated serving bundle (P2-F09)."""
+
+
+class PromotionGateError(AEGISError):
+    """Raised when a human-review or lineage precondition blocks `approved` promotion (P2-F09)."""
+
+
+class RegistrySecurityError(AEGISError):
+    """Raised when an estimator binary or a deserialization attempt reaches serving (P2-F09)."""
+
+
+class ModelNotFoundError(AEGISError):
+    """Raised when a registered model, version, or required alias does not exist (P2-F09)."""

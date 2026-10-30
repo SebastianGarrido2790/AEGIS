@@ -22,6 +22,7 @@ from aegis.pipelines.data_contracts import (
 from aegis.pipelines.feature_pipeline import run_feature_pipeline
 from aegis.pipelines.glm_baseline import run_glm_baseline
 from aegis.pipelines.raw_intake import ingest_raw_data
+from aegis.pipelines.registry import add_registry_subparsers
 from aegis.pipelines.segments import run_segment_pipeline
 from aegis.pipelines.synthetic_dgp import run_synthetic_dgp_pipeline
 from aegis.utils.exceptions import (
@@ -879,6 +880,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path for Markdown sensitivity report",
     )
 
+    add_registry_subparsers(subparsers)
+
     return parser
 
 
@@ -886,6 +889,9 @@ def main() -> int:
     """CLI execution entrypoint."""
     parser = build_parser()
     args = parser.parse_args()
+
+    if hasattr(args, "func"):
+        return int(args.func(args))
 
     if args.command == "ingest-elasticity":
         return ingest_file(args.input_path, args.output_path, "elasticity")
