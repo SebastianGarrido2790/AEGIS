@@ -284,7 +284,7 @@ Use one deterministic preprocessing pipeline with categorical/banded and numeric
 
 ### ADR-013: Semi-Synthetic Causal Benchmark and Validation Protocol
 
-**Status:** Approved October 21, 2026; estimator scale is pending Q2 and numeric gate thresholds are pending Q3.
+**Status:** Amended October 29, 2026 (P2-D5a CATE Family Evaluation Scope); originally approved October 21, 2026.
 
 **Context:** The public observational data has no price treatment or renewal outcome. A defensible recovery claim therefore requires an isolated synthetic treatment/outcome benchmark, held-out evaluation, and controls that can falsify a weak estimator.
 
@@ -293,6 +293,15 @@ Use one deterministic preprocessing pipeline with categorical/banded and numeric
 Use observed confounding from a risk-based treatment assignment as the main benchmark and randomized treatment as positive control. Q2 compares CausalForestDML scale at 25k, 100k, 250k, and 413k, with boosted-tree and regularized-linear nuisance models. The approved budget criteria are a full registered fit within 30 minutes and 80% of available RAM; if the budget is exceeded, validation uses the smallest sample whose Spearman is within 0.02 of the largest tested sample, while registering on full data if budget permits. Q2 sets scale and nuisance configuration.
 
 Evaluate on held-out policies using at least five disjoint final seeds, with pilot seeds reserved for threshold calibration. Report segment τ Spearman, policy-level held-out Spearman, per-segment ε bias, 95% interval coverage, interval finiteness/self-consistency, and sign agreement. Controls that must fail are unadjusted estimation on confounded data, shuffled τ̂, and a zero-effect DGP; randomized treatment is the positive control. Report worst-seed and median results. Q3 sets thresholds from separation between control and estimator distributions with a minimum margin; freeze thresholds before final-seed evaluation. If no separation exists, revisit DGP/estimator design rather than lowering thresholds. Hidden-confounder sensitivity uses a Q2-bounded grid, reports degradation and the first strength where median Spearman breaches the frozen threshold, and fails loudly on skipped cells.
+
+**Amendment (October 29, 2026 — P2-D5a CATE Family Evaluation Scope):**
+In response to the Gate 10 Exit E1 rank-recovery failure across DGP-noise draws (`stage10_failure_analysis.md`) and diagnostic screening (`p2_d5a_phase0_screening.py`, spread 0.0957), ADR-013 is narrowly amended to evaluate alternative CATE model families under double machine learning (Linear/Series DML alongside regularized forest variants) within a pre-registered bounded sweep:
+1. *Evaluation scope:* Authorizes candidate CATE evaluation on holdout data against frozen thresholds. Adoption into the pipeline remains evidence-gated.
+2. *Non-oracle requirement:* Evaluation candidates must include at least one non-oracle candidate (e.g. regularized forest or spline/series representation) alongside partially-linear DML.
+3. *Threshold immutability:* Frozen numerical thresholds (0.8428 for $m_1$, 0.8831 for $m_{1\epsilon}$, 0.7784 for $m_{1b}$, 0.1167 ceiling for $m_2$) remain strictly frozen; no lowering to fit.
+4. *Per-draw paired separation (OD-1):* Replaces pooled separation across disparate DGP draws with within-draw paired separation against controls.
+5. *Seed isolation (OD-2):* Development seeds 501–505 are retired; any final validation re-gate evaluates on a fresh disjoint seed family (601–605).
+6. *Fallback discipline (OD-5):* If candidate CATE families fail to satisfy frozen floors under this protocol, the terminal state is **F** (narrow E1 claim and document DGP-noise limits), not benchmark redesign (D) or metric lowering (E).
 
 **Consequences:** Numerical thresholds and estimator configuration are evidence-gated, not selected from final-seed outcomes. Truth must not enter estimator inputs; tolerance details and interval inference are specified in the feature specifications before implementation.
 

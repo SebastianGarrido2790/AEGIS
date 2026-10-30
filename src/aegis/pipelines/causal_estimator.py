@@ -611,7 +611,7 @@ def aggregate_segment_estimates(
             interval = np.asarray(
                 inference.conf_int_mean(alpha=ci_alpha), dtype=float
             ).reshape(-1)
-            tau_hat = float(inference.mean_point)
+            tau_hat = float(np.asarray(inference.mean_point).reshape(-1)[0])
         except Exception as exc:
             raise CausalEstimatorError(
                 f"Segment inference failed for '{segment_id}': {exc}",

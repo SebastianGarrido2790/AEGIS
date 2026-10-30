@@ -1,10 +1,10 @@
-# Decision Draft — P2-D5a: Estimator precision under DGP-noise variation
+# Decision Record — P2-D5a: Estimator precision under DGP-noise variation
 
-**Status:** DRAFT — awaiting operator decision. Not approved, not scheduled.
-**Date:** 2026-10-28
+**Status:** APPROVED by operator (October 29, 2026).
+**Date:** 2026-10-29
 **Nested under:** P2-D5 (estimator configuration and training scale — approved, resolved by Q2)
 **Trigger:** Gate 10 FAILED; Exit Criterion E1 not met (`stage10_failure_analysis.md`)
-**On approval:** folded into `implementation_plan.md` as `P2-D5a`, reached from the P2-D5 row.
+**Governing:** ADR-013 Amendment (October 30, 2026)
 
 ---
 
@@ -148,12 +148,19 @@ Approved *before* any fit, so the result cannot select the criterion:
 
 ---
 
-## 9. Operator decisions required
+## 9. Operator decisions resolved (October 30, 2026)
 
-- **OD-1.** Approve per-draw paired separation (§4.1) as a correction to P2-D6a?
-- **OD-2.** Approve retiring 501–505 to development status and gating on a fresh family (§4.2)?
-- **OD-3.** Approve the Phase 0 screening before any sweep?
-- **OD-4.** Which ceiling applies to option C — is an ADR-013 amendment in scope for this phase,
-  or must the CATE family stay `CausalForestDML` unless the sweep fails?
-- **OD-5.** Confirm that if A/B and C both fail, the outcome is F (narrow E1), not D (benchmark
-  redesign).
+- **OD-1. Paired per-draw separation:** **APPROVED.** Within each noise draw, the estimator's
+  lower tail is compared to that draw's control tail; separation must hold across all evaluated
+  draws. This corrects the pooled-separation defect of Q3 without lowering any floor.
+- **OD-2. Seed family retirement:** **APPROVED.** Seeds 501–505 are retired to a documented
+  development set. Any final re-gating campaign must evaluate on a fresh, disjoint seed family
+  (e.g., 601–605).
+- **OD-3. Phase 0 screening:** **EXECUTED.** Yielded spread 0.0957 (MIXED, leaning C).
+- **OD-4. ADR-013 amendment scope:** **APPROVED (narrow amendment).** ADR-013 is narrowly amended
+  to evaluate alternative CATE model families (Linear/Series DML alongside regularized forest
+  variants) under a pre-registered bounded sweep. At least one non-oracle candidate must be
+  included. Adoption into the pipeline remains evidence-gated; floors remain strictly frozen.
+- **OD-5. Fallback rule:** **CONFIRMED.** If candidate CATE families fail to clear the frozen floors,
+  the terminal state is **F** (narrow E1 claim and document DGP-noise limits), not D (benchmark
+  redesign) or E (metric lowering).

@@ -197,7 +197,8 @@ The table records issues as observed during plan drafting. Their approved resolu
 | P2-D2b | Confounding, overlap and heterogeneity design | D2 | E1 validity | Required | **Approved — Batch 2** |
 | P2-D3 | Segment definition and Tier 1 output contract | — | Phase 3 and 6 interface | Required | **Approved — Batch 2; provisional band edges subject to §2.4 close-out** |
 | P2-D4 | Feature pipeline and tail handling | — | Heavy-tail carryover | Required | **Approved — Batch 2; bounds follow raw-distribution check** |
-| P2-D5 | Estimator configuration and training scale | — | Runtime budget; validation cost | Required (budget); config by Q2 | **Q2 method and proposed budget criteria approved — Batch 3; scale/configuration unresolved — Q2** |
+| P2-D5 | Estimator configuration and training scale | — | Runtime budget; validation cost | Required (budget); config by Q2 | **Q2 resolved October 26, 2026: N=413,169, GBT nuisance, 5 folds. Reopened via P2-D5a following Gate 10 failure.** |
+| P2-D5a | Estimator precision & CATE family evaluation | D5 | Gate 10 / Exit E1 rank failure | Required (remediation); bounded sweep | **APPROVED October 30, 2026 (narrow ADR-013 amendment, frozen floors, non-oracle candidate, paired per-draw separation).** |
 | P2-D6 | Validation protocol and gate design | — | E1 | Required | **Approved — Batch 2** |
 | P2-D6a | Gate thresholds | D6 | E1 | Required (method); values by Q3 | **Q3 method approved — Batch 3; thresholds frozen at Stage 9. Recalibration amendment PROPOSED 2026-10-27, WITHDRAWN 2026-10-28 (cannot pass without lowering a floor). Gate 10 FAILED → escalated to P2-D5** |
 | P2-D7 | Confounding sensitivity method | — | PRD §14 Q1 | Required | **Approved — Batch 2** |
@@ -486,6 +487,28 @@ Spearman was 0.9014 (GBT) and 0.9031 (linear), a 0.0017 gap within the approved 
 tolerance. The tie-break therefore selects GBT at 413,169 policies with five-fold
 cross-fitting. The frozen values are in `params.yaml`; the full grid and checksums are in
 `q2_estimator_scale_report.md`.
+
+---
+
+### P2-D5a — Estimator precision and CATE family evaluation
+
+**Question.** When the frozen estimator breaches the rank floors under DGP-noise variation (Gate 10 failure), how is precision evaluated without lowering the gate?
+
+**Context.** Gate 10 campaign showed $m_2$ (bias) is stable (0.068–0.080) and coverage/sign are 1.000, but rank recovery $m_1(\tau)$ spans 0.5517–0.8737 across DGP-noise draws against a frozen floor of 0.8428. Phase 0 screening diagnostic on the worst draw yielded a spread of 0.0957 (MIXED, leaning Option C).
+
+**Governing.** ADR-013 Amendment (October 29, 2026); `stage10_failure_analysis.md`.
+
+**Decision.** Narrowly amend ADR-013 to evaluate alternative CATE model families (Linear/Series DML alongside regularized forest variants) under a pre-registered bounded sweep:
+1. *Scope:* Evaluation on holdout data against frozen thresholds. Adoption into pipeline is evidence-gated.
+2. *Candidates:* Must include at least one non-oracle candidate (e.g. regularized forest or spline/series representation) alongside partially-linear DML.
+3. *Threshold immutability:* Frozen numerical thresholds (0.8428 for $m_1$, 0.8831 for $m_{1\epsilon}$, 0.7784 for $m_{1b}$, 0.1167 ceiling for $m_2$) remain strictly frozen; no lowering to fit.
+4. *Per-draw paired separation (OD-1):* Replaces pooled separation across disparate DGP draws with within-draw paired separation against controls.
+5. *Seed isolation (OD-2):* Development seeds 501–505 are retired; any final validation re-gate evaluates on a fresh disjoint seed family (601–605).
+6. *Fallback discipline (OD-5):* If candidate CATE families fail to satisfy frozen floors under this protocol, the terminal state is **F** (narrow E1 claim and document DGP-noise limits), not benchmark redesign (D) or metric lowering (E).
+
+> **APPROVED (October 29, 2026):** Execute bounded sweep across pre-registered CATE candidates and three representative noise draws under frozen floors and paired per-draw separation.
+
+**Approval.** Approved, October 29, 2026. **Decision status.** Approved; evaluation sweep pending. Full record: `p2-d5a_estimator_precision_decision.md`.
 
 ---
 
