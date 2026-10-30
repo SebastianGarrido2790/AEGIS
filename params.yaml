@@ -159,6 +159,18 @@ tier1_ml:
     m3_epsilon_coverage_floor: 0.90
     m4_self_consistency_floor: 1.00
     m5_sign_agreement_floor: 0.90
+  # Hidden-confounder sensitivity analysis (P2-F08, Stage 11, ADR-013, P2-D7).
+  # 3x3 grid plus baseline zero cell (10 cells total); sample size bounded by Q2 cost.
+  sensitivity:
+    gamma_t_levels: [0.02, 0.05, 0.10]
+    gamma_y_levels: [0.2, 0.5, 1.0]
+    sample_size: 100000
+    random_seed: 42
+    robustness_threshold: 0.60
+    scenario_s4_cell_id: "gt_0.05_gy_0.50"
+  sensitivity_paths:
+    summary_artifact: "artifacts/sensitivity_summary.json"
+    report_markdown: "reports/docs/phases/phase_2/confounder_sensitivity_report.md"
 
 tier2_agents:
   grounding_threshold: 0.85

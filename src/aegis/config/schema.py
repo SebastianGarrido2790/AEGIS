@@ -357,6 +357,46 @@ class FinalValidationPathsConfig(BaseModel):
     )
 
 
+class SensitivityConfig(BaseModel):
+    """Configuration for Hidden-Confounder Sensitivity Analysis (P2-F08, Stage 11)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    gamma_t_levels: list[float] = Field(
+        default_factory=lambda: [0.02, 0.05, 0.10],
+        description="Coupling strengths to treatment assignment T",
+    )
+    gamma_y_levels: list[float] = Field(
+        default_factory=lambda: [0.2, 0.5, 1.0],
+        description="Coupling strengths to renewal outcome Y",
+    )
+    sample_size: int = Field(
+        default=100000,
+        gt=0,
+        description="Sample size for sensitivity grid fits (bounded by Q2 cost)",
+    )
+    random_seed: int = Field(default=42)
+    robustness_threshold: float = Field(
+        default=0.70,
+        description="Threshold defining the robustness value boundary",
+    )
+    scenario_s4_cell_id: str = Field(
+        default="gt_0.05_gy_0.50",
+        description="Selected cell ID for showcase Scenario S4",
+    )
+
+
+class SensitivityPathsConfig(BaseModel):
+    """Paths for sensitivity analysis outputs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary_artifact: str = Field(default="artifacts/sensitivity_summary.json")
+    report_markdown: str = Field(
+        default="reports/docs/phases/phase_2/confounder_sensitivity_report.md"
+    )
+
+
 class Tier1MLConfig(BaseModel):
     """Configuration for Tier 1 Deterministic ML and Causal Elasticity models (Phase 2)."""
 
@@ -388,6 +428,10 @@ class Tier1MLConfig(BaseModel):
     validation_thresholds: ValidationThresholdsConfig | None = Field(default=None)
     final_validation_paths: FinalValidationPathsConfig = Field(
         default_factory=FinalValidationPathsConfig
+    )
+    sensitivity: SensitivityConfig = Field(default_factory=SensitivityConfig)
+    sensitivity_paths: SensitivityPathsConfig = Field(
+        default_factory=SensitivityPathsConfig
     )
 
     @model_validator(mode="after")

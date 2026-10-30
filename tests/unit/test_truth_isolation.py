@@ -118,7 +118,9 @@ def test_falsification_dynamic_truth_columns_rejected(forbidden_col: str) -> Non
 # ==========================================
 
 
-OFFLINE_VALIDATION_MODULES = frozenset({"validation_harness.py", "final_seed_validation.py"})
+OFFLINE_VALIDATION_MODULES = frozenset(
+    {"validation_harness.py", "final_seed_validation.py", "sensitivity.py"}
+)
 
 
 def test_import_boundary_existing_codebase() -> None:

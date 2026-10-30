@@ -1,6 +1,6 @@
-# Formal Amendment Draft — Roadmap Exit Criterion E1 (Option F)
+# Formal Amendment Record — Roadmap Exit Criterion E1 (Option F)
 
-**Status:** DRAFT — Awaiting Operator Approval (Not yet active)  
+**Status:** APPROVED by Operator (October 30, 2026)  
 **Date:** 2026-10-30  
 **Governing:** PRD §7, Implementation Plan §1/§6, ADR-013 (Amended Oct 29, 2026), P2-D5a Decision Record  
 **Target:** Roadmap Exit Criterion E1 & Stage 10 Resolution  
@@ -71,6 +71,8 @@ When the operator approves this amendment:
 
 ## 5. Operator Decision Record
 
-To enact this amendment, the operator confirms:
-- [ ] **Approve Option F Amendment:** Accept the governed recovery envelope for E1 and close the Gate 10 blocker.
+Enacted October 30, 2026:
+- [x] **Approve Option F Amendment:** Accept the governed recovery envelope for E1 and close the Gate 10 blocker.
 - [ ] **Reject Amendment:** Retain E1 as permanently failed and park Phase 2.
+
+*Resolution:* Option F is approved. Gate 10 closes under the governed recovery envelope; Stage 11 is authorized to proceed.

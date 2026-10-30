@@ -372,6 +372,32 @@ def verify_final_validation(
     return 0
 
 
+def run_sensitivity(
+    summary_path: Path | None = None,
+    report_path: Path | None = None,
+) -> int:
+    """Executes hidden-confounder sensitivity sweep and writes summary (Stage 11, P2-F08)."""
+    from aegis.pipelines.sensitivity import run_sensitivity_sweep
+    from aegis.utils.exceptions import SensitivityAnalysisError
+
+    config = get_config()
+    print("[SENSITIVITY] Executing 10-cell hidden-confounder sensitivity sweep...")
+    try:
+        summary = run_sensitivity_sweep(
+            config=config,
+            output_summary_path=summary_path,
+            output_report_path=report_path,
+        )
+    except SensitivityAnalysisError as exc:
+        print(f"[BLOCK] Sensitivity analysis failed: {exc}")
+        return 1
+
+    print(f"[SUCCESS] Sensitivity sweep complete: {summary.grid_cells_completed}/10 cells.")
+    print(f"[ROBUSTNESS] Robustness value R_v = {summary.robustness_value:.4f}")
+    print(f"[SCENARIO S4] Locked cell: {summary.scenario_s4.cell_id}")
+    return 0
+
+
 def validate_file(
     data_type: str,
     data_path: Path | None,
@@ -836,6 +862,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Configuration file to verify against (defaults to project params.yaml)",
     )
 
+    p_sens = subparsers.add_parser(
+        "run-sensitivity",
+        help="Execute 10-cell hidden-confounder sensitivity sweep and lock Scenario S4 (P2-F08)",
+    )
+    p_sens.add_argument(
+        "--summary-path",
+        type=Path,
+        default=None,
+        help="Path for JSON sensitivity summary",
+    )
+    p_sens.add_argument(
+        "--report-path",
+        type=Path,
+        default=None,
+        help="Path for Markdown sensitivity report",
+    )
+
     return parser
 
 
@@ -906,6 +949,8 @@ def main() -> int:
         return run_final_validation(args.sample_size)
     if args.command == "verify-final-validation":
         return verify_final_validation(args.summary_path, args.config_path)
+    if args.command == "run-sensitivity":
+        return run_sensitivity(args.summary_path, args.report_path)
 
     return 1
 

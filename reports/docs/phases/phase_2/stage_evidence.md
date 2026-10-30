@@ -19,8 +19,8 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 7 | Qualification Q2: Estimator Training Scale & Budget | ✅ PASSED | 2026-10-26 | §Stage 7 |
 | 8 | Causal Estimator & Segment Inference | ✅ PASSED | 2026-10-26 | §Stage 8 |
 | 9 | Validation Harness & Q3 Threshold Calibration | ✅ PASSED | 2026-10-26 | §Stage 9 |
-| 10 | Final-Seed Validation Gate | ❌ FAILED | 2026-10-28 | §Stage 10 |
-| 11 | Hidden-Confounder Sensitivity Analysis | Pending | — | — |
+| 10 | Final-Seed Validation Gate | ✅ PASSED (Option F) | 2026-10-30 | §Stage 10 |
+| 11 | Hidden-Confounder Sensitivity Analysis | ✅ PASSED | 2026-10-30 | §Stage 11 |
 | 12 | MLflow Artifact Packaging & Human-Gated Promotion | Pending | — | — |
 | 13 | Diagnostic Showcase Slice | Pending | — | — |
 | 14 | DAG Assembly, Config & CI Tiers / Reproducibility | Pending | — | — |
@@ -606,4 +606,65 @@ Q3 executed across the three pilot seeds; all three negative controls failed; th
 
 ### Gate 10 outcome
 
-❌ **FAILED.** Campaign executed exactly as specified; 4/5 seeds breach the frozen rank floors. Exit Criterion **E1 is NOT met**. The gate caught a real property — rank recovery is unstable across DGP-noise realizations — and the finding is recorded rather than tuned away. Escalated to the estimator-family decision (**P2-D5**). Stages 11–15 remain blocked; Phase 3 may not begin. Full analysis: `stage10_failure_analysis.md`.
+**Original Verdict (2026-10-28):** ❌ **FAILED.** Campaign executed exactly as specified; 4/5 seeds breach the frozen rank floors. The gate caught a real property — rank recovery is unstable across DGP-noise realizations — and the finding is recorded rather than tuned away. Escalated to the estimator-family decision (**P2-D5a**). Full analysis: `stage10_failure_analysis.md`.
+
+**Remediation & Closure (2026-10-30):** ✅ **PASSED UNDER OPTION F AMENDMENT.**
+Following the ADR-013 amendment (October 29, 2026) and the Phase 1 bounded CATE evaluation sweep (`p2_d5a_phase1_sweep_report.md`), the operator approved the formal Option F amendment (`e1_option_f_amendment.md`, October 30, 2026). Roadmap Exit Criterion E1 is closed under the multi-metric governed recovery envelope:
+- Unbiased scale recovery: $m_2 \le 0.1167$ (demonstrated $0.039 - 0.080$).
+- Honest uncertainty quantification: 95% CI coverage $m_3 \ge 0.9000$ (demonstrated $100.0\%$ under tree CATE), self-consistency $m_4 = 1.0000$, sign agreement $m_5 \ge 0.9000$ ($100.0\%$).
+- Defensible confounding de-biasing: positive separation against unadjusted confounded estimation by $\Delta(m_1) \ge 0.15$ on every draw (demonstrated $0.24 - 0.41$).
+- Documented rank precision limit: median segment rank correlation $m_1(\tau) \ge 0.70$ (demonstrated $0.76 - 0.80$), with realization envelope $m_1 \in [0.64, 0.93]$.
+
+Stage 10 PASSED under Option F. Roadmap Exit Criterion E1 is satisfied. Stages 11–15 unblocked.
+
+---
+
+## Stage 11 — Hidden-Confounder Sensitivity Analysis
+
+**Executed:** 2026-10-30 · **Gate 11:** ✅ PASSED · **Feature:** `P2-F08` (Light SDD)
+
+1. **Implementation & Specifications:**
+   - Tasks: `reports/docs/phases/phase_2/008_confounder-sensitivity/tasks.md` (T1–T7 completed).
+   - Data & Metric schemas: `src/aegis/schemas/sensitivity.py` (Pydantic models `SensitivityGridCell`, `SensitivityCellResult`, `ScenarioS4Selection`, `SensitivitySummary`).
+   - Confounder injection pipeline: `src/aegis/pipelines/sensitivity.py`.
+   - Injects unobserved confounder $U \sim \mathcal{N}(0, 1)$ into treatment assignment $T$ and outcome $Y$ with coupling strengths $(\gamma_T, \gamma_Y)$, hiding $U$ from estimator features.
+   - Fail-loud execution enforced: raises `SensitivityAnalysisError` if any cell fails or is skipped.
+   - CLI command: `uv run python -m aegis.pipelines.cli run-sensitivity`.
+
+2. **10-Cell Sweep Results:**
+   - Sample size per cell: 100,000 policies (bounded by Q2 cost).
+   - Seed: 42 (canonical baseline benchmark).
+   - All 10 cells executed and converged; zero skips verified.
+   - Degradation table:
+
+     | Cell ID | $\gamma_T$ | $\gamma_Y$ | Norm $r$ | Duration | $m_1(\tau)$ | $\Delta m_1$ | $m_2$ Bias | $\Delta m_2$ | Cov ($m_3$) | Status |
+     |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|
+     | `gt_0.00_gy_0.00` | 0.00 | 0.00 | 0.000 | 90.6s | 0.6407 | +0.0000 | 0.1147 | +0.0000 | 1.0000 | ✅ Converged |
+     | `gt_0.02_gy_0.20` | 0.02 | 0.20 | 0.201 | 94.0s | 0.6174 | -0.0233 | 0.1983 | +0.0836 | 1.0000 | ✅ Converged |
+     | `gt_0.02_gy_0.50` | 0.02 | 0.50 | 0.500 | 88.5s | 0.5756 | -0.0651 | 0.4981 | +0.3834 | 1.0000 | ✅ Converged |
+     | `gt_0.02_gy_1.00` | 0.02 | 1.00 | 1.000 | 87.2s | 0.2196 | -0.4211 | 1.0841 | +0.9694 | 1.0000 | ✅ Converged |
+     | `gt_0.05_gy_0.20` | 0.05 | 0.20 | 0.206 | 85.2s | 0.7602 | +0.1195 | 0.3025 | +0.1878 | 1.0000 | ✅ Converged |
+     | `gt_0.05_gy_0.50` (S4) | 0.05 | 0.50 | 0.502 | 97.3s | 0.6579 | +0.0172 | 0.7419 | +0.6272 | 1.0000 | ✅ Converged |
+     | `gt_0.05_gy_1.00` | 0.05 | 1.00 | 1.001 | 95.1s | -0.2073 | -0.8480 | 1.6201 | +1.5054 | 0.0000 | ✅ Converged |
+     | `gt_0.10_gy_0.20` | 0.10 | 0.20 | 0.224 | 97.2s | 0.8609 | +0.2202 | 0.2778 | +0.1631 | 1.0000 | ✅ Converged |
+     | `gt_0.10_gy_0.50` | 0.10 | 0.50 | 0.510 | 99.5s | 0.7213 | +0.0806 | 0.6911 | +0.5764 | 0.9714 | ✅ Converged |
+     | `gt_0.10_gy_1.00` | 0.10 | 1.00 | 1.005 | 98.5s | -0.2276 | -0.8683 | 1.4378 | +1.3231 | 0.0000 | ✅ Converged |
+
+3. **Key Findings & Robustness Value:**
+   - **Robustness value:** $R_v = 0.5004$ (minimum non-zero confounding norm breaching $m_1(\tau) < 0.60$, reached at cell `gt_0.02_gy_0.50`).
+   - Severe unobserved confounding ($\gamma_Y = 1.00$) breaks the estimator entirely: rank correlation collapses to $-0.21$ / $-0.23$, coverage drops to $0\%$, and elasticity bias inflates to $>1.40$.
+   - **Scenario S4 locked:** Cell `gt_0.05_gy_0.50` selected for the showcase slice ($\gamma_T = 0.05, \gamma_Y = 0.50$, norm $0.502$, $m_1 = 0.6579$, bias inflation $+0.6272$ up to $m_2 = 0.7419$), demonstrating real-world estimator limits under unobserved confounding.
+
+4. **Artifacts & Provenance:**
+   - Summary artifact: `artifacts/sensitivity_summary.json` (6,516 B, SHA-256 `e1edc39832d563e4f1dcf8b85ec3c4f68bf2e25debace723ee1f8ece6714fc37`).
+   - Report: `reports/docs/phases/phase_2/confounder_sensitivity_report.md`.
+   - Config hash: `fba4f762a4d346369c0d9a6ca971fe2ba5053cf255931ecf0ea15bce6ba1a337`.
+
+5. **Verification Suite:**
+   - Unit tests: `tests/unit/test_sensitivity.py` (7 passed).
+   - Truth isolation: `tests/unit/test_truth_isolation.py` (12 passed; boundary holds).
+   - Full static checks: `ruff` 0 errors, `pyright` 0 errors, `check_module_size.py` 47/47 files within 1,000-line ceiling.
+
+### Gate 11 outcome
+
+✅ **PASSED.** All 10 sensitivity grid cells executed successfully with zero skips verified; degradation curve recorded; robustness value $R_v = 0.5004$ recorded; Scenario S4 locked to cell `gt_0.05_gy_0.50`. Stage 12 (MLflow Registry & Promotion) unblocked.

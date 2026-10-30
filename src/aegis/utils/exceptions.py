@@ -70,3 +70,7 @@ class ValidationHarnessError(AEGISError):
     """Raised when validation metrics, negative controls, or Q3 calibration fail (P2-F07)."""
 
 
+class SensitivityAnalysisError(AEGISError):
+    """Raised when hidden-confounder sensitivity sweep fails or cells are skipped (P2-F08)."""
+
+
