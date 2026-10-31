@@ -668,3 +668,7 @@ Stage 10 PASSED under Option F. Roadmap Exit Criterion E1 is satisfied. Stages 1
 ### Gate 11 outcome
 
 ✅ **PASSED.** All 10 sensitivity grid cells executed successfully with zero skips verified; degradation curve recorded; robustness value $R_v = 0.5004$ recorded; Scenario S4 locked to cell `gt_0.05_gy_0.50`. Stage 12 (MLflow Registry & Promotion) unblocked.
+
+### Gate 12 outcome
+
+✅ **PASSED.** `aegis-causal-elasticity` registered with `candidate` → v3; `approved` → v3 promoted under human review record (reviewer ID `Sebastián Garrido Arévalo`, review note recorded, calibration hash `4fae2271…b9a9` verified on-disk and in tag). Rollback rehearsal v3 → v2 → v3 executed successfully with `rollback_from` tags recorded on both versions. Serving loader returns 35 plain segments and rejects estimator binaries (`RegistrySecurityError` on `.pkl`/`.joblib`). Roadmap Exit Criterion E4 satisfied. Gate 12 hard close complete; Stages 13–15 unblocked.

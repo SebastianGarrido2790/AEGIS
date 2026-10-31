@@ -518,7 +518,7 @@ All 10 sensitivity grid cells execute successfully with zero skips; degradation 
 
 ---
 
-### Stage 12 — MLflow Artifact Packaging & Human-Gated Promotion (P2-F09)
+### Stage 12 — MLflow Artifact Packaging & Human-Gated Promotion (P2-F09) ✅ **COMPLETED**
 
 **Goal:** Package Tier 1 outputs into a promotable, auditable registry artifact and enforce a strict human-review gate that permits `candidate` assignment by automated pipelines, but requires human sign-off for `approved` promotion.
 
@@ -526,7 +526,7 @@ All 10 sensitivity grid cells execute successfully with zero skips; degradation 
 
 1. Create `reports/docs/phases/phase_2/009_registry-promotion/`: write `spec.md`, obtain approval, write `plan.md` and `tasks.md`.
 2. Implement artifact packaging in `src/aegis/pipelines/registry.py`:
-   - Package segment output table (`Tier1SegmentOutput` CSV/Parquet conforming to ADR-014).
+   - Package segment output table (`Tier1SegmentOutput` CSV conforming to ADR-014).
    - Package GLM baseline calibration report and loss cap manifest.
    - Package causal validation summary and sensitivity report.
    - Attach complete lineage metadata: Git commit hash, DVC data hash, DGP manifest ID, MLflow run ID, gate pass tag.
@@ -554,7 +554,7 @@ Attempt to run `promote_model.py` to assign the `approved` alias without providi
 **Gate 12 — Hard Close:**
 `candidate` alias is set automatically by pipeline; promotion to `approved` is blocked without valid human review record and complete lineage; rollback successfully re-points alias; serving loads plain data without deserializing estimator objects; Exit E4 satisfied.
 
----
+> **✅ GATE 12 PASSED (2026-10-31).** `aegis-causal-elasticity` registered with `candidate` → v3; `approved` → v3 promoted under human review record (reviewer ID `Sebastián Garrido Arévalo`, review note recorded, calibration hash `4fae2271…b9a9` verified on-disk and in tag). Rollback rehearsal v3 → v2 → v3 executed successfully with `rollback_from` tags recorded on both versions. Serving loader returns 35 plain segments and rejects estimator binaries (`RegistrySecurityError` on `.pkl`/`.joblib`). Roadmap Exit Criterion E4 satisfied. Gate 12 hard close complete; Stages 13–15 unblocked.
 
 ### Stage 13 — Diagnostic Showcase Slice (P2-F11)
 
