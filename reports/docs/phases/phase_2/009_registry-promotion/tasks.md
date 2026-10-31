@@ -108,11 +108,13 @@ Sequencing: T1 → T7 are code + verification. T8 is the automated real-backend 
 
 **Acceptance:** version registered with `candidate` only; no `approved` alias exists.
 
-**Evidence (2026-10-30):** first registration produced v1 (`run 18d223b5b92b49eb8492ef008898e3e2`,
-`git_dirty=true`) and a second produced v2 (`run 0108c99cf02944878c29b87833a62aa3`, also
-`git_dirty=true`). Both were made before the Stage 12 commit, so their recorded `git_commit`
-(`d5981de…4014`) does not contain the packaging code. Post-commit registration supersedes them;
-`approved` stayed unset throughout.
+**Evidence (2026-10-30):** pre-commit registrations v1 (`run 18d223b5…e3e2`) and v2
+(`run 0108c99c…2aa3`) both carry `git_dirty=true` and `git_commit=d5981de…4014`, which does not
+contain the Stage 12 code. Post-commit registration produced **v3**
+(`run 77f6272859a2474da04de3b2bff04916`, `git_commit=04b0cbae…8c0c`, `git_dirty=false`), and
+`candidate` now resolves to v3. Serving loader against the real backend fails closed with
+`ModelNotFoundError: No model version currently assigned to alias 'approved'`, confirming no
+version is approved before human review. `approved` stayed unset throughout.
 
 ---
 
