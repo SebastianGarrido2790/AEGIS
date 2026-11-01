@@ -53,7 +53,7 @@ Deliver a working FastAPI showcase that:
 
 **FR-1 (showcase launches).** When `uv run uvicorn aegis.api.app:app` is executed, the server binds to the configured port, the root route responds, and the `approved` alias resolves to v3 (or fails clearly with `ModelNotFoundError` when `approved` is unset).
 
-**FR-2 (scenarios from `approved`).** For each preset scenario (S1–S4), the API response must include the corresponding segment IDs from the `approved` bundle (S1: large / well-recovered; S2: small / wide intervals; S3: cap-sensitive from Stage 5; S4: confounded from Stage 11 `gt_0.05_gy_0.50`). All metrics must correspond to v3's `tier1_segments.csv`, not to hardcoded values.
+**FR-2 (scenarios from `approved`).** For each preset scenario (S1–S4), the API response must include the corresponding evidence from the `approved` bundle (S1: large / well-recovered; S2: small / wide intervals; S3: cap-sensitive from Stage 5; S4: confounded from Stage 11 `gt_0.05_gy_0.50`). S1–S3 metrics must correspond to v3's `tier1_segments.csv`, not to hardcoded values. **S4 amendment (approved 2026-10-31):** the Stage 11 cell is a global stress result with no segment row, so S4 renders the bundled `sensitivity_summary.json` cell and is labelled as not being a policy segment.
 
 **FR-3 (structural INV-5).** The response schema must contain strictly zero fields naming a proposed adjustment (`delta`, `adjust`, `proposed`, `new_premium`). Any injection of such a field must cause a schema test failure.
 
@@ -89,7 +89,7 @@ Fields explicitly excluded (INV-5 / ADR-009 exemption): `delta`, `adjusted_premi
 | S1 | `large-segment` | Well-recovered segment with tight CI (high `n`, low `m2`) | Demonstrates healthy elasticity recovery |
 | S2 | `small-segment` | Sparse segment with wide CI (`low policy_count`, wide epsilon interval) | Honest uncertainty, no overconfidence |
 | S3 | `cap-sensitive` | Segment with large uncapped claim (>€100k influence from Stage 5 cap sweep) | Shows cap-policy effect on loss cost |
-| S4 | `confounded` | `gt_0.05_gy_0.50` (Stage 11 sensitivity, Scenario S4) | Demonstrates estimator limits under hidden confounding |
+| S4 | `confounded` | No segment: global Stage 11 cell `gt_0.05_gy_0.50` (sensitivity summary) | Demonstrates estimator limits under hidden confounding |
 
 ---
 

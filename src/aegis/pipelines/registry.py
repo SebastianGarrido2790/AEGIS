@@ -56,6 +56,7 @@ SERVING_ARTIFACT_PATH = "serving_bundle"
 ESTIMATOR_ARTIFACT_PATH = "estimator"
 CALIBRATION_REPORT_FILE = "glm_calibration_report.json"
 VALIDATION_SUMMARY_FILE = "causal_validation_summary.json"
+SENSITIVITY_SUMMARY_FILE = "sensitivity_summary.json"
 
 PROMOTION_TAG_KEYS: tuple[str, ...] = (
     "promoted_by",
@@ -527,6 +528,12 @@ def load_approved_segments(
     validation_summary = (
         json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
     )
+    sensitivity_path = local_dir / SENSITIVITY_SUMMARY_FILE
+    sensitivity_summary = (
+        json.loads(sensitivity_path.read_text(encoding="utf-8"))
+        if sensitivity_path.is_file()
+        else {}
+    )
     run_id = _version_run_id(mlflow_client, model_name, version)
 
     return ApprovedSegmentPackage(
@@ -536,6 +543,7 @@ def load_approved_segments(
         segments=segments,
         lineage=lineage,
         validation_summary=validation_summary,
+        sensitivity_summary=sensitivity_summary,
     )
 
 

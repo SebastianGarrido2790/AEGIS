@@ -5,30 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AEGIS / Showcase</title>
   <link rel="stylesheet" href="/static/showcase.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <main class="shell">
     <header class="masthead">
       <div>
-        <p class="kicker">AEGIS / Phase 2</p>
+        <p class="kicker">AEGIS / Phase 2 diagnostic showcase</p>
         <h1>Elasticity review cockpit</h1>
-        <p class="lede">A glass-box view of the registered causal validation model across curated risk segments.</p>
+        <p class="lede">Baseline elasticity, interval uncertainty, and validation evidence read from the <code>approved</code> registry artifact.</p>
       </div>
       <span class="demo-badge">{{ demo_label }}</span>
     </header>
+
+    <section class="banner" role="note">{{ disclaimer }}</section>
 
     <section class="control-bar" aria-label="Preset scenario selection">
       <form method="get" action="/">
         <label for="preset">Preset scenario</label>
         <select id="preset" name="preset" onchange="this.form.submit()">
           {% for scenario in scenarios %}
-          <option value="{{ scenario.key }}" {% if view_model and view_model.scenario.key == scenario.key %}selected{% endif %}>{{ scenario.name }}</option>
+          <option value="{{ scenario.key }}" {% if view_model and view_model.scenario_key == scenario.key %}selected{% endif %}>{{ scenario.name }}</option>
           {% endfor %}
         </select>
         <button type="submit">Load scenario</button>
       </form>
-      <span class="source-note">Source: registered MLflow model</span>
+      {% if view_model %}
+      <span class="source-note">Source: approved alias / {{ view_model.model_name }} v{{ view_model.model_version }}</span>
+      {% else %}
+      <span class="source-note">Source: approved alias</span>
+      {% endif %}
     </section>
 
     {% if error %}
@@ -40,68 +45,97 @@
     {% elif view_model %}
     <section class="scenario-heading">
       <div>
-        <p class="eyebrow">{{ view_model.scenario.risk_profile }}</p>
-        <h2>{{ view_model.scenario.name }}</h2>
-        <p>{{ view_model.scenario.subtitle }}</p>
+        <p class="eyebrow">{{ view_model.risk_profile }}</p>
+        <h2>{{ view_model.scenario_name }}</h2>
+        <p>{{ view_model.subtitle }}</p>
       </div>
-      <div class="governance-state">{{ view_model.scenario.governance_state }}</div>
+      <div class="governance-state">{{ view_model.governance_state }}</div>
     </section>
 
+    {% if view_model.notice %}
+    <section class="notice warn" role="status">{{ view_model.notice }}</section>
+    {% endif %}
+
     <section class="metrics" aria-label="Scenario metrics">
+      {% if view_model.segment %}
       <article class="metric metric-accent">
         <span>Elasticity estimate</span>
-        <strong>{{ "%.2f"|format(view_model.elasticity) }}</strong>
-        <small>Registered causal model output</small>
+        <strong>{{ "%.2f"|format(view_model.segment.epsilon_hat) }}</strong>
+        <small>Baseline elasticity from the approved segment table</small>
       </article>
       <article class="metric">
         <span>95% confidence interval</span>
-        <strong>{{ "%.2f"|format(view_model.confidence_interval.lower) }} to {{ "%.2f"|format(view_model.confidence_interval.upper) }}</strong>
-        <small>Alpha {{ view_model.confidence_interval.alpha }}</small>
+        <strong>{{ "%.2f"|format(view_model.segment.epsilon_ci_lower) }} to {{ "%.2f"|format(view_model.segment.epsilon_ci_upper) }}</strong>
+        <small>Policy count {{ view_model.segment.policy_count }}</small>
       </article>
       <article class="metric">
-        <span>Governance signal</span>
-        <strong>{{ view_model.scenario.governance_state }}</strong>
-        <small>{{ view_model.scenario.governance_note }}</small>
+        <span>Retention at baseline</span>
+        <strong>{{ "%.3f"|format(view_model.segment.baseline_retention_q0) }}</strong>
+        <small>Loss cost {{ "%.2f"|format(view_model.segment.loss_cost_per_year) }} / base premium {{ "%.2f"|format(view_model.segment.base_premium_per_year) }}</small>
       </article>
+      {% else %}
+      <article class="metric metric-accent">
+        <span>Cell</span>
+        <strong>{{ view_model.stress.cell_id }}</strong>
+        <small>Global stress result, not a policy segment</small>
+      </article>
+      <article class="metric">
+        <span>Rank recovery (tau)</span>
+        <strong>{{ "%.4f"|format(view_model.stress.m1_tau_spearman) }}</strong>
+        <small>Elasticity rank recovery {{ "%.4f"|format(view_model.stress.m1_epsilon_spearman) }}</small>
+      </article>
+      <article class="metric">
+        <span>Mean absolute bias</span>
+        <strong>{{ "%.4f"|format(view_model.stress.m2_mean_abs_bias) }}</strong>
+        <small>Confounding strength {{ "%.4f"|format(view_model.stress.confounding_strength) }}</small>
+      </article>
+      {% endif %}
     </section>
 
     <section class="analysis-grid">
       <div class="chart-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Segment view</p>
-            <h2>Estimated treatment effect</h2>
+            <p class="eyebrow">Evidence view</p>
+            <h2>{{ "Elasticity and interval" if view_model.segment else "Degradation under hidden confounding" }}</h2>
           </div>
-          <span class="model-tag">{{ view_model.model_name }}</span>
+          <span class="model-tag">v{{ view_model.model_version }}</span>
         </div>
-        <div class="chart-wrap"><canvas id="elasticityChart" aria-label="Elasticity estimate and confidence interval chart"></canvas></div>
+        <div class="chart-wrap"><canvas id="showcaseChart" aria-label="Scenario evidence chart"></canvas></div>
       </div>
       <aside class="detail-panel">
         <p class="eyebrow">Model record</p>
         <dl>
-          <div><dt>Treatment</dt><dd>{{ view_model.treatment_variable }}</dd></div>
-          <div><dt>Scenario multiplier</dt><dd>{{ "%.2f"|format(view_model.scenario.model_multiplier) }}x</dd></div>
-          <div><dt>Decision boundary</dt><dd>Human review only</dd></div>
+          <div><dt>Model</dt><dd>{{ view_model.model_name }}</dd></div>
+          {% if view_model.segment %}
+          <div><dt>Segment</dt><dd>{{ view_model.segment.segment_id }}</dd></div>
+          {% endif %}
+          <div><dt>Approved version</dt><dd>v{{ view_model.model_version }}</dd></div>
+          <div><dt>Data version</dt><dd>{{ view_model.data_version }}</dd></div>
+          <div><dt>Validation status</dt><dd>{{ view_model.validation_status }}</dd></div>
+          <div><dt>Segments in bundle</dt><dd>{{ view_model.segment_count }}</dd></div>
+          <div><dt>Governance</dt><dd>{{ view_model.governance_note }}</dd></div>
         </dl>
-        <p class="disclaimer">This interface demonstrates Phase 2 estimator validation. It is not a production pricing system and does not publish rates.</p>
       </aside>
     </section>
     {% endif %}
   </main>
+
   {% if view_model %}
+  <script src="/static/chart.umd.min.js"></script>
   <script>
-    const scenarioData = {{ {"name": view_model.scenario.name, "elasticity": view_model.elasticity, "lower": view_model.confidence_interval.lower, "upper": view_model.confidence_interval.upper}|tojson }};
-    new Chart(document.getElementById('elasticityChart'), {
+    {% if view_model.segment %}
+    const chartData = {{ {"labels": ["Estimate", "Lower bound", "Upper bound"], "values": [view_model.segment.epsilon_hat, view_model.segment.epsilon_ci_lower, view_model.segment.epsilon_ci_upper]}|tojson }};
+    {% else %}
+    const chartData = {{ {"labels": ["tau rank", "epsilon rank", "mean bias"], "values": [view_model.stress.m1_tau_spearman, view_model.stress.m1_epsilon_spearman, view_model.stress.m2_mean_abs_bias]}|tojson }};
+    {% endif %}
+    new Chart(document.getElementById('showcaseChart'), {
       type: 'bar',
       data: {
-        labels: [scenarioData.name],
-        datasets: [
-          { label: 'Estimate', data: [scenarioData.elasticity], backgroundColor: '#d45b3f', borderRadius: 2, barThickness: 58 },
-          { label: 'Lower bound', data: [scenarioData.lower], backgroundColor: '#273b3d', barThickness: 8 },
-          { label: 'Upper bound', data: [scenarioData.upper], backgroundColor: '#273b3d', barThickness: 8 }
-        ]
+        labels: chartData.labels,
+        datasets: [{ label: '{{ view_model.scenario_name }}', data: chartData.values, backgroundColor: ['#d45b3f', '#273b3d', '#3a7774'], borderRadius: 2, barThickness: 58 }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { grid: { color: '#d8d5cc' } }, x: { grid: { display: false } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#d8d5cc' } }, x: { grid: { display: false } } } }
     });
   </script>
   {% endif %}

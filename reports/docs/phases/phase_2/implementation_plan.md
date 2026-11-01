@@ -180,7 +180,7 @@ The table records issues as observed during plan drafting. Their approved resolu
 | P2-F08 (`008_confounder-sensitivity`) | Hidden-confounder sensitivity analysis | Roadmap sensitivity requirement; PRD §14 Q1 | D7 | F04, F07 | Degradation curve and robustness value; harness raises on any skipped cell | M | Light |
 | P2-F09 (`009_registry-promotion`) | MLflow tracking and promotion | Promotable artifact with recorded review | D11, D11a | F03, F06, F07 | `candidate` set by pipeline; `approved` only with a review record and lineage tags | M | Full |
 | P2-F10 (`010_pipeline-config-ci-tiers`) | DAG extension, config expansion, CI tiers | INV-3 ordering, ADR-005, reproducibility | D8, D10 | evolves with F01–F09 | CI-smoke green with coverage floor; `dvc repro` reproduces data products identically and model outputs within tolerance | M | Light |
-| P2-F11 (`011_showcase-slice`) | Phase 2 showcase slice | E2; secondary audience | D12 | F09 | Banner on every page; response schema has no Δ field; presets render from the `approved` artifact | M | Full |
+| P2-F11 (`011_showcase-slice`) | Phase 2 showcase slice | E2; secondary audience | D12 | F09 | Banner on every page; response schema has no Δ field; presets render from the `approved` artifact | **Complete** | Full |
 
 **Deliberately excluded:** the bandit and any proposed Δ (Phase 3); any Tier 2 node, LLM call or Gateway use; a separate severity model (D1); free-form showcase input (ADR-009, INV-10); drift monitoring and the judge suite (Phase 8); real-world elasticity claims (A5); data-driven feature selection (the covariate set is fixed by the dataset and A4; any later selection uses training and validation splits only); hyperparameter search beyond Q2.
 

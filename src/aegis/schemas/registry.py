@@ -74,3 +74,4 @@ class ApprovedSegmentPackage(BaseModel):
     segments: Tier1SegmentTable
     lineage: ModelLineageMetadata
     validation_summary: dict[str, Any] = Field(default_factory=dict)
+    sensitivity_summary: dict[str, Any] = Field(default_factory=dict)

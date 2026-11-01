@@ -556,7 +556,7 @@ Attempt to run `promote_model.py` to assign the `approved` alias without providi
 
 > **✅ GATE 12 PASSED (2026-10-31).** `aegis-causal-elasticity` registered with `candidate` → v3; `approved` → v3 promoted under human review record (reviewer ID `Sebastián Garrido Arévalo`, review note recorded, calibration hash `4fae2271…b9a9` verified on-disk and in tag). Rollback rehearsal v3 → v2 → v3 executed successfully with `rollback_from` tags recorded on both versions. Serving loader returns 35 plain segments and rejects estimator binaries (`RegistrySecurityError` on `.pkl`/`.joblib`). Roadmap Exit Criterion E4 satisfied. Gate 12 hard close complete; Stages 13–15 unblocked.
 
-### Stage 13 — Diagnostic Showcase Slice (P2-F11)
+### Stage 13 — Diagnostic Showcase Slice (P2-F11) ✅ **COMPLETED**
 
 **Goal:** Implement the glass-box developer showcase demo slice reading from the `approved` segment artifact, displaying only $\epsilon$, confidence intervals, and validation metrics, with the INV-5 exemption enforced by construction.
 
@@ -589,6 +589,8 @@ Inject a dummy `proposed_rate_change` field into the showcase API response model
 
 **Gate 13 — Hard Close:**
 Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenarios render accurately from the `approved` artifact; response schema has no proposed adjustment field; disclaimer banner is present on all views; all tests pass without skips; Roadmap Exit Criterion E2 is met.
+
+> **✅ GATE 13 PASSED (2026-10-31).** Showcase reads only `load_approved_segments()` from approved v3. S1–S3 render segment rows from `tier1_segments.csv` (ε̂, interval, retention, policy count, loss cost, premium); S4 renders the frozen Stage 11 cell `gt_0.05_gy_0.50` (global stress, not a segment) from the bundled sensitivity summary. `ShowcaseView` rejects any price-change field (`ValidationError`); Chart.js 4.4.4 is vendored locally (205,749 B, no CDN); banner present on every view. `uvicorn` served `/health` and `/scenario/confounded` (200). 375 tests passed with zero skips; ruff/pyright clean; 51/51 modules under 1,000 lines. E2 satisfied.
 
 ---
 

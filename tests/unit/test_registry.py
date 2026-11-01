@@ -424,6 +424,7 @@ def test_serving_loader_returns_plain_segments(env: RegistryEnv) -> None:
     assert len(package.segments.segments) == 2
     assert package.lineage.model_version == version
     assert package.validation_summary["status"] == "GATE_PASSED_OPTION_F"
+    assert package.sensitivity_summary["robustness_value"] == 0.5004
     assert package.segments.segments[0].policy_count == 1200
 
 

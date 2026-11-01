@@ -672,3 +672,7 @@ Stage 10 PASSED under Option F. Roadmap Exit Criterion E1 is satisfied. Stages 1
 ### Gate 12 outcome
 
 ✅ **PASSED.** `aegis-causal-elasticity` registered with `candidate` → v3; `approved` → v3 promoted under human review record (reviewer ID `Sebastián Garrido Arévalo`, review note recorded, calibration hash `4fae2271…b9a9` verified on-disk and in tag). Rollback rehearsal v3 → v2 → v3 executed successfully with `rollback_from` tags recorded on both versions. Serving loader returns 35 plain segments and rejects estimator binaries (`RegistrySecurityError` on `.pkl`/`.joblib`). Roadmap Exit Criterion E4 satisfied. Gate 12 hard close complete; Stages 13–15 unblocked.
+
+### Gate 13 outcome
+
+✅ **PASSED.** The showcase reads only `load_approved_segments()` from approved v3. S1–S3 render segment rows from `tier1_segments.csv`; S4 renders the frozen Stage 11 cell `gt_0.05_gy_0.50` (global stress, not a segment) from the bundled sensitivity summary. `ShowcaseView` rejects any price-change field (`ValidationError`) and rendered pages contain none of the forbidden fragments. Chart.js 4.4.4 vendored locally (205,749 B, no CDN); banner present on segment, stress, invalid-preset, and governance-error views. `uvicorn` served `/health` and `/scenario/confounded` (200). 375 tests passed with zero skips; ruff/pyright clean; 51/51 modules within the INV-8 ceiling. Roadmap Exit Criterion E2 satisfied.

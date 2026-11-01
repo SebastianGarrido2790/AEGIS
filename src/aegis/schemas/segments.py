@@ -24,7 +24,7 @@ FORBIDDEN_FIELD_FRAGMENTS: tuple[str, ...] = (
 )
 
 
-def _guard_forbidden_fields(payload: Any) -> None:
+def guard_forbidden_fields(payload: Any) -> None:
     """Raises if any incoming key names a proposed pricing adjustment.
 
     Args:
@@ -67,7 +67,7 @@ class Tier1SegmentOutput(BaseModel):
     @classmethod
     def _forbid_adjustment_fields(cls, data: Any) -> Any:
         """Rejects any field naming a proposed adjustment before validation."""
-        _guard_forbidden_fields(data)
+        guard_forbidden_fields(data)
         return data
 
     @model_validator(mode="after")
@@ -105,7 +105,7 @@ class Tier1SegmentTable(BaseModel):
     @classmethod
     def _forbid_adjustment_fields(cls, data: Any) -> Any:
         """Rejects adjustment-like top-level keys before validation."""
-        _guard_forbidden_fields(data)
+        guard_forbidden_fields(data)
         return data
 
     @model_validator(mode="after")
