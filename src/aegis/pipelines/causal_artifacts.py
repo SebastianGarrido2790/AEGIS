@@ -17,9 +17,12 @@ from typing import Any
 import joblib
 import pandas as pd
 
-from aegis.config.schema import EstimatorConfig
+from aegis.config.schema import EstimatorConfig, ValidationThresholdsConfig
 from aegis.schemas.causal import SEGMENT_ESTIMATE_COLUMNS, SegmentElasticityTable
+from aegis.schemas.validation import ValidationMetricReport
 from aegis.utils.exceptions import CausalEstimatorError
+
+CAUSAL_VALIDATION_REPORT_VERSION = "1.0"
 
 
 def compute_file_sha256(path: Path) -> str:
@@ -207,3 +210,97 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
             details={"rule": "json_write_failed", "path": str(path)},
         ) from exc
     _replace_atomically(temporary, path, rule="json_replace_failed")
+
+
+def _threshold_checks(
+    metrics: Any, thresholds: ValidationThresholdsConfig
+) -> dict[str, dict[str, Any]]:
+    """Compares each frozen Stage 9 metric against its floor or ceiling.
+
+    Args:
+        metrics: Validated Stage 9 metric record.
+        thresholds: Frozen validation thresholds from configuration.
+
+    Returns:
+        A mapping of metric name to value, threshold, direction, and pass verdict.
+    """
+    floors = {
+        "m1_tau_spearman": (metrics.m1_tau_spearman, thresholds.m1_tau_spearman_floor),
+        "m1_epsilon_spearman": (
+            metrics.m1_epsilon_spearman,
+            thresholds.m1_epsilon_spearman_floor,
+        ),
+        "m1b_policy_spearman": (
+            metrics.m1b_policy_spearman,
+            thresholds.m1b_policy_spearman_floor,
+        ),
+        "m3_tau_coverage": (metrics.m3_tau_coverage, thresholds.m3_tau_coverage_floor),
+        "m3_epsilon_coverage": (
+            metrics.m3_epsilon_coverage,
+            thresholds.m3_epsilon_coverage_floor,
+        ),
+        "m4_self_consistency": (
+            metrics.m4_self_consistency,
+            thresholds.m4_self_consistency_floor,
+        ),
+        "m5_sign_agreement": (
+            metrics.m5_sign_agreement,
+            thresholds.m5_sign_agreement_floor,
+        ),
+    }
+    checks: dict[str, dict[str, Any]] = {
+        name: {
+            "value": value,
+            "threshold": threshold,
+            "direction": "floor",
+            "passes": bool(value >= threshold),
+        }
+        for name, (value, threshold) in floors.items()
+    }
+    checks["m2_mean_abs_bias"] = {
+        "value": metrics.m2_mean_abs_bias,
+        "threshold": thresholds.m2_mean_abs_bias_ceiling,
+        "direction": "ceiling",
+        "passes": bool(metrics.m2_mean_abs_bias <= thresholds.m2_mean_abs_bias_ceiling),
+    }
+    return dict(sorted(checks.items()))
+
+
+def build_causal_validation_report(
+    report: ValidationMetricReport,
+    thresholds: ValidationThresholdsConfig | None,
+) -> dict[str, Any]:
+    """Builds the deterministic Stage 9 recovery-verification artifact payload.
+
+    The payload carries no timestamp or wall-clock measurement so that two runs over
+    identical inputs produce byte-identical JSON. Whether the estimator itself is
+    bit-reproducible is reported by comparing consecutive runs, not hidden here.
+
+    Args:
+        report: Single-run validation report from the Stage 9 harness.
+        thresholds: Frozen thresholds, or ``None`` when the campaign has not frozen them.
+
+    Returns:
+        A JSON-serializable dictionary with metrics and per-metric gate verdicts.
+    """
+    checks = None if thresholds is None else _threshold_checks(report.metrics, thresholds)
+    return {
+        "report_version": CAUSAL_VALIDATION_REPORT_VERSION,
+        "sample_size": report.sample_size,
+        "seed": report.seed,
+        "segment_count": len(report.segment_details),
+        "thresholds_configured": thresholds is not None,
+        "metrics": report.metrics.model_dump(mode="json"),
+        "gate_checks": checks,
+        "gate_passed": None if checks is None else all(c["passes"] for c in checks.values()),
+    }
+
+
+def write_causal_validation_report(path: Path, payload: dict[str, Any]) -> None:
+    """Writes the Stage 9 recovery-verification artifact with stable formatting.
+
+    Args:
+        path: Destination JSON path (``data/validated/causal_validation_report.json``).
+        payload: Output of :func:`build_causal_validation_report`.
+    """
+    write_json_atomic(path, payload)

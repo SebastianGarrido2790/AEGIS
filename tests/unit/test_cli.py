@@ -459,20 +459,27 @@ def test_train_estimator_cli_applies_output_overrides(tmp_path: Path) -> None:
     assert paths.run_manifest == str(manifest_path)
 
 
-def test_validate_causal_cli_success() -> None:
-    """Verifies validate-causal CLI subcommand dispatches successfully."""
+def test_validate_causal_cli_success(tmp_path: Path) -> None:
+    """Verifies validate-causal CLI subcommand dispatches and writes its artifact."""
     from unittest.mock import MagicMock
 
-    mock_report = MagicMock()
-    mock_report.segment_details = [1] * 35
-    mock_report.metrics.m1_tau_spearman = 0.90
-    mock_report.metrics.m1_epsilon_spearman = 0.90
-    mock_report.metrics.m1b_policy_spearman = 0.85
-    mock_report.metrics.m2_mean_abs_bias = 0.05
-    mock_report.metrics.m3_tau_coverage = 0.95
-    mock_report.metrics.m3_epsilon_coverage = 0.95
-    mock_report.metrics.m4_self_consistency = 1.0
-    mock_report.metrics.m5_sign_agreement = 1.0
+    from aegis.schemas.validation import ValidationMetricReport, ValidationMetrics
+
+    report = ValidationMetricReport(
+        seed=None,
+        sample_size=100,
+        metrics=ValidationMetrics(
+            m1_tau_spearman=0.90,
+            m1_epsilon_spearman=0.90,
+            m1b_policy_spearman=0.85,
+            m2_mean_abs_bias=0.05,
+            m3_tau_coverage=0.95,
+            m3_epsilon_coverage=0.95,
+            m4_self_consistency=1.0,
+            m5_sign_agreement=1.0,
+        ),
+    )
+    dest = tmp_path / "causal_validation_report.json"
 
     with (
         patch("pandas.read_csv"),
@@ -482,12 +489,14 @@ def test_validate_causal_cli_success() -> None:
         ),
         patch(
             "aegis.pipelines.validation_harness.compute_validation_metrics",
-            return_value=mock_report,
+            return_value=report,
         ),
-        patch("sys.argv", ["cli.py", "validate-causal"]),
+        patch("sys.argv", ["cli.py", "validate-causal", "--report-path", str(dest)]),
     ):
         code = main()
     assert code == 0
+    assert dest.is_file()
+    assert json.loads(dest.read_text(encoding="utf-8"))["gate_passed"] is True
 
 
 def test_calibrate_q3_cli_success(tmp_path: Path) -> None:

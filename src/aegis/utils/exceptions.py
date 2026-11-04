@@ -88,3 +88,7 @@ class RegistrySecurityError(AEGISError):
 
 class ModelNotFoundError(AEGISError):
     """Raised when a registered model, version, or required alias does not exist (P2-F09)."""
+
+
+class VersioningError(AEGISError):
+    """Raised when a declared pipeline artifact is missing or cannot be digested (P2-F10)."""

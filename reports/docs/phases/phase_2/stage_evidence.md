@@ -676,3 +676,10 @@ Stage 10 PASSED under Option F. Roadmap Exit Criterion E1 is satisfied. Stages 1
 ### Gate 13 outcome
 
 ✅ **PASSED.** The showcase reads only `load_approved_segments()` from approved v3. S1–S3 render segment rows from `tier1_segments.csv`; S4 renders the frozen Stage 11 cell `gt_0.05_gy_0.50` (global stress, not a segment) from the bundled sensitivity summary. `ShowcaseView` rejects any price-change field (`ValidationError`) and rendered pages contain none of the forbidden fragments. Chart.js 4.4.4 vendored locally (205,749 B, no CDN); banner present on segment, stress, invalid-preset, and governance-error views. `uvicorn` served `/health` and `/scenario/confounded` (200). 375 tests passed with zero skips; ruff/pyright clean; 51/51 modules within the INV-8 ceiling. Roadmap Exit Criterion E2 satisfied.
+
+### Gate 14 outcome
+
+✅ **PASSED.** Two forced full `dvc repro --force` runs (16.52 min and 15.86 min) produced bit-identical data products:
+combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8c3` in both runs; all 18 canonical artifacts identical; all 18 DVC stage hashes identical; all 8 model metrics identical (worst delta 0.000e+00, tolerance 0.001). Both runs pass all 8 frozen thresholds. `register_candidate` is a governed Tier 2 manual step (not a DAG node) per clean-git lineage. CI Tier 1 reworked: ruff → pyright → module size → GX fixture falsification (valid fixtures pass; all 5 malformed fixtures rejected at their gate) → pytest with `--cov-fail-under=65` (84.37% actual). INV-3 ordering demonstrable (no stage produces versioned data without its upstream GX gate pass). Roadmap Exits E5 and E6 satisfied.
+
+### Stage 15 — ADR Consolidation & Phase 2 Sign-Off

@@ -589,6 +589,70 @@ class DVCConfig(BaseModel):
     remote_url: str = Field(default=".dvc/local_remote")
 
 
+class Tier1CISmokeConfig(BaseModel):
+    """Configuration for the Tier 1 CI-smoke execution tier (P2-D10, ADR-015)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = Field(default=True)
+    coverage_floor: float = Field(default=0.65, gt=0.0, le=1.0)
+    fixtures_dir: str = Field(default="data_contracts/fixtures")
+    require_gx_fixture_falsification: bool = Field(default=True)
+
+
+class Tier2LocalReproConfig(BaseModel):
+    """Configuration for the Tier 2 full local `dvc repro` tier (P2-D10, ADR-015)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = Field(default=True)
+    register_candidate_manual: bool = Field(default=True)
+    require_bit_identical_products: bool = Field(default=True)
+
+
+class Tier3ValidationCampaignConfig(BaseModel):
+    """Configuration for the on-demand Tier 3 validation campaign (P2-D10, ADR-015)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = Field(default=True)
+    on_demand: bool = Field(default=True)
+
+
+class ReproducibilityToleranceConfig(BaseModel):
+    """Pre-registered tolerance for model outputs across repeated runs (ADR-015)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    metric_abs_tolerance: float = Field(default=0.001, gt=0.0)
+
+
+class ExecutionTiersConfig(BaseModel):
+    """Configuration for the three Phase 2 execution tiers (P2-D10, ADR-015)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tier1_ci_smoke: Tier1CISmokeConfig = Field(default_factory=Tier1CISmokeConfig)
+    tier2_local_repro: Tier2LocalReproConfig = Field(default_factory=Tier2LocalReproConfig)
+    tier3_validation_campaign: Tier3ValidationCampaignConfig = Field(
+        default_factory=Tier3ValidationCampaignConfig
+    )
+    reproducibility: ReproducibilityToleranceConfig = Field(
+        default_factory=ReproducibilityToleranceConfig
+    )
+
+    @model_validator(mode="after")
+    def _validate_tier_contract(self) -> "ExecutionTiersConfig":
+        """Rejects a truncated campaign tier and a non-strict reproducibility claim."""
+        if not self.tier3_validation_campaign.on_demand:
+            raise ValueError("tier3_validation_campaign must remain on-demand")
+        if not self.tier2_local_repro.require_bit_identical_products:
+            raise ValueError(
+                "tier2_local_repro must require bit-identical data products (ADR-015)"
+            )
+        return self
+
+
 class AEGISConfig(BaseModel):
     """Root configuration model representing params.yaml (ADR-005)."""
 
@@ -600,3 +664,4 @@ class AEGISConfig(BaseModel):
     governance: GovernanceConfig = Field(default_factory=GovernanceConfig)
     data_contracts: DataContractsConfig
     dvc: DVCConfig = Field(default_factory=DVCConfig)
+    execution_tiers: ExecutionTiersConfig = Field(default_factory=ExecutionTiersConfig)

@@ -42,8 +42,34 @@ jobs:
       - name: Gate 3 — Module Size Ceiling (INV-8)
         run: uv run python scripts/check_module_size.py --target-dir src
 
-      - name: Gate 4 — DVC Data Contracts Reproduction (INV-3)
-        run: uv run dvc repro
+      - name: Gate 4 — Data Contract Falsification (INV-3, E5)
+        # Tier 1 CI-smoke (P2-D10, ADR-015): committed fixtures must pass the valid case
+        # and be rejected by their own malformed case. The full `dvc repro` is Tier 2 and
+        # runs locally on the full dataset; a fresh clone has no `data/` (gitignored).
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          uv run python -m aegis.pipelines.cli validate-raw \
+            --data-path data_contracts/fixtures/raw_policy_valid.csv \
+            --suite-path data_contracts/raw_policy_suite.json \
+            --report-path "$work/raw_ok.json"
+          uv run python -m aegis.pipelines.cli validate-elasticity \
+            --data-path data_contracts/fixtures/elasticity_valid.csv \
+            --suite-path data_contracts/elasticity_training_suite.json \
+            --report-path "$work/elasticity_ok.json"
+          while IFS='|' read -r cmd data suite; do
+            if uv run python -m aegis.pipelines.cli "$cmd" \
+              --data-path "$data" --suite-path "$suite" --report-path "$work/fail.json"; then
+              echo "EXPECTED FAILURE: $cmd accepted $data"; exit 1
+            fi
+            echo "OK: $cmd rejected $(basename "$data")"
+          done <<'CASES'
+          validate-raw|data_contracts/fixtures/raw_policy_invalid_exposure_range.csv|data_contracts/raw_policy_suite.json
+          validate-raw|data_contracts/fixtures/raw_policy_invalid_claim_count_mismatch.csv|data_contracts/raw_policy_suite.json
+          validate-elasticity|data_contracts/fixtures/elasticity_invalid_leakage.csv|data_contracts/elasticity_training_suite.json
+          validate-elasticity|data_contracts/fixtures/elasticity_invalid_range.csv|data_contracts/elasticity_training_suite.json
+          validate-regulatory|data_contracts/fixtures/regulatory_invalid_duplicate.json|data_contracts/regulatory_corpus_suite.json
+          CASES
 
-      - name: Gate 5 — Automated Unit Tests (Pytest)
-        run: uv run pytest
+      - name: Gate 5 — Unit Tests with Tier 1 Coverage Floor
+        run: uv run pytest -q --cov=aegis --cov-report=term:skip-covered --cov-fail-under=65

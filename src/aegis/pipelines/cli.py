@@ -13,6 +13,10 @@ from pathlib import Path
 
 from aegis.config.loader import get_config
 from aegis.pipelines.cap_sweep import run_cap_sweep
+from aegis.pipelines.causal_artifacts import (
+    build_causal_validation_report,
+    write_causal_validation_report,
+)
 from aegis.pipelines.causal_estimator import run_causal_estimator_pipeline
 from aegis.pipelines.data_contracts import (
     validate_elasticity_data,
@@ -25,6 +29,7 @@ from aegis.pipelines.raw_intake import ingest_raw_data
 from aegis.pipelines.registry import add_registry_subparsers
 from aegis.pipelines.segments import run_segment_pipeline
 from aegis.pipelines.synthetic_dgp import run_synthetic_dgp_pipeline
+from aegis.pipelines.versioning import add_versioning_subparsers
 from aegis.utils.exceptions import (
     CausalEstimatorError,
     DataContractError,
@@ -218,6 +223,7 @@ def validate_causal(
     segment_estimates: Path | None = None,
     truth_sidecar: Path | None = None,
     training_table: Path | None = None,
+    report_path: Path | None = None,
 ) -> int:
     """Validates segment elasticity estimates against the ground truth sidecar (Stage 9)."""
     import pandas as pd
@@ -259,6 +265,14 @@ def validate_causal(
         f"m3_tau_cov={m.m3_tau_coverage:.3f} m3_eps_cov={m.m3_epsilon_coverage:.3f} "
         f"m4_cons={m.m4_self_consistency:.3f} m5_sign={m.m5_sign_agreement:.3f}"
     )
+    dest = report_path or Path("data/validated/causal_validation_report.json")
+    payload = build_causal_validation_report(report, config.tier1_ml.validation_thresholds)
+    try:
+        write_causal_validation_report(dest, payload)
+    except CausalEstimatorError as exc:
+        print(f"[BLOCK] Failed to write recovery verification artifact: {exc}")
+        return 1
+    print(f"[REPORT] Recovery verification written to: {dest}")
     return 0
 
 
@@ -817,6 +831,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Training table CSV (defaults to params.yaml)",
     )
+    p_val.add_argument(
+        "--report-path",
+        type=Path,
+        default=None,
+        help="Recovery verification JSON artifact (defaults to data/validated/)",
+    )
 
     p_q3 = subparsers.add_parser(
         "calibrate-q3",
@@ -881,6 +901,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     add_registry_subparsers(subparsers)
+    add_versioning_subparsers(subparsers)
 
     return parser
 
@@ -945,6 +966,7 @@ def main() -> int:
             args.segment_estimates,
             args.truth_sidecar,
             args.training_table,
+            args.report_path,
         )
     if args.command == "calibrate-q3":
         return calibrate_q3(
