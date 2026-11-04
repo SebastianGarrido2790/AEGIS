@@ -56,7 +56,7 @@ Exit criteria:
 - causal estimator recovers the known synthetic treatment effect under the approved Option F governed recovery envelope (`phases/phase_2/e1_option_f_amendment.md`)
 - showcase slice renders correctly, clearly labeled demo rather than production view (carries an explicit developer-diagnostic exemption from INV-5 — $\epsilon$/recovery metrics only, never a proposed $\Delta$ — which strictly binds pricing recommendations)
 
-**Implementation status (November 4, 2026):** Stages 0–13 have recorded passing evidence; Stage 14's local reproducibility and CI-smoke checks pass. The latest GitHub Actions run failed Linux Pyright on Windows-only `ctypes` symbols. A portability fix is in the working tree and Linux-targeted Pyright passes locally; a GitHub Actions rerun and formal operator sign-off remain required before Phase 2 is formally closed or Phase 3 begins.
+**Implementation status (November 4, 2026):** Stages 0–13 have recorded passing evidence; Stage 14's local reproducibility and CI-smoke checks pass. Portability fix `83418ab` passed Linux Pyright in GitHub Actions. That post-fix run then failed Gate 5 because several tests require Gitignored raw/processed data absent from a fresh checkout. Unit-test isolation fixes are in the local tree; a green GitHub Actions rerun and formal operator sign-off remain required before Phase 2 is formally closed or Phase 3 begins.
 
 Carry-forward findings:
 - The heavy-tailed loss distribution (maximum claim €2.04M, about 5.91% of portfolio losses) requires the documented cap and excess-load treatment.

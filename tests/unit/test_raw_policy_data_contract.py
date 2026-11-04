@@ -26,6 +26,10 @@ from aegis.pipelines.raw_intake import (
 )
 from aegis.utils.exceptions import DataContractError
 
+RAW_FREQUENCY_PATH = Path("data/raw/freMTPLfreq.csv.zip")
+RAW_SEVERITY_PATH = Path("data/raw/freMTPLsev.csv")
+RAW_INPUTS_AVAILABLE = RAW_FREQUENCY_PATH.is_file() and RAW_SEVERITY_PATH.is_file()
+
 
 @pytest.fixture
 def config():
@@ -42,6 +46,10 @@ def test_compute_sha256(tmp_path: Path) -> None:
     assert hash_val.islower()
 
 
+@pytest.mark.skipif(
+    not RAW_INPUTS_AVAILABLE,
+    reason="Original freMTPL inputs are gitignored and not materialized",
+)
 def test_verify_checksums_genuine_manifest(config) -> None:
     """Verifies that actual freMTPL source files match the committed manifest."""
     records = verify_checksums(manifest_path=config.data_contracts.raw_intake_manifest_path)
@@ -263,8 +271,12 @@ def test_falsification_orphan_severity_fails_referential_integrity(config) -> No
     assert "expect_zero_orphan_severity_records" in str(exc_info.value)
 
 
+@pytest.mark.skipif(
+    not RAW_INPUTS_AVAILABLE,
+    reason="Original freMTPL inputs are gitignored and not materialized",
+)
 def test_cli_raw_pipeline_commands(tmp_path: Path, config) -> None:
-    """Verifies end-to-end CLI execution for ingest-raw, validate-raw, and version-raw."""
+    """Verifies the raw-data CLI path when the original freMTPL inputs are available."""
     joined_csv = tmp_path / "raw_policy.csv"
     report_json = tmp_path / "report.json"
     versioned_csv = tmp_path / "versioned_policy.csv"
@@ -276,9 +288,9 @@ def test_cli_raw_pipeline_commands(tmp_path: Path, config) -> None:
             "cli.py",
             "ingest-raw",
             "--freq-path",
-            "data/raw/freMTPLfreq.csv.zip",
+            str(RAW_FREQUENCY_PATH),
             "--sev-path",
-            "data/raw/freMTPLsev.csv",
+            str(RAW_SEVERITY_PATH),
             "--output-path",
             str(joined_csv),
         ],

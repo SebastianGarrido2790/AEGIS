@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from aegis.pipelines import artifact_package
 from aegis.pipelines.artifact_package import (
     STANDARD_BUNDLE_FILES,
     assert_no_estimator_artifacts,
@@ -199,10 +200,15 @@ def test_dvc_hash_rejects_stale_lock(tmp_path: Path) -> None:
         resolve_dvc_data_hash(lock, training)
 
 
-def test_lineage_requires_clean_commit_shape(tmp_path: Path) -> None:
+def test_lineage_requires_clean_commit_shape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verifies lineage records a 40-hex commit and reports the dirty flag."""
-    training = tmp_path / "elasticity_training.csv"
-    training.write_text("a,b\n1,2\n", encoding="utf-8")
+    monkeypatch.setattr(
+        artifact_package,
+        "resolve_dvc_data_hash",
+        lambda *_args, **_kwargs: "c" * 32,
+    )
     report = tmp_path / "glm_calibration_report.json"
     report.write_text(json.dumps({"cap": 100000.0}), encoding="utf-8")
     manifest = tmp_path / "dgp_manifest.json"

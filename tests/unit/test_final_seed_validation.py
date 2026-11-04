@@ -194,7 +194,7 @@ def test_malformed_summary_payload_fails_closed() -> None:
 
 @pytest.fixture
 def tamper_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
-    """Copies params.yaml and the fingerprinted test data into an isolated workspace.
+    """Copies params.yaml and creates fingerprint inputs in an isolated workspace.
 
     Returns:
         (config_copy, summary_path, data_dir)
@@ -214,7 +214,7 @@ def tamper_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
     ]
     for relative in rel_paths:
         target = data_dir / Path(relative).name
-        shutil.copy(relative, target)
+        target.write_text(f"test data for {target.name}\n", encoding="utf-8")
     return config_copy, tmp_path / "summary.json", data_dir
 
 
