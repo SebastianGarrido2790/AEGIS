@@ -2,7 +2,7 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 1 Validated; Phase 2 decisions approved October 21, 2026, with qualification tests and implementation pending.** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
+**Status: Phase 1 Validated; Phase 2 implementation delivered, with Stage 15 close-out pending a GitHub Actions rerun and formal operator sign-off (November 4, 2026).** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
 
 **ADR threshold:** offer an ADR only when all three tests pass: (1) the choice is hard to reverse at meaningful cost; (2) a future reader would find it surprising without recorded rationale; and (3) materially viable alternatives existed and one was selected for specific trade-offs. If any test fails, record the choice in the relevant specification, implementation plan, evaluation, or existing decision record instead. An ADR is never implied merely because a change is architectural or consequential.
 
@@ -121,7 +121,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-003: Data contracts — Great Expectations paired with DVC, CI-blocking
 
-**Status:** Validated (Phase 1); amended for Phase 2 on October 21, 2026 (P2-D8).
+**Status:** Validated (Phase 1); Phase 2 amendment validated November 4, 2026 (P2-D8; Stage 1/14 evidence). The overall GitHub Actions rerun remains a Phase 2 close-out gate.
 
 **Context:** DVC versions data and pipeline artifacts but does not validate them; without an independent validation gate, invalid data can be faithfully version-controlled ("garbage in, garbage out").
 
@@ -195,7 +195,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-009: Showcase interface — Incremental glass-box demo, curated scenarios, FastAPI + Jinja2
 
-**Status:** Approved (pre-Phase 2); Phase 2 slice clarified October 21, 2026 (P2-D12).
+**Status:** Approved (pre-Phase 2); Phase 2 slice clarified October 21, 2026 (P2-D12) and validated November 4, 2026 (Stage 13 evidence).
 
 **Context:** The PRD names a secondary audience (hiring managers, technical evaluators, academic reviewers) distinct from the in-universe personas. No artifact currently lets that audience observe the governed multi-agent decision loop running without reading code or ADRs. This is a separate question from PRD §12's exclusion of a full production UI — that exclusion concerns a real underwriting console for daily operational use, not a demo interface for portfolio evaluation. Full deliberation recorded in `../decisions/showcase_ui_assessment.md`.
 
@@ -272,7 +272,7 @@ Adopt **Single Decision Agent + Deterministic Specialist Nodes + Bounded Post-Go
 
 ### ADR-012: Phase 2 Loss-Cost Baseline and Feature Preparation
 
-**Status:** Approved October 21, 2026; cap level awaits Q1.
+**Status:** Validated for Phase 2 on November 4, 2026; Q1 selected the €100,000 cap and 1.1988 excess load, with the documented concentration limitation accepted by the operator.
 
 **Context:** The original French MTPL benchmark has a severe claims tail. Phase 6 requires a segment-level baseline loss cost, while the v1 non-goal excludes a separate severity model and severity-driven pricing.
 
@@ -284,7 +284,7 @@ Use one deterministic preprocessing pipeline with categorical/banded and numeric
 
 ### ADR-013: Semi-Synthetic Causal Benchmark and Validation Protocol
 
-**Status:** Amended October 29, 2026 (P2-D5a CATE Family Evaluation Scope); originally approved October 21, 2026.
+**Status:** Validated for Phase 2 on November 4, 2026 under the approved Option F E1 amendment; P2-D5a amended the original October 21, 2026 decision on October 29, 2026.
 
 **Context:** The public observational data has no price treatment or renewal outcome. A defensible recovery claim therefore requires an isolated synthetic treatment/outcome benchmark, held-out evaluation, and controls that can falsify a weak estimator.
 
@@ -307,7 +307,7 @@ In response to the Gate 10 Exit E1 rank-recovery failure across DGP-noise draws 
 
 ### ADR-014: Tier 1 Segment Contract and Human-Gated Artifact Promotion
 
-**Status:** Approved October 21, 2026.
+**Status:** Validated for Phase 2 on November 4, 2026 (Stages 4, 12, and 13).
 
 **Context:** Phases 3, 6, and the showcase consume segment-level output. The estimator package must remain auditable without requiring serving to deserialize a library-bound model.
 
@@ -321,7 +321,7 @@ Use local SQLite-backed MLflow tracking, with the tracking URI supplied through 
 
 ### ADR-015: Phase 2 Data Contracts, Dataset Identity, and Reproducibility
 
-**Status:** Approved October 21, 2026; implementation pending.
+**Status:** Validated for Phase 2 on November 4, 2026 for data-contract ordering and the tiered reproducibility implementation. GitHub Actions must be rerun after the Linux Pyright portability fix before Phase 2 close-out.
 
 **Context:** INV-3 applies to every dataset before DVC versioning. The current Phase 1 elasticity suite does not independently gate raw input and generated training data, and existing project descriptions misidentify the analyzed benchmark.
 
@@ -353,4 +353,3 @@ At the close of each phase in `../implementation_roadmap.md`:
 1. Update "Current Implementation Status" to reflect what was actually built.
 2. Mark each relevant ADR's status as **Validated** (implementation matched the decision) or **Amended** (implementation diverged, the amendment must be logged as a new dated entry under the original ADR, not a silent edit).
 3. Add new ADRs for any architecturally significant decision made during implementation that wasn't anticipated in Phase 0.
-

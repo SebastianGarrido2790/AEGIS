@@ -42,7 +42,7 @@ Phase 0.
 
 ---
 
-## Phase 2 — Tier 1: Deterministic ML Baseline _(reset — decisions approved; EDA-first redo pending)_
+## Phase 2 — Tier 1: Deterministic ML Baseline _(implementation delivered; Stage 15 close-out pending)_
 
 Goal:
 Establish the GLM actuarial baseline and the causal elasticity model, with a first showcase slice — preceded this time by exploratory data analysis of the raw data before any training-pipeline code is written.
@@ -53,12 +53,14 @@ Capabilities:
 - MLflow tracking and registry; four-preset validation showcase reading the `approved` segment artifact (no bandit output or proposed adjustment)
 
 Exit criteria:
-- causal estimator recovers the known synthetic treatment effect with defensible per-segment and rank-based confidence intervals (`grounding/scoping_doc.md` §0, §2)
+- causal estimator recovers the known synthetic treatment effect under the approved Option F governed recovery envelope (`phases/phase_2/e1_option_f_amendment.md`)
 - showcase slice renders correctly, clearly labeled demo rather than production view (carries an explicit developer-diagnostic exemption from INV-5 — $\epsilon$/recovery metrics only, never a proposed $\Delta$ — which strictly binds pricing recommendations)
 
-Carryover into the redo — the confirmed Phase 2 findings stand and constrain the new design:
-- heavy-tailed feature/loss distribution (re-confirmed on raw data by the EDA run, `../../artifacts/eda_summary.json`: max claim €2.04M ≈ 5.91% of portfolio losses) — loss capping and robust validation are mandatory, not optional
-- aggregate correlation-to-ground-truth is sample-size- and outlier-sensitive — no single aggregate Pearson gate; per-segment and Spearman metrics only
+**Implementation status (November 4, 2026):** Stages 0–13 have recorded passing evidence; Stage 14's local reproducibility and CI-smoke checks pass. The latest GitHub Actions run failed Linux Pyright on Windows-only `ctypes` symbols. A portability fix is in the working tree and Linux-targeted Pyright passes locally; a GitHub Actions rerun and formal operator sign-off remain required before Phase 2 is formally closed or Phase 3 begins.
+
+Carry-forward findings:
+- The heavy-tailed loss distribution (maximum claim €2.04M, about 5.91% of portfolio losses) requires the documented cap and excess-load treatment.
+- E1 rank recovery varies across DGP-noise draws; the approved Option F amendment governs interpretation without lowering frozen thresholds.
 
 Dependencies:
 Phase 1 (data contracts).

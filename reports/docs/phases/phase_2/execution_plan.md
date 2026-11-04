@@ -51,10 +51,10 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **P2-F05** | `005_segments-tier1-contract`     | 36-cell segment definition & Tier 1 Pydantic schema           | Full      | Stage 4                          | F02, F03      | ✅ Implemented |
 | **P2-F06** | `006_causal-estimator`            | `CausalForestDML` training & segment-level inference          | Full      | Stages 7–8                       | F04, F05      | ✅ Implemented |
 | **P2-F07** | `007_validation-gate`             | Multi-seed validation harness & qualification gate            | Full      | Stages 9–10                      | F06           | ✅ Implemented |
-| **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ⬜ Not started |
-| **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ⬜ Not started |
-| **P2-F10** | `010_pipeline-config-ci-tiers`    | DVC DAG extension, config expansion & CI tiers                | Light     | Stage 14 (evolves across stages) | F01–F09       | ⬜ Not started |
-| **P2-F11** | `011_showcase-slice`              | Diagnostic glass-box showcase slice (presets from `approved`) | Full      | Stage 13                         | F09           | ⬜ Not started |
+| **P2-F08** | `008_confounder-sensitivity`      | Hidden-confounder sensitivity sweep & robustness value        | Light     | Stage 11                         | F04, F07      | ✅ Implemented |
+| **P2-F09** | `009_registry-promotion`          | MLflow artifact packaging & human-gated alias promotion       | Full      | Stage 12                         | F03, F06, F07 | ✅ Implemented |
+| **P2-F10** | `010_pipeline-config-ci-tiers`    | DVC DAG extension, config expansion & CI tiers                | Light     | Stage 14 (evolves across stages) | F01–F09       | ✅ Implemented; remote CI rerun pending |
+| **P2-F11** | `011_showcase-slice`              | Diagnostic glass-box showcase slice (presets from `approved`) | Full      | Stage 13                         | F09           | ✅ Implemented |
 
 **Sequencing dependency note:** Q1 (Cap Sweep) is listed in the implementation plan's §5 qualification table as needing the F02/F03 skeleton, but its approved pass criterion is _segment loss-cost ranking stability_ and it must report _excess-share by segment_ (P2-D1a, ADR-012). Therefore, Q1 strictly requires the Stage 4 segment grid (F05). The stage order (Stage 3 GLM skeleton → Stage 4 Segments → Stage 5 Q1 Cap Sweep) honors this dependency naturally without modifying any approved decision.
 
@@ -72,16 +72,16 @@ Derived from the approved Feature Register (`implementation_plan.md` §4). All 1
 | **3**  | GLM Baseline & Calibration Reporting     | Cap-parameterized Tweedie GLM & deviance report           | ADR-012          | None                                                                    | ✅ **PASSED** — Converged `p=1.84`; deviance + A/E deciles produced; power justified                     |
 | **4**  | Segment Definition & Tier 1 Contract     | 36-cell grid, merge rule, Pydantic schema                 | ADR-014          | Injected `proposed_adjustment` field is rejected by schema              | ✅ **PASSED** — 35 segments, floor met, schema rejects Δ; ratio-of-sums tested                           |
 | **5**  | Qualification Q1 — Cap Sweep & Selection | Frozen loss cap, excess load & segment report             | ADR-012          | None (evidence-gathering qualification)                                 | ✅ **PASSED** — Cap €100,000; Spearman ≥0.98 / deviance ≤1%; excess concentration escalated              |
-| **6**  | Semi-Synthetic DGP & Training Contract   | Training table, truth sidecar, manifest, GX suite         | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | All DGP self-tests pass; suite fails truth column; import boundary holds                                 |
-| **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | All grid cells run; budget criteria met; scale and nuisance family selected                              |
+| **6**  | Semi-Synthetic DGP & Training Contract   | Training table, truth sidecar, manifest, GX suite         | ADR-013, ADR-015 | Planted truth column fails GX suite; import-boundary test blocks loader | ✅ **PASSED** — All DGP self-tests pass; truth fixture rejected; import boundary holds                    |
+| **7**  | Qualification Q2 — Estimator Scale       | Scale, nuisance family & runtime report                   | ADR-013          | None (evidence-gathering qualification)                                 | ✅ **PASSED** — Full scale, GBT nuisance selected within approved runtime/RAM budget                      |
 | **8**  | Causal Estimator & Segment Inference     | Trained estimator & segment-average intervals             | ADR-013          | None                                                                    | ✅ **PASSED** — 35 segments; 100% finite/self-consistent; repeated CSV byte-identical                    |
 | **9**  | Validation Harness & Q3 Calibration      | Metric harness, negative/positive controls, thresholds    | ADR-013          | Negative controls (unadjusted, shuffled, zero-effect) fail harness      | ✅ **PASSED** — controls fail; positive passes (`m1=0.9152`); thresholds frozen with margin              |
 | **10** | Final-Seed Validation Gate               | Multi-seed recovery evaluation (E1 close)                 | ADR-013          | Attempted modification of frozen threshold is detected & blocked        | ✅ **PASSED** — Closed under Option F Amendment (October 30, 2026); E1 met under governed recovery envelope |
 | **11** | Hidden-Confounder Sensitivity            | Degradation curve & robustness value                      | ADR-013          | None (skipped-cell guard asserted in gate)                              | ✅ **PASSED** — 10/10 cells; zero skips; Rv=0.5004; Scenario S4 locked (gt_0.05_gy_0.50) |
-| **12** | Registry & Human-Gated Promotion         | Packaged artifact, SQLite tracking, alias promotion       | ADR-014          | Promotion to `approved` without human review/lineage is rejected        | Pipeline sets `candidate`; `approved` requires review + lineage; serving is plain data                   |
-| **13** | Showcase Slice                           | Four curated presets rendering from `approved` (E2 close) | ADR-009, ADR-014 | Response schema rejects Δ field; banner presence asserted               | 4 presets render from `approved`; no Δ field; model validation banner present; E2 met                    |
-| **14** | DAG, Config & CI Tiers / Reproducibility | 10-stage DVC DAG, `params.yaml`, CI-smoke tier            | ADR-015, ADR-003 | None (reproducibility verified by re-run)                               | CI-smoke green with ≥65% Tier 1 coverage; `dvc repro` reproduces bit-identical                           |
-| **15** | ADR Consolidation & Phase Sign-Off       | Complete PIR, validated ADRs, Phase 3 entry               | ADR-012…015      | Documentation-to-reality audit of all exit claims                       | E1–E6 independently verified; PIR complete; human sign-off recorded                                      |
+| **12** | Registry & Human-Gated Promotion         | Packaged artifact, SQLite tracking, alias promotion       | ADR-014          | Promotion to `approved` without human review/lineage is rejected        | ✅ **PASSED** — Approved v3 with review/lineage; rollback and plain-data serving verified                |
+| **13** | Showcase Slice                           | Four curated presets rendering from `approved` (E2 close) | ADR-009, ADR-014 | Response schema rejects Δ field; banner presence asserted               | ✅ **PASSED** — Four presets render from `approved`; no Δ; banner present; E2 met                        |
+| **14** | DAG, Config & CI Tiers / Reproducibility | 14 DVC stages (11 Phase 2 + 3 regulatory), `params.yaml`, CI-smoke | ADR-015, ADR-003 | None (reproducibility verified by re-run)                               | Local reproducibility and CI-smoke pass; GitHub Actions rerun pending after Linux Pyright fix              |
+| **15** | ADR Consolidation & Phase Sign-Off       | Complete PIR, validated ADRs, Phase 3 entry               | ADR-012…015      | Documentation-to-reality audit of all exit claims                       | Technical review recorded; GitHub Actions rerun and formal operator sign-off remain                       |
 
 ---
 
@@ -594,14 +594,15 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 
 ---
 
-### Stage 14 — DAG Assembly, Config & CI Tiers / Reproducibility (P2-F10) ✅ **COMPLETED**
+### Stage 14 — DAG Assembly, Config & CI Tiers / Reproducibility (P2-F10) ⚠️ **LOCAL GATES PASSED; REMOTE CI RERUN PENDING**
 
-**Goal:** Assemble the complete 10-stage DVC pipeline DAG with strict INV-3 validation ordering, formalize execution tiers (T1 CI-smoke, T2 local repro, T3 validation campaign), and prove reproducible execution.
+**Goal:** Assemble the DVC pipeline DAG with strict INV-3 validation ordering, formalize execution tiers (T1 CI-smoke, T2 local repro, T3 validation campaign), and prove reproducible execution.
 
 **Actions:**
 
-1. Assemble `dvc.yaml` (10-stage + 3-stage regulatory branch; `register_candidate` kept out of the DAG — governed manual T2 step per clean-git/prevention of registry mutation):
-   $$\text{ingest\_raw} \longrightarrow \text{validate\_raw\_gx} \longrightarrow \text{build\_features} \longrightarrow \text{fit\_baseline} \longrightarrow \text{generate\_dgp} \longrightarrow \text{validate\_training\_gx} \longrightarrow \text{train\_estimator} \longrightarrow \text{validate\_recovery} \longrightarrow \text{register\_candidate} \longrightarrow \text{version\_artifacts}$$
+1. Assemble `dvc.yaml` (11 Phase 2 stages plus a 3-stage regulatory branch; `register_candidate` is a governed manual T2 step, not a DVC stage):
+   - **Phase 2:** `ingest_raw` → `validate_raw_gx` → `version_raw` → `build_features` → `glm_baseline` → `build_segments` → `generate_dgp` → `validate_training_gx` → `train_estimator` → `validate_recovery` → `version_artifacts`.
+   - **Regulatory:** `ingest_regulatory` → `validate_regulatory_gx` → `version_regulatory`.
 2. Verify INV-3 DAG ordering: confirm that no stage producing versioned data can execute unless its upstream GX validation stage completes successfully.
 3. Expand `params.yaml` and Pydantic configuration schemas (`src/aegis/config/schema.py`) to encompass all Phase 2 parameters:
    - Loss cap and excess load scalar.
@@ -624,12 +625,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 **Falsification:** None (reproducibility is verified by repeated bit-for-bit hash comparisons).
 
 **Gate 14 — Hard Close:**
-`dvc repro` executes cleanly end-to-end (3-stage pipeline; re-runs reproducible);
-data products reproduce bit-identically across consecutive runs (18 artifacts; combined SHA-256 identical);
-model metrics match within stated floating-point tolerances (0.001; worst delta = 0.000e+00);
-CI-smoke suite passes with $\ge 65\%$ coverage (84.37%); INV-3 ordering is demonstrable
-(stage produces versioned data only when its upstream GX gate passes);
-Roadmap Exits E5 and E6 are met.
+Local `dvc repro` executes cleanly end-to-end; data products reproduce bit-identically across consecutive runs (18 artifacts; combined SHA-256 identical); model metrics match within stated floating-point tolerances (0.001); local CI-smoke passes at or above 65% coverage; INV-3 ordering is demonstrable. GitHub Actions must also pass before E6 is closed.
 
 > **✅ GATE 14 PASSED (2026-11-04).** Two forced full `dvc repro` runs (16.52 min, 15.86 min) produced
 > **bit-identical** outputs: combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8c3` in both
@@ -637,7 +633,9 @@ Roadmap Exits E5 and E6 are met.
 > (worst delta 0.000e+00, tolerance 0.001); both runs pass all 8 frozen thresholds. `register_candidate` is a
 > governed Tier 2 manual step (not a DAG node) per clean-git lineage. CI Tier 1 reworked: ruff → pyright →
 > module size → GX fixture falsification (valid fixtures pass; all 5 malformed fixtures rejected at their gate)
-> → pytest with `--cov-fail-under=65` (84.37% actual). E5 and E6 satisfied.
+> → pytest with `--cov-fail-under=65` (84.37% recorded actual).
+
+> **Close-out recheck (2026-11-04):** The actual `dvc.yaml` contains 14 stages (11 Phase 2 and 3 regulatory); `register_candidate` is not a DVC stage. `uv run dvc status` reports all data and pipelines up to date. Local full tests pass (388 passed, 84.37% coverage); Ruff, Windows Pyright, Linux-targeted Pyright, and the module-size gate pass. GitHub Actions run `41846361715` failed its Pyright step on `WinDLL`, `WinError`, and `get_last_error` references in `scripts/q2_estimator_scale.py`. The guarded dynamic lookup fix is in the working tree; `uv run pyright --pythonplatform Linux` now passes. GitHub Actions has not rerun on the fix, so E6 and Stage 14 remain open for remote confirmation.
 
 ---
 
@@ -665,12 +663,12 @@ Roadmap Exits E5 and E6 are met.
 5. Verify Phase 3 Entry Preconditions:
    - Validated segment table under `approved` alias exposes $\hat{\epsilon}_{\text{seg}}$, 95% confidence intervals, baseline retention $q_0$, and base premium.
    - Bounded exploration corridor parameters ($\pm 15\%$) documented in relation to auto-approval threshold ($\pm 5\%$).
-6. Update `reports/docs/implementation_roadmap.md` and `README.md` to reflect Phase 2 completion.
-7. Present complete audit evidence and obtain formal human sign-off for Phase 2 close-out.
+6. Update `reports/docs/implementation_roadmap.md` and `README.md` to reflect the verified implementation and any outstanding close-out gates; do not mark Phase 2 formally complete until all gates pass.
+7. Present complete audit evidence and obtain formal human sign-off for Phase 2 close-out. Sign-off must be supplied by the operator.
 
 **Inputs / Dependencies:**
 
-- Stages 0 through 14 passed and evidenced.
+- Stages 0 through 13 passed and evidenced; Stage 14 has local reproducibility and CI-smoke evidence, with post-fix GitHub Actions confirmation outstanding.
 
 **ADR Implements:** ADR-012 … ADR-015 status finalization (marks Validated).
 
@@ -678,7 +676,9 @@ Roadmap Exits E5 and E6 are met.
 Documentation-to-reality audit: independently cross-check each exit criterion claim against test logs, git diffs, MLflow run artifacts, and DVC pipeline state. Any unsupported claim fails the gate.
 
 **Gate 15 — Hard Close:**
-All 15 stages passed; all 7 falsifications confirmed detected and reverted; Post-Implementation Review table 100% complete; ADR-012 … ADR-015 marked Validated; Roadmap Exits E1–E6 verified; formal human sign-off recorded. **Phase 2 is formally closed; Phase 3 may begin.**
+Close only when all 15 stages pass; all 7 falsifications are confirmed detected and reverted; the Post-Implementation Review is complete; ADR-012 … ADR-015 are validated; E1–E6 are independently verified; and formal operator sign-off is recorded.
+
+> **⏸ GATE 15 BLOCKED (2026-11-04).** The review table and ADR status updates are recorded. E1–E5 and the Phase 3 artifact/corridor preconditions are verified. E6 awaits a green GitHub Actions run after the Linux Pyright portability fix; formal operator sign-off is also outstanding. Phase 2 is not formally closed and Phase 3 remains gated.
 
 ---
 
@@ -707,15 +707,15 @@ All 15 stages passed; all 7 falsifications confirmed detected and reverted; Post
 Before Phase 2 can be declared complete at Stage 15, evidence for each item must be recorded:
 
 - [x] **E1 (Causal Recovery):** Closed under Option F Amendment (`e1_option_f_amendment.md`, October 30, 2026). Unbiased scale ($m_2 \le 0.08$), 100% interval coverage ($m_3=1.0000$), 100% sign agreement ($m_5=1.0000$), positive control separation ($\Delta \ge 0.24$), and documented rank envelope ($m_1 \in [0.64, 0.93]$, median $\ge 0.76$).
-- [ ] **E2 (Showcase Slice):** FastAPI application renders presets S1–S4 from `approved` artifact; test confirms zero proposed adjustment fields in API schema; persistent disclaimer banner present.
-- [ ] **E3 (GLM Baseline):** Holdout Tweedie deviance, decile A/E ratios, and segment loss-cost report persisted; excess load calculation documented.
-- [ ] **E4 (Promotable Artifact):** MLflow registry contains packaged segment table with full lineage; alias promotion script enforces human-review gate; serving loads plain data.
-- [ ] **E5 (Data Contracts):** DVC DAG demonstrates raw and training GX gates upstream of versioning; both suites fail their respective malformed fixtures.
-- [ ] **E6 (Reproducibility):** Data products reproduce bit-identically across repeated local `dvc repro` runs; CI-smoke suite passes in GitHub Actions with $\ge 65\%$ module coverage.
-- [ ] **INV-3 Enforcement:** No dataset versioned without passing GX contract.
-- [ ] **INV-5 Enforcement:** Tier 1 output contract and showcase schema contain zero proposed adjustment fields; diagnostic exemption banner active.
-- [ ] **INV-8 Enforcement:** `uv run python scripts/check_module_size.py` passes clean across all Python modules under `src/` (zero files exceeding 1,000 lines).
-- [ ] **INV-10 Enforcement:** Zero live carrier core-system integrations; intake operates strictly on public benchmark data.
+- [x] **E2 (Showcase Slice):** Stage 13 evidence verifies presets S1–S4 from `approved`, no proposed adjustment field, and persistent disclaimer banner.
+- [x] **E3 (GLM Baseline):** Stage 3/5 reports record holdout Tweedie deviance, decile A/E, segment loss cost, and the Q1 excess load.
+- [x] **E4 (Promotable Artifact):** Approved MLflow v3 bundle has full lineage and human review; serving loads plain segment data.
+- [x] **E5 (Data Contracts):** The 14-stage DVC graph gates raw and training outputs; malformed fixtures for both suites fail at their gates.
+- [ ] **E6 (Reproducibility):** Two local full `dvc repro` runs are bit-identical; local CI-smoke passed at 84.37%. GitHub Actions run `41846361715` failed Linux Pyright before the portability fix; post-fix rerun is still required.
+- [x] **INV-3 Enforcement:** DVC ordering and raw/training malformed-fixture evidence show data is gated before versioning.
+- [x] **INV-5 Enforcement:** Tier 1 output contract and showcase schema reject proposed adjustments; the diagnostic disclaimer is active on every view.
+- [x] **INV-8 Enforcement:** `uv run python scripts/check_module_size.py` passes; all 53 Python modules under `src/` are below 1,000 lines.
+- [x] **INV-10 Enforcement:** Intake is checksum-pinned to the public French MTPL benchmark; no live carrier integration or carrier credential slot is present.
 
 ---
 
@@ -735,7 +735,7 @@ Before Phase 2 can be declared complete at Stage 15, evidence for each item must
 | **9**  | Validation Harness & Q3   | Metric harness & frozen thresholds      | ADR-013      | Negative controls fail     | Controls fail; threshold separation proven     | ✅ **PASSED** |
 | **10** | Final-Seed Validation     | Multi-seed evaluation report (E1)       | ADR-013      | Threshold tamper detected ✅ (unit-level; artifact is schema-v1) | Worst-seed & median beat frozen thresholds     | ✅ **PASSED** — Closed under Option F Amendment (October 30, 2026) |
 | **11** | Confounder Sensitivity    | Degradation curve & robustness          | ADR-013      | None                       | Full grid executed; robustness value recorded  | ✅ **PASSED** — 10/10 cells; Rv=0.5004; S4 locked |
-| **12** | Registry & Promotion      | Packaged artifact, alias promotion      | ADR-014      | Unapproved promotion fails | Pipeline sets candidate; approved needs review | ⬜ Not started |
-| **13** | Showcase Slice            | 4 presets from `approved` (E2)          | ADR-009, 014 | Response schema rejects Δ  | 4 presets render; banner on all views          | ⬜ Not started |
-| **14** | DAG, Config & CI Tiers    | 10-stage DAG, CI-smoke (E5/E6)          | ADR-015, 003 | None                       | Bit-identical repro; CI green ($\ge 65\%$ cov) | ⬜ Not started |
-| **15** | ADR Consolidation & Close | Validated ADRs, PIR, sign-off           | ADR-012…015  | Documentation audit        | E1–E6 verified; PIR complete; human sign-off   | ⬜ Not started |
+| **12** | Registry & Promotion      | Packaged artifact, alias promotion      | ADR-014      | Unapproved promotion fails | Approved v3 with review/lineage; plain-data serving | ✅ **PASSED** |
+| **13** | Showcase Slice            | 4 presets from `approved` (E2)          | ADR-009, 014 | Response schema rejects Δ  | 4 presets render; banner on all views          | ✅ **PASSED** |
+| **14** | DAG, Config & CI Tiers    | 14 DVC stages, local CI-smoke (E5/E6)   | ADR-015, 003 | None                       | Local repro and CI-smoke pass; GitHub rerun pending | ⚠️ **OPEN** |
+| **15** | ADR Consolidation & Close | Validated ADRs, PIR, sign-off           | ADR-012…015  | Documentation audit        | PIR recorded; CI confirmation and human sign-off remain | ⏸ **BLOCKED** |

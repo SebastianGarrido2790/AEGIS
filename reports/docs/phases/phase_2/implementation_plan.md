@@ -1,8 +1,8 @@
 # Phase 2 — Tier 1: Deterministic ML Baseline
 ## Implementation Plan & Architectural Decisions — AEGIS
 
-Author: Sebastián Garrido Arévalo | Version 0.3 | Date: October 21, 2026
-**Status: DECISIONS APPROVED — October 21, 2026.** The recommended decisions were approved in the four batches in §5. Qualification-test results Q1–Q3 remain open where specified below. Feature implementation remains subject to the approved SDD workflow and entry gates.
+Author: Sebastián Garrido Arévalo | Version 0.4 | Date: November 4, 2026
+**Status: Phase 2 implementation delivered; Stage 15 close-out remains blocked pending a GitHub Actions rerun and formal operator sign-off (November 4, 2026).** The decisions below were approved in the four batches in §5; Q1–Q3 outcomes and implementation evidence are recorded below. See §8 for the current review and blockers.
 
 **What this document is:** the phase-level decision record. It answers: before any Phase 2 code is written, what must be decided, why, and what is recommended.
 **Why it exists:** to bridge project intent, the actual current state, architectural decisions, and executable implementation, so that implementation starts from approved constraints and not from assumptions.
@@ -21,6 +21,7 @@ Each decision carries one of three tags:
 | 0.1 | Initial draft | — |
 | 0.2 | Added evidence from the EDA run (§2.2). Corrected dataset identity and column set (R11). Added exposure-semantics finding (R12). Replaced assumed cap candidates, segment factors and Q2 sizes with EDA-grounded ones. Removed manufactured alternatives; aligned decision fields, feature IDs and SDD depth with the phase-plan conventions; moved stage sequencing out to the Execution Plan. | EDA output received; planning-convention review |
 | 0.3 | Recorded approval of recommended decisions in the four §5 batches; added approval highlights without changing rejected alternatives or trade-off text; aligned dependent documents; verified V9 against the locked MLflow version and current registry documentation. Q1–Q3 result-dependent choices remain open. | Human approval, October 21, 2026 |
+| 0.4 | Reconciled the phase decision record with qualification reports and Stages 0–14 evidence; recorded the Post-Implementation Review and current Stage 15 blockers. | Stage 15 audit, November 4, 2026 |
 
 ### Basis and limits
 
@@ -32,7 +33,7 @@ Sources: project documents (scoping, PRD, user story, roadmap, system design ADR
 
 | Field | Value |
 |---|---|
-| Phase | Phase 2 — Tier 1: Deterministic ML Baseline (reset; EDA-first redo) |
+| Phase | Phase 2 — Tier 1: Deterministic ML Baseline (implementation delivered; Stage 15 close-out pending) |
 | Objective | Produce the deterministic foundation every later tier consumes: a calibrated GLM loss-cost baseline, a causal elasticity estimator validated against a known semi-synthetic ground truth, a promotable per-segment Tier 1 output, and a first showcase slice. |
 | Governing requirements | PRD FR-1 (semi-synthetic causal benchmark), FR-9 (GX-gated ingestion); PRD §7 (reproducibility, modularity), §9 (data), §11 (elasticity KPI as amended); scoping §0 (amended success metric), §2 (goal item 1), §3. |
 | Binding invariants | **INV-3** data contracts block versioning; **INV-8** 1,000-line module ceiling; **INV-5** binds recommendations (Phase 2 showcase carries a diagnostic-only exemption: ε and recovery metrics only, never a proposed Δ); **INV-10** no live data. Not exercised: INV-1, INV-2, INV-4, INV-6, INV-7, INV-9. |
@@ -298,7 +299,7 @@ The approved default criteria and methods are retained as written. Options and t
 
 > **Q1 VERDICT (October 24, 2026):** Selected cap **€100,000** and uniform excess load **1.1988** (16.58% of training loss removed, 20 claims truncated). The passing transition €100,000 → €131,834 has segment loss-cost Spearman 0.9992 (≥0.98) and holdout-deviance change 0.406% (≤1%). Excess concentration is material (segment `D:18-24_C:10+_Dens:<=500` holds 72.0% of excess vs 1.14% exposure, 62.9×); per operator decision the uniform load is retained with a documented caveat carried to Phase 6. See `q1_cap_sweep_report.md`.
 
-**Approval.** Policy and Q1 criteria approved, October 21, 2026 (Batch 3). **Decision status.** Approved; cap level unresolved until Q1 reports.
+**Approval.** Policy and Q1 criteria approved, October 21, 2026 (Batch 3). **Decision status.** Validated by Q1; the selected cap, load, and accepted concentration limitation are recorded above.
 
 **Consequences.** Segment loss costs used downstream are capped and loaded, and labeled as such.
 
@@ -508,7 +509,7 @@ cross-fitting. The frozen values are in `params.yaml`; the full grid and checksu
 
 > **APPROVED (October 29, 2026):** Execute bounded sweep across pre-registered CATE candidates and three representative noise draws under frozen floors and paired per-draw separation.
 
-**Approval.** Approved, October 29, 2026. **Decision status.** Approved; evaluation sweep pending. Full record: `p2-d5a_estimator_precision_decision.md`.
+**Approval.** Approved, October 29, 2026. **Decision status.** Validated by the bounded CATE sweep and the approved Option F amendment (October 30, 2026). Full record: `p2-d5a_estimator_precision_decision.md` and `p2_d5a_phase1_sweep_report.md`.
 
 ---
 
@@ -555,9 +556,11 @@ cross-fitting. The frozen values are in `params.yaml`; the full grid and checksu
 
 > **APPROVED — Batch 3 (October 21, 2026):** Use Q3 to calibrate thresholds on pilot seeds, require separation with a stated margin, and freeze values before final-seed evaluation. Numeric thresholds remain unresolved until Q3; a failed separation reopens benchmark/estimator design rather than lowering the gate.
 
-**Approval.** Calibration method approved, October 21, 2026 (Batch 3); values fixed by Q3. **Decision status.** Approved method; thresholds unresolved — Q3.
+**Approval.** Calibration method approved, October 21, 2026 (Batch 3); values fixed by Q3. **Decision status.** Validated by Q3; the frozen values and separation results are recorded below.
 
 **Consequences.** The frozen values and the Q3 report are part of the registered artifact's validation summary.
+
+> **Q3 OUTCOME (October 27, 2026):** Thresholds were calibrated on pilot seeds `[42, 101, 202]` and frozen in `params.yaml` before final-seed validation. The separation gaps were `m1(τ)=0.1930` against a 0.1500 margin, `m1(ε)=0.1652` against 0.1500, `m1b=0.1568` against 0.1500, and `m2=0.0692` against 0.0500. Frozen floors are `m1(τ)=0.8428`, `m1(ε)=0.8831`, `m1b=0.7784`, and `m2≤0.1167`; coverage floors are 0.90, self-consistency is 1.00, and sign agreement is fixed at 0.90. All three negative controls failed as intended and the randomized-treatment positive control passed (`m1=0.9152`). See `q3_threshold_calibration_report.md`.
 
 > **OUTCOME — Gate 10 FAILED (October 28, 2026).** The Stage 10 campaign (K = 5, seeds 501–505) produced 4 of 5 seeds below the frozen rank floors. A recalibration amendment was proposed on October 27 and **withdrawn on October 28** after measurement showed it could not pass: pooling estimator runs and controls across DGP-noise draws gives a negative separation gap, and the only variant that separates correctly yields a floor above four of the five observed seeds. Every passing variant required lowering a floor to fit the result, which this decision forbids. Thresholds are unchanged. Per this decision's own recommendation ("that finding returns to D2b/D5"), the failure is escalated to **P2-D5** (estimator configuration) and **P2-D2b** (benchmark design). See `stage10_failure_analysis.md`.
 
@@ -777,22 +780,22 @@ This section stays open until implementation has been independently reviewed aga
 
 | Item | Expectation | Actual | Finding | Severity | Remediation | Status |
 |---|---|---|---|---|---|---|
-| Dataset identity | Files pinned by checksum; documents name the original MTPL benchmark and its seven factors (D9) | | | | | |
-| Loss treatment | Capped Tweedie baseline with excess load; level supported by Q1; portfolio A/E within tolerance; excess share by segment reported (D1, D1a) | | | | | |
-| Truth isolation | No truth column reachable from estimator inputs; fixture with a truth column fails; import-boundary test passes (D2) | | | | | |
-| DGP self-tests | Estimand gap, overlap, dispersion, within-segment homogeneity, max \|ε\|·0.15 < 1 verified; exposure not used in the DGP (D2a, D2b) | | | | | |
-| Segments and contract | Size floors met; GLM-aggregated loss cost; ratio-of-sums; schema has no Δ field (D3) | | | | | |
-| Feature pipeline | Deterministic; exclusions logged; no composite index; claims variables absent from elasticity covariates; artifacts versioned (D4) | | | | | |
-| Estimator scale | Q2 verdict recorded; budget met or subsample choice documented (D5) | | | | | |
-| Validation gate | Thresholds frozen before final seeds; controls fail; estimator passes on worst seed and median (D6, D6a) | Campaign run K=5 (seeds 501–505); 4/5 seeds breach frozen rank floors; bounded CATE sweep executed under P2-D5a | Rank recovery spans 0.55–0.95 across DGP-noise draws with estimand fixed; trade-off between coverage and rank | Critical | Resolved via Option F Amendment (October 30, 2026): governed recovery envelope adopted (`e1_option_f_amendment.md`) | ✅ CLOSED UNDER AMENDMENT |
-| Sensitivity | Degradation curve and robustness value; no skipped cells (D7) | 10-cell grid executed on N=100k; zero skips verified | Degradation curve documented; Rv = 0.5004; Scenario S4 locked (gt_0.05_gy_0.50) | None | Full grid completed with zero skips; summary artifact persisted | ✅ VERIFIED |
-| Data contracts | INV-3 ordering visible in the DAG; failing fixture per suite; ADR-003 amended (D8) | | | | | |
-| Reproducibility | Data products bit-identical; model outputs within tolerance; CI-smoke green with coverage floor (D10) | | | | | |
-| Registry | `approved` set only with review record and lineage tags; serving never loads the pickled estimator (D11, D11a) | | | | | |
-| Showcase | Banner on every page; no Δ field; four presets render from `approved` (D12) | | | | | |
-| Engineering standards | INV-8 held; tests falsifiable; no silent fallbacks; `ruff` and `pyright` clean | | | | | |
-| Documentation | All amendments in §7.3 applied; no stale severity, dataset-name or bit-for-bit wording remains | | | | | |
-| Exit criteria | E1–E6 independently verified | | | | | |
+| Dataset identity | Checksummed source files and original French MTPL identity with seven factors (D9) | Stage 1 verified both source checksums and the 413,169-policy / 16,181-claim joins; no BonusMalus or Area fields | Manifest and documentation agree with the source identity | None | Keep the manifest as the source pin; no change required | ✅ VERIFIED |
+| Loss treatment | Capped Tweedie baseline, Q1-selected level, calibration, and excess share by segment (D1, D1a) | Q1 selected €100,000 cap and 1.1988 load; 16.58% loss removed; 20 claims capped; holdout deviance 16.9016; transition Spearman 0.9992 and deviance change 0.406% | One segment holds 72.0% of excess against 1.14% of exposure (62.9×); uniform load understates it | Moderate; documented actuarial limitation | Operator retained the uniform load on October 24, 2026; carry the limitation into Phase 6 | ✅ VERIFIED — LIMITATION ACCEPTED |
+| Truth isolation | Training inputs exclude truth; malformed fixture and import boundary fail (D2) | Training GX rejected a planted truth column; AST boundary test rejects truth-loader imports into estimator code | No truth leakage found in the recorded checks | None | None required | ✅ VERIFIED |
+| DGP self-tests | Estimand, overlap, heterogeneity, homogeneity, and elasticity bound are tested (D2a, D2b) | All five self-tests passed; max estimand gap 0.00544, overlap variance 0.00248, truth dispersion 0.11557, max within-segment correlation 0.00000, max |ε|·0.15 = 0.12166 | Tests support the approved synthetic estimand and bound | None | None required | ✅ VERIFIED |
+| Segments and contract | Size floors, GLM loss cost, ratio-of-sums, and no adjustment field (D3) | 35 realized segments; minimum 1,067 policies; ratio-of-sums checked; `Tier1SegmentOutput` rejects adjustment-like fields | Contract matches downstream units and INV-5 boundary | None | None required | ✅ VERIFIED |
+| Feature pipeline | Deterministic, logged exclusions, no composite index or claims covariates, versioned artifacts (D4) | Dual-view feature pipeline and clip/exclusion evidence recorded at Stage 2; repeated outputs were byte-identical | No deviation recorded | None | None required | ✅ VERIFIED |
+| Estimator scale | Q2 scale and nuisance selection meet approved runtime and memory limits (D5) | Full N=413,169, GBT nuisance, 5-fold cross-fitting; 514.8 s, 2,534.3 MB RSS (5.2% of installed RAM); segment Spearman 0.9014 | Full-data option beats the budget; GBT selected by the approved 0.02 tie-break | None | Frozen values are in `params.yaml` and the Q2 report | ✅ VERIFIED |
+| Validation gate | Frozen thresholds and controls; E1 satisfies the approved gate (D6, D6a) | Original Gate 10 failed 4/5 frozen rank floors; bounded CATE sweep and operator-approved Option F close E1 with m2 0.039–0.080, 100% interval coverage, 100% self-consistency/sign agreement, positive separation 0.24–0.41, and rank envelope 0.64–0.93 | Rank recovery varies with DGP-noise draws; original floors were not lowered | Critical; resolved through an approved amendment | Option F recorded in `e1_option_f_amendment.md`; preserve the limitation in downstream interpretation | ✅ CLOSED UNDER APPROVED AMENDMENT |
+| Sensitivity | Degradation curve and robustness value; no skipped cells (D7) | 10/10 cells executed at N=100,000; zero skips; Rv=0.5004; S4=`gt_0.05_gy_0.50` | Severe hidden confounding degrades recovery as documented in the sensitivity report | None; benchmark limitation documented | Preserve report and S4 scenario as downstream evidence | ✅ VERIFIED |
+| Data contracts | INV-3 ordering and malformed cases for both elasticity-side suites (D8) | DVC has `validate_raw_gx` before `version_raw` and `validate_training_gx` before estimator/version outputs; valid fixtures pass and malformed raw/training fixtures fail their gates | Contract gates are blocking in the observed DAG | None | ADR-003 Phase 2 amendment recorded; no change required | ✅ VERIFIED |
+| Reproducibility | Same-environment data identity, model tolerance, and T1 coverage gate (D10) | Two forced full `dvc repro` runs recorded the same combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8c3`; 18 artifacts/stage hashes identical; 8 metrics had worst delta 0.000 (tolerance 0.001). Current `dvc status` is clean. Full T1 run (started before the portability edit): 388 passed, 84.37% coverage. GitHub Actions run 41846361715 failed Linux Pyright on Windows-only `ctypes` symbols; the lookup was fixed and Linux-targeted Pyright now passes locally, but the workflow has not rerun. | Local evidence passes; remote CI status is not yet verified after the portability fix | High; required close-out gate | Obtain an authorized publication and rerun GitHub Actions; do not mark E6 passed until the run is green | ⏸ BLOCKED — GITHUB ACTIONS RERUN |
+| Registry | Approved alias requires human review and lineage; serving reads plain data (D11, D11a) | Local MLflow `approved` and `candidate` both resolve to v3; reviewer and calibration hash tags are present; package contains lineage and 35-row `tier1_segments.csv`; loader rejects estimator binaries | Artifact fields include ε̂, intervals, q₀, loss cost, and base premium; serving bundle matches ADR-014 | None | Preserve recorded promotion and rollback lineage | ✅ VERIFIED |
+| Showcase | Banner, no Δ field, four presets from `approved` (D12) | Stage 13 evidence records all four presets, schema rejection of price-change fields, disclaimer on all views, local Chart.js asset, and live 200 responses | Diagnostic-only exemption remains structurally enforced | None | None required | ✅ VERIFIED |
+| Engineering standards | INV-8, falsifiable tests, lint and type checking | Full suite: 388 passed, 84.37% coverage; Ruff clean; Pyright clean on Windows and with `--pythonplatform Linux`; 53 source files within 1,000 lines. Eight focused Q2 helper tests pass after the portability fix. | 187 GX deprecation warnings remain non-failing; GitHub Actions still needs a post-fix rerun | Low; warning only | Track GX deprecation migration separately; no bypass applied | ✅ VERIFIED LOCALLY |
+| Documentation | Approved amendments, phase statuses, evidence and known limitations agree | Q1–Q3 outcomes, phase status, stage evidence, and ADR statuses are reconciled in this close-out update; the prior “redo pending” and Stage 12–14 “not started” claims are corrected | GitHub Actions and formal sign-off remain open and are explicitly not represented as complete | Moderate; close-out remains open | Keep the blocker and sign-off state visible in README, roadmap, and evidence log | ✅ UPDATED — CLOSE-OUT OPEN |
+| Exit criteria | E1–E6 and Phase 3 entry conditions independently verified | E1–E5 verified from the Option F record, approved bundle, showcase, calibration and GX/DAG evidence. Approved v3 bundle exposes required Phase 3 fields; `params.yaml`/roadmap specify ±15% exploration vs ±5% auto-approval. E6 has local reproducibility and coverage evidence, but GitHub Actions is awaiting rerun. | Phase 2 implementation is delivered, but formal exit is not met until E6 CI confirmation and operator sign-off | High; blocks phase transition | Rerun GitHub Actions after authorized publication, then obtain operator sign-off | ⏸ BLOCKED — E6 / SIGN-OFF |
 
 ### Phase closure
 
@@ -804,3 +807,5 @@ The phase cannot close until: every approval-required decision has a final statu
 | Implemented | Built and merged |
 | Verified | Evidence shows it meets the decision and exit criteria |
 | Signed Off | Independent review complete and accepted |
+
+**Stage 15 close-out status (November 4, 2026): BLOCKED.** The technical evidence and review table are recorded. E6 still requires a green GitHub Actions run after the Linux Pyright fix, and formal Phase 2 sign-off must be provided by the operator. Phase 2 is not yet formally closed; Phase 3 remains gated.

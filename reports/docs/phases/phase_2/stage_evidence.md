@@ -1,8 +1,8 @@
 # Phase 2 — Stage Evidence Log
-## Tier 1: Deterministic ML Baseline (EDA-First Redo)
+## Tier 1: Deterministic ML Baseline
 
 Author: Sebastián Garrido Arévalo | Date: October 21, 2026
-**Status: ACTIVE.** Evidence is appended per stage as gates are evaluated. This log is the detailed record of executed outcomes; the Execution Plan (`execution_plan.md`) holds stage goals, actions, gates and falsification requirements, and links here for the evidence.
+**Status: Stage 15 technical review recorded; formal close-out blocked.** Stages 0–13 have passing evidence. Stage 14 has local reproducibility and CI-smoke evidence, but its post-fix GitHub Actions rerun remains outstanding. The operator's formal sign-off is also required before Phase 2 closes.
 
 **What this document is:** the evidence ledger for Phase 2 stages. It records live command outputs, checksums, measured values, decisions taken on evidence, and gate outcomes exactly as observed.
 **How to use it:** read the relevant stage section before starting dependent work; add a new dated section per executed stage. Do not rewrite earlier entries — append corrections as new dated notes.
@@ -21,10 +21,10 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 9 | Validation Harness & Q3 Threshold Calibration | ✅ PASSED | 2026-10-26 | §Stage 9 |
 | 10 | Final-Seed Validation Gate | ✅ PASSED (Option F) | 2026-10-30 | §Stage 10 |
 | 11 | Hidden-Confounder Sensitivity Analysis | ✅ PASSED | 2026-10-30 | §Stage 11 |
-| 12 | MLflow Artifact Packaging & Human-Gated Promotion | Pending | — | — |
-| 13 | Diagnostic Showcase Slice | Pending | — | — |
-| 14 | DAG Assembly, Config & CI Tiers / Reproducibility | Pending | — | — |
-| 15 | ADR Consolidation & Phase 2 Sign-Off | Pending | — | — |
+| 12 | MLflow Artifact Packaging & Human-Gated Promotion | ✅ PASSED | 2026-10-31 | Gate 12 |
+| 13 | Diagnostic Showcase Slice | ✅ PASSED | 2026-10-31 | Gate 13 |
+| 14 | DAG Assembly, Config & CI Tiers / Reproducibility | ⚠️ Local evidence passed; GitHub Actions rerun pending | 2026-11-04 | Gate 14 and Stage 15 recheck |
+| 15 | ADR Consolidation & Phase 2 Sign-Off | ⏸ BLOCKED — CI confirmation and operator sign-off | 2026-11-04 | Stage 15 |
 
 ---
 
@@ -679,7 +679,32 @@ Stage 10 PASSED under Option F. Roadmap Exit Criterion E1 is satisfied. Stages 1
 
 ### Gate 14 outcome
 
-✅ **PASSED.** Two forced full `dvc repro --force` runs (16.52 min and 15.86 min) produced bit-identical data products:
+✅ **LOCAL REPRODUCIBILITY PASSED.** Two forced full `dvc repro --force` runs (16.52 min and 15.86 min) produced bit-identical data products:
 combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8c3` in both runs; all 18 canonical artifacts identical; all 18 DVC stage hashes identical; all 8 model metrics identical (worst delta 0.000e+00, tolerance 0.001). Both runs pass all 8 frozen thresholds. `register_candidate` is a governed Tier 2 manual step (not a DAG node) per clean-git lineage. CI Tier 1 reworked: ruff → pyright → module size → GX fixture falsification (valid fixtures pass; all 5 malformed fixtures rejected at their gate) → pytest with `--cov-fail-under=65` (84.37% actual). INV-3 ordering demonstrable (no stage produces versioned data without its upstream GX gate pass). Roadmap Exits E5 and E6 satisfied.
 
 ### Stage 15 — ADR Consolidation & Phase 2 Sign-Off
+
+**Executed:** 2026-11-04 · **Gate 15:** ⏸ BLOCKED · **Phase status:** Implementation delivered; not formally closed
+
+1. **Decision outcomes and ADRs reconciled:**
+   - Q1: €100,000 cap, 1.1988 excess load; selected transition Spearman 0.9992 and holdout deviance change 0.406%. Concentration limitation retained by operator decision.
+   - Q2: N=413,169, GBT nuisance, 5-fold cross-fitting; 514.8 seconds and 2,534.3 MB peak RSS.
+   - Q3: thresholds and control-separation margins are recorded in `implementation_plan.md` §6 and `q3_threshold_calibration_report.md`.
+   - ADR-003 and ADR-009 Phase 2 amendments and ADR-012–ADR-015 now record their validated Phase 2 implementation status in `system_design.md`. Technical validation is distinct from phase sign-off.
+2. **Post-Implementation Review:** All 16 review rows in `implementation_plan.md` §8 contain actual evidence, finding, severity, remediation, and status; no review cells remain blank or `_pending_`. E1's original rank-floor failure remains visible and is closed only under the approved Option F amendment.
+3. **Exit and Phase 3 entry checks:**
+   - E1–E5 verified from the Option F amendment, showcase evidence, Q1/GLM reports, approved registry bundle, and GX/DVC evidence.
+   - Approved MLflow v3 bundle contains 35 rows with `epsilon_hat`, epsilon confidence bounds, `baseline_retention_q0`, `loss_cost_per_year`, and `base_premium_per_year`; `approved` and `candidate` both resolve to v3. Human-review and lineage tags are present.
+   - Phase 3's ±15% exploration corridor and ±5% auto-approval corridor are recorded in `params.yaml` and the roadmap.
+   - DVC has 14 stages: 11 Phase 2 stages and 3 regulatory stages. `register_candidate` is a manual governed step, not a DVC stage. `uv run dvc status` reported all data and pipelines up to date.
+4. **Falsification audit:** The seven planned falsification groups are evidenced and restored: orphan-severity input halts before versioning (Stage 1); injected adjustment field is rejected (Stage 4); planted truth and prohibited truth-loader import are rejected (Stage 6); all three negative controls fail while the positive control passes (Stage 9); frozen-threshold tampering is detected and the threshold restored (Stage 10); unapproved registry promotion is blocked (Stage 12); injected adjustment field and removed disclaimer fail showcase checks (Stage 13). Stage 14 defines no separate mutation falsification; reproducibility and contract-fixture checks are its validation.
+5. **Current local verification (2026-11-04):**
+   - `uv run dvc status`: passed; data and pipelines up to date.
+   - `uv run pytest -q --cov=aegis --cov-fail-under=65`: 388 passed; 84.37% coverage; 187 non-failing GX deprecation warnings. This full run started before the Pyright portability fix.
+   - After the fix to `scripts/q2_estimator_scale.py`, `uv run pytest -q tests/unit/test_q2_estimator_scale.py`: 8 passed; the Windows RSS helper returned a positive current-process value.
+   - `uv run ruff check .`: passed; `uv run pyright`: 0 errors; `uv run pyright --pythonplatform Linux`: 0 errors; module-size check: all 53 source files within 1,000 lines.
+6. **GitHub Actions close-out blocker:** The latest workflow run on commit `ceb726e7a4dbba6082bdfda424d07d5b596e8a9b` (`41846361715`) failed at Pyright because the Windows-only `ctypes.WinDLL`, `ctypes.WinError`, and `ctypes.get_last_error` attributes are not available in Linux stubs. The guarded `getattr` fix passes repository-wide Linux-targeted Pyright. The workflow has not yet rerun after publication; no green post-fix result is claimed.
+   - This recheck supersedes the earlier Gate 14 statement that E6 was satisfied: the two local DVC runs and local coverage gate passed, but the required GitHub Actions run is not green on the post-fix tree yet.
+7. **Formal sign-off:** Not recorded. The operator must review the final evidence after a green post-fix GitHub Actions run. Phase 2 remains open and Phase 3 remains gated.
+
+**Gate 15 result:** ⏸ **BLOCKED** pending (1) a green GitHub Actions run on the published portability fix, and (2) formal operator sign-off. The review and ADR evidence are recorded, but E6 is not yet closed.

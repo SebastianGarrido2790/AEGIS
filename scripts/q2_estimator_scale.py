@@ -278,8 +278,11 @@ def _windows_current_rss_bytes() -> int:
 
     counters = ProcessMemoryCounters()
     counters.cb = ctypes.sizeof(counters)
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None:
+        raise RuntimeError("Windows ctypes APIs are unavailable")
+    kernel32 = win_dll("kernel32", use_last_error=True)
+    psapi = win_dll("psapi", use_last_error=True)
     get_current_process = kernel32.GetCurrentProcess
     get_current_process.restype = ctypes.c_void_p
     get_process_memory_info = psapi.GetProcessMemoryInfo
@@ -293,7 +296,11 @@ def _windows_current_rss_bytes() -> int:
         get_current_process(), ctypes.byref(counters), counters.cb
     )
     if not success:
-        raise ctypes.WinError(ctypes.get_last_error())
+        win_error = getattr(ctypes, "WinError", None)
+        get_last_error = getattr(ctypes, "get_last_error", None)
+        if win_error is None or get_last_error is None:
+            raise RuntimeError("Windows ctypes error APIs are unavailable")
+        raise win_error(get_last_error())
     return int(counters.WorkingSetSize)
 
 
