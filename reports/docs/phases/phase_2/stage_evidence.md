@@ -2,7 +2,7 @@
 ## Tier 1: Deterministic ML Baseline
 
 Author: Sebastián Garrido Arévalo | Date: October 21, 2026
-**Status: Stage 15 technical review recorded; formal close-out blocked.** Stages 0–13 have passing evidence. Stage 14 has local reproducibility and CI-smoke evidence. Post-fix GitHub Actions run `41922596245` passed Gates 1–4 but failed Gate 5 because several tests require Gitignored data absent from a fresh checkout. The unit tests now use temporary inputs or explicitly skip raw-data integration checks when source files are unavailable; another green run and the operator's formal sign-off are required before Phase 2 closes.
+**Status: Stage 15 technical review recorded; formal close-out blocked.** Stages 0–13 have passing evidence. Stage 14 has local reproducibility and CI-smoke evidence. Post-fix GitHub Actions run `41922596245` passed Gates 1–4 but failed Gate 5 because several tests require Gitignored data absent from a fresh checkout. Follow-up run `41929068867` passed Gates 1–4 but exposed four remaining tests using repository data paths. Those tests now use temporary inputs; the full local suite passes, but another green run and the operator's formal sign-off are required before Phase 2 closes.
 
 **What this document is:** the evidence ledger for Phase 2 stages. It records live command outputs, checksums, measured values, decisions taken on evidence, and gate outcomes exactly as observed.
 **How to use it:** read the relevant stage section before starting dependent work; add a new dated section per executed stage. Do not rewrite earlier entries — append corrections as new dated notes.
@@ -23,7 +23,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 11 | Hidden-Confounder Sensitivity Analysis | ✅ PASSED | 2026-10-30 | §Stage 11 |
 | 12 | MLflow Artifact Packaging & Human-Gated Promotion | ✅ PASSED | 2026-10-31 | Gate 12 |
 | 13 | Diagnostic Showcase Slice | ✅ PASSED | 2026-10-31 | Gate 13 |
-| 14 | DAG Assembly, Config & CI Tiers / Reproducibility | ⚠️ Local evidence passed; post-fix Gate 5 failed on unavailable Gitignored data; hermetic test rerun pending | 2026-11-04 | Gate 14 and Stage 15 recheck |
+| 14 | DAG Assembly, Config & CI Tiers / Reproducibility | ⚠️ Local evidence passed; latest Gate 5 failure traced to test data assumptions and corrected locally; green rerun pending | 2026-11-04 | Gate 14 and Stage 15 recheck |
 | 15 | ADR Consolidation & Phase 2 Sign-Off | ⏸ BLOCKED — CI confirmation and operator sign-off | 2026-11-04 | Stage 15 |
 
 ---
@@ -703,8 +703,8 @@ combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8
    - `uv run pytest -q --cov=aegis --cov-fail-under=65`: 388 passed; 84.37% coverage; 187 non-failing GX deprecation warnings. This full run started before the Pyright portability fix.
    - After the fix to `scripts/q2_estimator_scale.py`, `uv run pytest -q tests/unit/test_q2_estimator_scale.py`: 8 passed; the Windows RSS helper returned a positive current-process value.
    - `uv run ruff check .`: passed; `uv run pyright`: 0 errors; `uv run pyright --pythonplatform Linux`: 0 errors; module-size check: all 53 source files within 1,000 lines.
-6. **GitHub Actions close-out blocker:** Run `41846361715` failed Linux Pyright because the Windows-only `ctypes.WinDLL`, `ctypes.WinError`, and `ctypes.get_last_error` attributes are unavailable in Linux stubs. The guarded `getattr` fix was published in `83418ab`. Post-fix run `41922596245` passed Gates 1–4 but Gate 5 reported 372 passed, 6 skipped, 7 failed, and 3 errors. The failures were tests requiring Gitignored `data/raw` and `data/processed` files absent from the fresh checkout, not the portability fix. Test isolation changes are local; a green workflow rerun is still required.
+6. **GitHub Actions close-out blocker:** Run `41846361715` failed Linux Pyright because the Windows-only `ctypes.WinDLL`, `ctypes.WinError`, and `ctypes.get_last_error` attributes are unavailable in Linux stubs. The guarded `getattr` fix was published in `83418ab`. Post-fix run `41922596245` passed Gates 1–4 but Gate 5 reported 372 passed, 6 skipped, 7 failed, and 3 errors because tests required Gitignored `data/raw` and `data/processed` files. Run `41929068867` passed Gates 1–4 but had 4 failed tests because final-seed test helpers still referenced repository data paths. The helpers now use temporary inputs; a green workflow rerun is still required.
    - This recheck supersedes the earlier Gate 14 statement that E6 was satisfied: the two local DVC runs and local coverage gate passed, but the required GitHub Actions run is not green on the post-fix tree yet.
 7. **Formal sign-off:** Not recorded. The operator must review the final evidence after a green post-fix GitHub Actions run. Phase 2 remains open and Phase 3 remains gated.
 
-**Gate 15 result:** ⏸ **BLOCKED** pending (1) a green GitHub Actions run after the hermetic test changes, and (2) formal operator sign-off. The review and ADR evidence are recorded, but E6 is not yet closed.
+**Gate 15 result:** ⏸ **BLOCKED** pending (1) a green GitHub Actions run after the final test-isolation changes, and (2) formal operator sign-off. The review and ADR evidence are recorded, but E6 is not yet closed.

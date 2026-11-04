@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 import yaml
 
-from aegis.config.loader import get_config
+from aegis.config.loader import get_config, load_params
 from aegis.pipelines.cli import (
     build_parser,
     ingest_file,
@@ -618,7 +618,23 @@ def test_verify_final_validation_cli_fails_on_tampered_threshold(tmp_path: Path)
     from aegis.schemas.final_validation import FinalSeedRunResult
     from aegis.schemas.validation import ValidationMetrics, ValidationThresholds
 
-    live = get_config()
+    raw_config = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    ml = raw_config["tier1_ml"]
+    for section, key in [
+        ("feature_paths", "forest_view"),
+        ("segment_paths", "policy_segments"),
+        ("glm_paths", "fitted_loss_cost"),
+        ("dgp_paths", "training_table"),
+        ("dgp_paths", "truth_sidecar"),
+    ]:
+        target = data_dir / Path(ml[section][key]).name
+        target.write_text(f"test data for {target.name}\n", encoding="utf-8")
+        ml[section][key] = target.as_posix()
+    config_path = tmp_path / "params.yaml"
+    config_path.write_text(yaml.safe_dump(raw_config, sort_keys=False), encoding="utf-8")
+    live = load_params(config_path)
     thresholds_cfg = live.tier1_ml.validation_thresholds
     assert thresholds_cfg is not None
     thresholds = ValidationThresholds.model_validate(thresholds_cfg.model_dump())
@@ -648,14 +664,14 @@ def test_verify_final_validation_cli_fails_on_tampered_threshold(tmp_path: Path)
         for seed in live.tier1_ml.final_seeds
     ]
     summary = build_final_seed_summary(
-        live, Path("params.yaml"), runs, thresholds, sample_size=1000
+        live, config_path, runs, thresholds, sample_size=1000
     )
     artifact = tmp_path / "summary.json"
     artifact.write_text(json.dumps(summary.model_dump(mode="json")), encoding="utf-8")
 
-    tampered = yaml.safe_load(Path("params.yaml").read_text(encoding="utf-8"))
+    tampered = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     tampered["tier1_ml"]["validation_thresholds"]["m1_tau_spearman_floor"] = 0.50
-    config_copy = tmp_path / "params.yaml"
+    config_copy = tmp_path / "tampered_params.yaml"
     config_copy.write_text(yaml.safe_dump(tampered, sort_keys=False), encoding="utf-8")
 
     with patch(
@@ -671,5 +687,4 @@ def test_verify_final_validation_cli_fails_on_tampered_threshold(tmp_path: Path)
     ):
         code = main()
     assert code == 1
-
 

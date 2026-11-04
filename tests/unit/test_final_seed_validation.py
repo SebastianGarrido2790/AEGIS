@@ -150,21 +150,23 @@ def test_build_summary_rejects_fewer_than_five_seeds() -> None:
     assert "K >= 5" in str(exc_info.value)
 
 
-def test_build_summary_records_hashes_and_zero_tautologies() -> None:
-    config = load_params(CONFIG_PATH)
+def test_build_summary_records_hashes_and_zero_tautologies(fingerprinted_workspace) -> None:
+    config_copy, _, _ = fingerprinted_workspace
+    config = load_params(config_copy)
     summary = build_final_seed_summary(
-        config, CONFIG_PATH, _campaign(), _thresholds(), sample_size=1000
+        config, config_copy, _campaign(), _thresholds(), sample_size=1000
     )
-    assert summary.config_sha256 == compute_file_sha256(CONFIG_PATH)
+    assert summary.config_sha256 == compute_file_sha256(config_copy)
     assert not any(summary.tautology_checks.values())
     assert summary.held_out_ids_sha256[501] == compute_ids_sha256(["1", "2", "3"])
     assert summary.thresholds["m1_tau_spearman_floor"] == (_thresholds().m1_tau_spearman_floor)
 
 
-def test_report_renders_worst_median_and_tamper_guidance() -> None:
-    config = load_params(CONFIG_PATH)
+def test_report_renders_worst_median_and_tamper_guidance(fingerprinted_workspace) -> None:
+    config_copy, _, _ = fingerprinted_workspace
+    config = load_params(config_copy)
     summary = build_final_seed_summary(
-        config, CONFIG_PATH, _campaign(), _thresholds(), sample_size=1000
+        config, config_copy, _campaign(), _thresholds(), sample_size=1000
     )
     report = format_final_validation_report(summary)
     assert "## 2. Worst-Seed Floors and Median-Seed Targets" in report
@@ -173,10 +175,11 @@ def test_report_renders_worst_median_and_tamper_guidance() -> None:
     assert "- **Failed seeds:** `[]`" in report
 
 
-def test_summary_round_trips_through_json() -> None:
-    config = load_params(CONFIG_PATH)
+def test_summary_round_trips_through_json(fingerprinted_workspace) -> None:
+    config_copy, _, _ = fingerprinted_workspace
+    config = load_params(config_copy)
     summary = build_final_seed_summary(
-        config, CONFIG_PATH, _campaign(), _thresholds(), sample_size=1000
+        config, config_copy, _campaign(), _thresholds(), sample_size=1000
     )
     payload = json.dumps(summary.model_dump(mode="json"))
     assert load_summary_from_payload(payload) == summary
@@ -193,7 +196,7 @@ def test_malformed_summary_payload_fails_closed() -> None:
 
 
 @pytest.fixture
-def tamper_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
+def fingerprinted_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
     """Copies params.yaml and creates fingerprint inputs in an isolated workspace.
 
     Returns:
@@ -215,6 +218,7 @@ def tamper_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
     for relative in rel_paths:
         target = data_dir / Path(relative).name
         target.write_text(f"test data for {target.name}\n", encoding="utf-8")
+    _rewrite_config_paths(config_copy, data_dir)
     return config_copy, tmp_path / "summary.json", data_dir
 
 
@@ -233,9 +237,9 @@ def _rewrite_config_paths(config_copy: Path, data_dir: Path) -> None:
     config_copy.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
 
 
-def test_falsification_threshold_tamper_is_detected(tamper_workspace) -> None:
+def test_falsification_threshold_tamper_is_detected(fingerprinted_workspace) -> None:
     """Gate 10 falsification: editing a frozen threshold after the run invalidates it."""
-    config_copy, _, data_dir = tamper_workspace
+    config_copy, _, data_dir = fingerprinted_workspace
     _rewrite_config_paths(config_copy, data_dir)
     config = load_params(config_copy)
     summary = build_final_seed_summary(
@@ -254,9 +258,9 @@ def test_falsification_threshold_tamper_is_detected(tamper_workspace) -> None:
     assert "m1_tau_spearman_floor" in joined
 
 
-def test_falsification_test_data_tamper_is_detected(tamper_workspace) -> None:
+def test_falsification_test_data_tamper_is_detected(fingerprinted_workspace) -> None:
     """Altering a fingerprinted test-data file after the run invalidates the artifact."""
-    config_copy, _, data_dir = tamper_workspace
+    config_copy, _, data_dir = fingerprinted_workspace
     _rewrite_config_paths(config_copy, data_dir)
     config = load_params(config_copy)
     summary = build_final_seed_summary(
@@ -269,9 +273,11 @@ def test_falsification_test_data_tamper_is_detected(tamper_workspace) -> None:
     assert any("truth_sidecar_sha256" in problem for problem in problems)
 
 
-def test_verification_reports_gate_failure_under_relaxed_thresholds(tamper_workspace) -> None:
+def test_verification_reports_gate_failure_under_relaxed_thresholds(
+    fingerprinted_workspace,
+) -> None:
     """A hardened floor must surface as a gate re-evaluation failure, not a hash-only note."""
-    config_copy, _, data_dir = tamper_workspace
+    config_copy, _, data_dir = fingerprinted_workspace
     _rewrite_config_paths(config_copy, data_dir)
     config = load_params(config_copy)
     summary = build_final_seed_summary(
