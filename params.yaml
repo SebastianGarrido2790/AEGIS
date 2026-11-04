@@ -227,3 +227,22 @@ data_contracts:
 dvc:
   remote_name: "local_storage"
   remote_url: ".dvc/local_remote"
+
+# Execution tiers (P2-D10, ADR-015). Tier 1 runs in CI on committed fixtures; Tier 2 is
+# the full local `dvc repro`; Tier 3 is the on-demand multi-seed campaign. The coverage
+# floor and metric tolerance are pre-registered gates, not outcome-fitted values.
+execution_tiers:
+  tier1_ci_smoke:
+    enabled: true
+    coverage_floor: 0.65
+    fixtures_dir: "data_contracts/fixtures"
+    require_gx_fixture_falsification: true
+  tier2_local_repro:
+    enabled: true
+    register_candidate_manual: true
+    require_bit_identical_products: true
+  tier3_validation_campaign:
+    enabled: true
+    on_demand: true
+  reproducibility:
+    metric_abs_tolerance: 0.001

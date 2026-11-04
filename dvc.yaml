@@ -1,5 +1,12 @@
 # DVC Pipeline Architecture for AEGIS (INV-3, ADR-007, ADR-015)
-# Fine-grained parallel 3-stage DAG: ingest -> validate_gx -> version
+# Policy-data DAG: ingest -> validate_gx -> version -> features -> baseline -> segments
+#   -> DGP -> validate_training_gx -> train_estimator -> validate_recovery
+#   -> version_artifacts
+# Regulatory-corpus path below is a separate 3-stage branch.
+#
+# `register_candidate` is deliberately NOT a stage: it requires a clean git tree and
+# mutates the MLflow registry on every call, so it is a governed Tier 2 manual step
+# (`uv run python -m aegis.pipelines.cli register-candidate`), not a cached DVC node.
 
 stages:
   # ==========================================
@@ -110,6 +117,74 @@ stages:
       - src/aegis/pipelines/expectations.py
     outs:
       - data/validated/elasticity_training_validation_report.json
+
+  train_estimator:
+    cmd: uv run python -m aegis.pipelines.cli train-estimator
+    deps:
+      - data/processed/elasticity_training.csv
+      # INV-3: the training table's GX gate must complete before training can run.
+      - data/validated/elasticity_training_validation_report.json
+      - data/processed/segment_definitions.json
+      - params.yaml
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/causal_estimator.py
+      - src/aegis/pipelines/causal_artifacts.py
+      - src/aegis/config/schema.py
+      - src/aegis/config/loader.py
+      - src/aegis/schemas/causal.py
+      - src/aegis/utils/exceptions.py
+    outs:
+      - data/processed/segment_elasticity_estimates.csv
+      - data/processed/causal_estimator_metadata.json
+      # The fitted estimator (277 MB) and its run log (wall-clock timings) are
+      # non-promotable run artifacts (ADR-014): excluded from `outs` so DVC neither
+      # duplicates the binary into the cache nor marks the stage stale every run.
+
+  validate_recovery:
+    cmd: uv run python -m aegis.pipelines.cli validate-causal --report-path data/validated/causal_validation_report.json
+    deps:
+      - data/processed/segment_elasticity_estimates.csv
+      - data/processed/elasticity_training.csv
+      # INV-3: recovery verification is gated on the training-table contract too.
+      - data/validated/elasticity_training_validation_report.json
+      - data/processed/truth_sidecar.csv
+      - params.yaml
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/causal_estimator.py
+      - src/aegis/pipelines/causal_artifacts.py
+      - src/aegis/pipelines/validation_harness.py
+      - src/aegis/config/schema.py
+      - src/aegis/schemas/validation.py
+      - src/aegis/utils/exceptions.py
+    outs:
+      - data/validated/causal_validation_report.json
+
+  version_artifacts:
+    cmd: uv run python -m aegis.pipelines.cli version-artifacts --output-path data/versioned/version_manifest.json
+    deps:
+      - data/versioned/raw_policy_data.csv
+      - data/validated/raw_policy_validation_report.json
+      - data/processed/features_glm.csv
+      - data/processed/features_forest.csv
+      - data/processed/feature_metadata.json
+      - data/processed/glm_fitted_loss_cost.csv
+      - data/processed/glm_baseline_model.json
+      - data/processed/glm_calibration_report.json
+      - data/processed/segment_loss_cost.csv
+      - data/processed/segment_definitions.json
+      - data/processed/policy_segments.csv
+      - data/processed/elasticity_training.csv
+      - data/processed/truth_sidecar.csv
+      - data/processed/dgp_manifest.json
+      - data/validated/elasticity_training_validation_report.json
+      - data/processed/segment_elasticity_estimates.csv
+      - data/processed/causal_estimator_metadata.json
+      - data/validated/causal_validation_report.json
+      - src/aegis/pipelines/cli.py
+      - src/aegis/pipelines/versioning.py
+      - src/aegis/schemas/versioning.py
+    outs:
+      - data/versioned/version_manifest.json
 
   # ==========================================
   # 2. Regulatory Corpus Data Pipeline Path

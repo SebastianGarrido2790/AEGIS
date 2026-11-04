@@ -54,3 +54,13 @@ typeCheckingMode = "standard"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# Tier 1 CI-smoke coverage gate (P2-D10, ADR-015): 65% floor across Tier 1 modules.
+[tool.coverage.run]
+source = ["aegis"]
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 65
+show_missing = true
+skip_covered = true
