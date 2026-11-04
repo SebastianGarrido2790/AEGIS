@@ -2,7 +2,7 @@
 ## Tier 1: Deterministic ML Baseline
 
 Author: Sebastián Garrido Arévalo | Date: October 21, 2026
-**Status: E1–E6 technical evidence verified; Stage 15 awaits formal operator sign-off.** Final GitHub Actions run `41931141437` passed Gates 1–5 after Linux-portability and test-isolation fixes: 380 passed, 8 skipped, and 83.88% coverage. The full local suite also passes (388 passed, 84.37% coverage). Phase 2 remains open until the operator records formal sign-off.
+**Status: Phase 2 closed; Stage 15 passed following formal operator sign-off (November 4, 2026).** E1–E6 technical evidence is verified. GitHub Actions run `41931141437` passed Gates 1–5: 380 passed, 8 skipped, and 83.88% coverage; the subsequent documentation-only run `41932284084` also passed. The full local suite passes (388 passed, 84.37% coverage).
 
 **What this document is:** the evidence ledger for Phase 2 stages. It records live command outputs, checksums, measured values, decisions taken on evidence, and gate outcomes exactly as observed.
 **How to use it:** read the relevant stage section before starting dependent work; add a new dated section per executed stage. Do not rewrite earlier entries — append corrections as new dated notes.
@@ -24,7 +24,7 @@ Author: Sebastián Garrido Arévalo | Date: October 21, 2026
 | 12 | MLflow Artifact Packaging & Human-Gated Promotion | ✅ PASSED | 2026-10-31 | Gate 12 |
 | 13 | Diagnostic Showcase Slice | ✅ PASSED | 2026-10-31 | Gate 13 |
 | 14 | DAG Assembly, Config & CI Tiers / Reproducibility | ✅ Local evidence and GitHub Actions run 41931141437 passed; 380 passed, 8 skipped, 83.88% coverage | 2026-11-04 | Gate 14 and Stage 15 recheck |
-| 15 | ADR Consolidation & Phase 2 Sign-Off | ⏸ BLOCKED — formal operator sign-off | 2026-11-04 | Stage 15 |
+| 15 | ADR Consolidation & Phase 2 Sign-Off | ✅ PASSED — formal operator sign-off recorded | 2026-11-04 | Stage 15 |
 
 ---
 
@@ -684,7 +684,7 @@ combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8
 
 ### Stage 15 — ADR Consolidation & Phase 2 Sign-Off
 
-**Executed:** 2026-11-04 · **Gate 15:** ⏸ BLOCKED · **Phase status:** Implementation delivered; not formally closed
+**Executed:** 2026-11-04 · **Gate 15:** ✅ PASSED · **Phase status:** Phase 2 closed; Phase 3 unblocked
 
 1. **Decision outcomes and ADRs reconciled:**
    - Q1: €100,000 cap, 1.1988 excess load; selected transition Spearman 0.9992 and holdout deviance change 0.406%. Concentration limitation retained by operator decision.
@@ -700,11 +700,11 @@ combined SHA-256 `215452df6ee094e43cae2bd01c2dba349e0c29382239f39051d281cc8a1ae8
 4. **Falsification audit:** The seven planned falsification groups are evidenced and restored: orphan-severity input halts before versioning (Stage 1); injected adjustment field is rejected (Stage 4); planted truth and prohibited truth-loader import are rejected (Stage 6); all three negative controls fail while the positive control passes (Stage 9); frozen-threshold tampering is detected and the threshold restored (Stage 10); unapproved registry promotion is blocked (Stage 12); injected adjustment field and removed disclaimer fail showcase checks (Stage 13). Stage 14 defines no separate mutation falsification; reproducibility and contract-fixture checks are its validation.
 5. **Current local verification (2026-11-04):**
    - `uv run dvc status`: passed; data and pipelines up to date.
-   - `uv run pytest -q --cov=aegis --cov-fail-under=65`: 388 passed; 84.37% coverage; 187 non-failing GX deprecation warnings. This full run started before the Pyright portability fix.
+   - `uv run pytest -q --cov=aegis --cov-fail-under=65`: 388 passed; 84.37% coverage; 187 non-failing GX deprecation warnings after the portability and test-isolation fixes.
    - After the fix to `scripts/q2_estimator_scale.py`, `uv run pytest -q tests/unit/test_q2_estimator_scale.py`: 8 passed; the Windows RSS helper returned a positive current-process value.
    - `uv run ruff check .`: passed; `uv run pyright`: 0 errors; `uv run pyright --pythonplatform Linux`: 0 errors; module-size check: all 53 source files within 1,000 lines.
-6. **GitHub Actions verification:** Run `41846361715` failed Linux Pyright on Windows-only `ctypes` symbols. Portability fix `83418ab` passed Linux Pyright. Runs `41922596245` and `41929068867` exposed tests dependent on Gitignored data and repository paths; the hermetic-test fixes were published in `60b00bf` and `8b024c1`. Final run `41931141437` passed all five gates: 380 passed, 8 skipped, 83.88% coverage. The 8 skipped tests are explicit data/artifact-availability conditions; local full-data tests passed.
-   - This recheck supersedes the earlier Gate 14 statement that E6 was satisfied: the two local DVC runs and local coverage gate passed, but the required GitHub Actions run is not green on the post-fix tree yet.
-7. **Formal sign-off:** Not recorded. The operator must review the final evidence after a green post-fix GitHub Actions run. Phase 2 remains open and Phase 3 remains gated.
+6. **GitHub Actions verification:** Run `41846361715` failed Linux Pyright on Windows-only `ctypes` symbols. Portability fix `83418ab` passed Linux Pyright. Runs `41922596245` and `41929068867` exposed tests dependent on Gitignored data and repository paths; the hermetic-test fixes were published in `60b00bf` and `8b024c1`. Run `41931141437` passed all five gates: 380 passed, 8 skipped, 83.88% coverage. The 8 skips are explicit data/artifact-availability conditions; local full-data tests passed. Documentation-only run `41932284084` also passed.
+   - The earlier Gate 14 E6 statement is confirmed by the post-fix green workflow and local reproducibility evidence.
+7. **Formal sign-off:** The operator formally approved Phase 2 closure on November 4, 2026. Phase 2 is closed and Phase 3 is unblocked.
 
-**Gate 15 result:** ⏸ **BLOCKED** pending formal operator sign-off. All technical evidence, including E6 and the green GitHub Actions run `41931141437`, is recorded and verified; Phase 2 is not formally closed and Phase 3 remains gated until sign-off.
+**Gate 15 result:** ✅ **PASSED (2026-11-04).** E1–E6, the Post-Implementation Review, all required CI gates, ADR status updates, and formal operator sign-off are recorded. Phase 2 is closed; Phase 3 is unblocked.

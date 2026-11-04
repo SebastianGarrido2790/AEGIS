@@ -42,7 +42,7 @@ Phase 0.
 
 ---
 
-## Phase 2 — Tier 1: Deterministic ML Baseline _(implementation delivered; Stage 15 close-out pending)_
+## Phase 2 — Tier 1: Deterministic ML Baseline _(complete; Stage 15 passed; operator sign-off recorded)_
 
 Goal:
 Establish the GLM actuarial baseline and the causal elasticity model, with a first showcase slice — preceded this time by exploratory data analysis of the raw data before any training-pipeline code is written.
@@ -56,7 +56,7 @@ Exit criteria:
 - causal estimator recovers the known synthetic treatment effect under the approved Option F governed recovery envelope (`phases/phase_2/e1_option_f_amendment.md`)
 - showcase slice renders correctly, clearly labeled demo rather than production view (carries an explicit developer-diagnostic exemption from INV-5 — $\epsilon$/recovery metrics only, never a proposed $\Delta$ — which strictly binds pricing recommendations)
 
-**Implementation status (November 4, 2026):** Stages 0–14 have recorded passing evidence. Portability fix `83418ab` passed Linux Pyright in GitHub Actions; test-isolation fixes `60b00bf` and `8b024c1` made Gate 5 data-independent. Final run `41931141437` passed all five CI gates (380 passed, 8 skipped, 83.88% coverage); the full local suite passes (388 passed, 84.37%). Phase 2 close-out now awaits formal operator sign-off before Phase 3 begins.
+**Implementation status (November 4, 2026):** Stages 0–15 are complete. Portability fix `83418ab` passed Linux Pyright in GitHub Actions; test-isolation fixes `60b00bf` and `8b024c1` made Gate 5 data-independent. Run `41931141437` passed all five CI gates (380 passed, 8 skipped, 83.88% coverage); the full local suite passes (388 passed, 84.37%). Formal operator sign-off was recorded November 4, 2026; Phase 2 is closed and Phase 3 is unblocked.
 
 Carry-forward findings:
 - The heavy-tailed loss distribution (maximum claim €2.04M, about 5.91% of portfolio losses) requires the documented cap and excess-load treatment.

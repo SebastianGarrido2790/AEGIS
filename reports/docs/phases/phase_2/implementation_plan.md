@@ -2,7 +2,7 @@
 ## Implementation Plan & Architectural Decisions — AEGIS
 
 Author: Sebastián Garrido Arévalo | Version 0.4 | Date: November 4, 2026
-**Status: Phase 2 implementation delivered; Stage 15 close-out awaits formal operator sign-off (November 4, 2026).** The decisions below were approved in the four batches in §5; Q1–Q3 outcomes and implementation evidence are recorded below. See §8 for the current review and remaining gate.
+**Status: Phase 2 closed; Stage 15 passed following formal operator sign-off (November 4, 2026).** The decisions below were approved in the four batches in §5; Q1–Q3 outcomes and implementation evidence are recorded below. The Post-Implementation Review and close-out evidence are in §8.
 
 **What this document is:** the phase-level decision record. It answers: before any Phase 2 code is written, what must be decided, why, and what is recommended.
 **Why it exists:** to bridge project intent, the actual current state, architectural decisions, and executable implementation, so that implementation starts from approved constraints and not from assumptions.
@@ -33,7 +33,7 @@ Sources: project documents (scoping, PRD, user story, roadmap, system design ADR
 
 | Field | Value |
 |---|---|
-| Phase | Phase 2 — Tier 1: Deterministic ML Baseline (implementation delivered; Stage 15 close-out pending) |
+| Phase | Phase 2 — Tier 1: Deterministic ML Baseline (complete; Stage 15 passed; operator sign-off recorded) |
 | Objective | Produce the deterministic foundation every later tier consumes: a calibrated GLM loss-cost baseline, a causal elasticity estimator validated against a known semi-synthetic ground truth, a promotable per-segment Tier 1 output, and a first showcase slice. |
 | Governing requirements | PRD FR-1 (semi-synthetic causal benchmark), FR-9 (GX-gated ingestion); PRD §7 (reproducibility, modularity), §9 (data), §11 (elasticity KPI as amended); scoping §0 (amended success metric), §2 (goal item 1), §3. |
 | Binding invariants | **INV-3** data contracts block versioning; **INV-8** 1,000-line module ceiling; **INV-5** binds recommendations (Phase 2 showcase carries a diagnostic-only exemption: ε and recovery metrics only, never a proposed Δ); **INV-10** no live data. Not exercised: INV-1, INV-2, INV-4, INV-6, INV-7, INV-9. |
@@ -794,8 +794,8 @@ This section stays open until implementation has been independently reviewed aga
 | Registry | Approved alias requires human review and lineage; serving reads plain data (D11, D11a) | Local MLflow `approved` and `candidate` both resolve to v3; reviewer and calibration hash tags are present; package contains lineage and 35-row `tier1_segments.csv`; loader rejects estimator binaries | Artifact fields include ε̂, intervals, q₀, loss cost, and base premium; serving bundle matches ADR-014 | None | Preserve recorded promotion and rollback lineage | ✅ VERIFIED |
 | Showcase | Banner, no Δ field, four presets from `approved` (D12) | Stage 13 evidence records all four presets, schema rejection of price-change fields, disclaimer on all views, local Chart.js asset, and live 200 responses | Diagnostic-only exemption remains structurally enforced | None | None required | ✅ VERIFIED |
 | Engineering standards | INV-8, falsifiable tests, lint and type checking | Full suite: 388 passed, 84.37% coverage; Ruff clean; Pyright clean on Windows and Linux; 53 source files within 1,000 lines. GitHub Actions run 41931141437 passed all five gates with 380 passed, 8 skipped, and 83.88% coverage. | 187 GX deprecation warnings remain non-failing | Low; warning only | Keep external DVC data out of CI; track GX deprecation migration separately | ✅ VERIFIED |
-| Documentation | Approved amendments, phase statuses, evidence and known limitations agree | Q1–Q3 outcomes, phase status, stage evidence, and ADR statuses are reconciled in this close-out update; the prior “redo pending” and Stage 12–14 “not started” claims are corrected | GitHub Actions and formal sign-off remain open and are explicitly not represented as complete | Moderate; close-out remains open | Keep the blocker and sign-off state visible in README, roadmap, and evidence log | ✅ UPDATED — CLOSE-OUT OPEN |
-| Exit criteria | E1–E6 and Phase 3 entry conditions independently verified | E1–E5 verified from the Option F record, approved bundle, showcase, calibration and GX/DAG evidence. Approved v3 bundle exposes required Phase 3 fields; `params.yaml`/roadmap specify ±15% exploration vs ±5% auto-approval. E6 local reproducibility and coverage evidence plus GitHub Actions run `41931141437` passed. | Technical exit criteria are met; formal Phase 2 closure awaits operator sign-off | High; blocks phase transition | Obtain and record formal operator sign-off before Phase 3 begins | ⏸ BLOCKED — SIGN-OFF |
+| Documentation | Approved amendments, phase statuses, evidence and known limitations agree | Q1–Q3 outcomes, phase status, stage evidence, and ADR statuses are reconciled across the architecture ledger, roadmap, execution plan, and evidence log. README retains its earlier “redo pending” status because the operator reverted its update. | README is inconsistent with the closed Phase 2 status; no further edit was made without renewed request | Moderate; limited to the user-facing project-status summary | Resolve the README discrepancy only with explicit operator authorization | ⚠️ USER-RETAINED README EXCEPTION |
+| Exit criteria | E1–E6 and Phase 3 entry conditions independently verified | E1–E5 verified from the Option F record, approved bundle, showcase, calibration and GX/DAG evidence. Approved v3 bundle exposes required Phase 3 fields; `params.yaml`/roadmap specify ±15% exploration vs ±5% auto-approval. E6 local reproducibility and coverage evidence plus GitHub Actions run `41931141437` passed. Formal operator sign-off was received November 4, 2026. | Technical exit criteria and formal Phase 2 approval are complete | High; phase transition gate | Proceed to Phase 3 under its approved scope and gates | ✅ VERIFIED — PHASE 2 CLOSED |
 
 ### Phase closure
 
@@ -808,4 +808,4 @@ The phase cannot close until: every approval-required decision has a final statu
 | Verified | Evidence shows it meets the decision and exit criteria |
 | Signed Off | Independent review complete and accepted |
 
-**Stage 15 close-out status (November 4, 2026): BLOCKED pending formal operator sign-off.** The technical evidence and review table are recorded; E1–E6 are verified, including the green GitHub Actions run `41931141437`. Phase 2 is not formally closed and Phase 3 remains gated until the operator records sign-off.
+**Stage 15 close-out status (November 4, 2026): PASSED.** E1–E6 and the Post-Implementation Review are recorded; GitHub Actions run `41931141437` passed. Formal operator sign-off was received November 4, 2026. Phase 2 is closed and Phase 3 is unblocked.
