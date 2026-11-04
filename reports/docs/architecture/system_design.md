@@ -2,7 +2,7 @@
 
 **Actuarial Elasticity & Governance Intelligence System**
 Author: Sebastián Garrido Arévalo | Date: August 13, 2026
-**Status: Phase 1 Validated; Phase 2 implementation delivered, with Stage 15 close-out pending a GitHub Actions rerun and formal operator sign-off (November 4, 2026).** Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
+**Status: Phase 1 Validated; Phase 2 implementation and technical validation delivered; Stage 15 close-out awaits formal operator sign-off (November 4, 2026).** GitHub Actions run `41931141437` passed all five CI gates. Phase 1 foundations remain validated. Historical Phase 2 attempt-1 implementation (including archived former ADRs 011–019) is preserved in branch `archive/phase2-attempt-1`. ADR-011 on `main` establishes a governed decision topology (single Compliance agent + deterministic specialist nodes + post-governance briefing narrative). Tier 2 and Tier 3 remain future implementation phases.
 
 **ADR threshold:** offer an ADR only when all three tests pass: (1) the choice is hard to reverse at meaningful cost; (2) a future reader would find it surprising without recorded rationale; and (3) materially viable alternatives existed and one was selected for specific trade-offs. If any test fails, record the choice in the relevant specification, implementation plan, evaluation, or existing decision record instead. An ADR is never implied merely because a change is architectural or consequential.
 
@@ -121,7 +121,7 @@ Author: Sebastián Garrido Arévalo | Date: August 13, 2026
 
 ### ADR-003: Data contracts — Great Expectations paired with DVC, CI-blocking
 
-**Status:** Validated (Phase 1); Phase 2 amendment validated November 4, 2026 (P2-D8; Stage 1/14 evidence). The overall GitHub Actions rerun remains a Phase 2 close-out gate.
+**Status:** Validated (Phase 1); Phase 2 amendment validated November 4, 2026 (P2-D8; Stage 1/14 evidence). Formal operator sign-off remains the Phase 2 close-out gate.
 
 **Context:** DVC versions data and pipeline artifacts but does not validate them; without an independent validation gate, invalid data can be faithfully version-controlled ("garbage in, garbage out").
 
