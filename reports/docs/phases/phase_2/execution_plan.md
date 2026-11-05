@@ -155,7 +155,7 @@ For each feature folder in `reports/docs/phases/phase_2/`:
 
 ## 5. Implementation Stages
 
-### Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **COMPLETED**
+### Stage 0 — Pre-Implementation Verification & Dependency Check ✅ **PASSED**
 
 **Goal:** Establish that the baseline repository state is verified, all preconditions are satisfied, open EDA gaps are closed or formally accepted, and the Q2 sample-size ambiguity is resolved before any code is written.
 
@@ -176,7 +176,7 @@ All V1–V9 checks executed and documented; all 4 EDA gaps resolved with empiric
 
 ---
 
-### Stage 1 — Raw Intake & Raw Data Contract (P2-F01) ✅ **COMPLETED**
+### Stage 1 — Raw Intake & Raw Data Contract (P2-F01) ✅ **PASSED**
 
 **Goal:** Enforce INV-3 at the very first pipeline node: raw observational data cannot be versioned or processed without passing a Great Expectations contract grounded in the empirical EDA findings.
 
@@ -197,7 +197,7 @@ Raw GX suite passes clean on valid raw data; each malformed fixture fails its sp
 
 ---
 
-### Stage 2 — Deterministic Feature Pipeline (P2-F02) ✅ **COMPLETED**
+### Stage 2 — Deterministic Feature Pipeline (P2-F02) ✅ **PASSED**
 
 **Goal:** Establish a single, deterministic feature transformation pipeline that emits two distinct views (GLM categorical/banded view and Causal Forest numeric/ordinal view) with zero leverage-inducing composite indices and strict exclusion of claims history from elasticity covariates.
 
@@ -217,7 +217,7 @@ Pipeline produces identical outputs on repeated runs; all clips and exclusions a
 
 ---
 
-### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03) ✅ **COMPLETED**
+### Stage 3 — GLM Loss-Cost Baseline & Calibration Reporting (P2-F03) ✅ **PASSED**
 
 **Goal:** Build a single, cap-parameterized Tweedie GLM (compound Poisson-Gamma) as the foundational actuarial loss-cost baseline and $Losses_0$ source, with a standardized calibration reporting suite.
 
@@ -237,7 +237,7 @@ Tweedie GLM converges without numerical errors; holdout mean deviance and decile
 
 ---
 
-### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05) ✅ **COMPLETED**
+### Stage 4 — Segment Definition & Tier 1 Output Contract (P2-F05) ✅ **PASSED**
 
 **Goal:** Formalize the 36-cell actuarial segment grid as the universal analysis unit across AEGIS, and define the typed Tier 1 Pydantic output contract with strict structural exclusion of proposed price adjustments.
 
@@ -257,7 +257,7 @@ All policies map to valid segments; every realized segment meets the ≥1,000-po
 
 ---
 
-### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration ✅ **COMPLETED**
+### Stage 5 — Qualification Q1: Loss Cap Sweep & Final Calibration ✅ **PASSED**
 
 **Goal:** Execute qualification test Q1 across EDA-grounded candidate thresholds to select the optimal loss cap and portfolio excess load, closing the open P2-D1a level.
 
@@ -277,7 +277,7 @@ Cap sweep report complete; selected cap €100,000 satisfies the Spearman ≥0.9
 
 ---
 
-### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04) ✅ **COMPLETED**
+### Stage 6 — Semi-Synthetic DGP & Training Contract (P2-F04) ✅ **PASSED**
 
 **Goal:** Construct the isolated semi-synthetic data-generating process (DGP) with known ground truth, enforce strict physical separation of truth from estimator inputs, and gate training data ingestion with a dedicated Great Expectations contract.
 
@@ -322,7 +322,7 @@ All 5 DGP self-tests pass within stated tolerances; training-table GX suite pass
 
 ---
 
-### Stage 7 — Qualification Q2: Estimator Training Scale & Budget ✅ **COMPLETED**
+### Stage 7 — Qualification Q2: Estimator Training Scale & Budget ✅ **PASSED**
 
 **Goal:** Execute qualification test Q2 across sample sizes and nuisance-model configurations to establish the optimal estimator training scale within runtime and memory budgets, closing the open P2-D5 decision.
 
@@ -371,7 +371,7 @@ Q2 report written with zero skipped cells; scale and nuisance models selected pe
 
 ---
 
-### Stage 8 — Causal Estimator & Segment Inference (P2-F06) ✅ **COMPLETED**
+### Stage 8 — Causal Estimator & Segment Inference (P2-F06) ✅ **PASSED**
 
 **Goal:** Implement the production `CausalForestDML` training pipeline and segment-level inference engine under the frozen Q2 configuration, generating finite, self-consistent confidence intervals on segment-average treatment effects.
 
@@ -405,7 +405,7 @@ Estimator fits cleanly on training data; segment-average point estimates and int
 
 ---
 
-### Stage 9 — Validation Harness & Q3 Threshold Calibration (P2-F07) ✅ **COMPLETED**
+### Stage 9 — Validation Harness & Q3 Threshold Calibration (P2-F07) ✅ **PASSED**
 
 **Goal:** Construct the multi-seed validation harness, prove its sensitivity by executing required negative controls, and calibrate numeric gate thresholds on pilot seeds (Q3) without peeking at final validation seeds.
 
@@ -486,7 +486,7 @@ Worst-seed and median-seed metrics beat frozen thresholds across all $K$ seeds; 
 
 ---
 
-### Stage 11 — Hidden-Confounder Sensitivity Analysis (P2-F08) ✅ **COMPLETED**
+### Stage 11 — Hidden-Confounder Sensitivity Analysis (P2-F08) ✅ **PASSED**
 
 **Goal:** Execute an unobserved-confounding sensitivity sweep over the known synthetic benchmark to establish the causal estimate's robustness value and generate the degradation curve feeding showcase scenario S4.
 
@@ -518,7 +518,7 @@ All 10 sensitivity grid cells execute successfully with zero skips; degradation 
 
 ---
 
-### Stage 12 — MLflow Artifact Packaging & Human-Gated Promotion (P2-F09) ✅ **COMPLETED**
+### Stage 12 — MLflow Artifact Packaging & Human-Gated Promotion (P2-F09) ✅ **PASSED**
 
 **Goal:** Package Tier 1 outputs into a promotable, auditable registry artifact and enforce a strict human-review gate that permits `candidate` assignment by automated pipelines, but requires human sign-off for `approved` promotion.
 
@@ -556,7 +556,7 @@ Attempt to run `promote_model.py` to assign the `approved` alias without providi
 
 > **✅ GATE 12 PASSED (2026-10-31).** `aegis-causal-elasticity` registered with `candidate` → v3; `approved` → v3 promoted under human review record (reviewer ID `Sebastián Garrido Arévalo`, review note recorded, calibration hash `4fae2271…b9a9` verified on-disk and in tag). Rollback rehearsal v3 → v2 → v3 executed successfully with `rollback_from` tags recorded on both versions. Serving loader returns 35 plain segments and rejects estimator binaries (`RegistrySecurityError` on `.pkl`/`.joblib`). Roadmap Exit Criterion E4 satisfied. Gate 12 hard close complete; Stages 13–15 unblocked.
 
-### Stage 13 — Diagnostic Showcase Slice (P2-F11) ✅ **COMPLETED**
+### Stage 13 — Diagnostic Showcase Slice (P2-F11) ✅ **PASSED**
 
 **Goal:** Implement the glass-box developer showcase demo slice reading from the `approved` segment artifact, displaying only $\epsilon$, confidence intervals, and validation metrics, with the INV-5 exemption enforced by construction.
 
@@ -639,7 +639,7 @@ Local `dvc repro` executes cleanly end-to-end; data products reproduce bit-ident
 
 ---
 
-### Stage 15 — ADR Consolidation & Phase 2 Sign-Off
+### Stage 15 — ADR Consolidation & Phase 2 Sign-Off ✅ **PASSED**
 
 **Goal:** Close the loop between **decided $\to$ built $\to$ verified $\to$ recorded**, update the authoritative architecture ledger, complete the Post-Implementation Review, and verify that all conditions for advancing to Phase 3 are satisfied.
 
