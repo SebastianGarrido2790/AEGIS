@@ -594,7 +594,7 @@ Showcase launches via `uv run uvicorn aegis.api.app:app`; all four preset scenar
 
 ---
 
-### Stage 14 — DAG Assembly, Config & CI Tiers / Reproducibility (P2-F10) ⚠️ **LOCAL GATES PASSED; REMOTE CI RERUN PENDING**
+### Stage 14 — DAG Assembly, Config & CI Tiers / Reproducibility (P2-F10) ✅ **PASSED**
 
 **Goal:** Assemble the DVC pipeline DAG with strict INV-3 validation ordering, formalize execution tiers (T1 CI-smoke, T2 local repro, T3 validation campaign), and prove reproducible execution.
 
@@ -668,7 +668,7 @@ Local `dvc repro` executes cleanly end-to-end; data products reproduce bit-ident
 
 **Inputs / Dependencies:**
 
-- Stages 0 through 13 passed and evidenced; Stage 14 has local reproducibility and CI-smoke evidence, with post-fix GitHub Actions confirmation outstanding.
+- Stages 0 through 14 passed and evidenced; Stage 14's post-fix GitHub Actions run `41931141437` passed, closing E6.
 
 **ADR Implements:** ADR-012 … ADR-015 status finalization (marks Validated).
 
